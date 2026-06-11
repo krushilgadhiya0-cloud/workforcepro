@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ListTodo, Users, CreditCard, CalendarOff, BarChart3, Shield,
-  ArrowRight, Sparkles, Sun, Moon,
+  ArrowRight, Sparkles, Sun, Moon, Crown,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
@@ -118,6 +118,13 @@ export function Landing() {
             <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-[var(--border)]/50 transition-colors cursor-pointer">
               {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
             </button>
+            <Link
+              to="/superadmin/login"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 transition-colors"
+            >
+              <Crown size={14} />
+              Super Admin
+            </Link>
             <Button variant="outline" size="sm" onClick={() => navigate('/login', { replace: true })}>Login</Button>
             <Button size="sm" onClick={() => navigate('/login?mode=register')}>Register</Button>
           </div>

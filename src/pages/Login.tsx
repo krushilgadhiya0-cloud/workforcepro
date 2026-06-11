@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import type { FormEvent } from 'react';
-import { Sparkles, Mail, Lock, User, Building2, Sun, Moon, ArrowLeft } from 'lucide-react';
+import { Sparkles, Mail, Lock, User, Building2, Sun, Moon, ArrowLeft, Crown } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useData } from '../contexts/DataContext';
@@ -258,6 +258,16 @@ export function Login() {
                   <button type="button" onClick={() => setAuthMode('register')} className="text-[var(--primary)] font-medium cursor-pointer">Register</button>
                 </p>
               )}
+
+              <div className="mt-6 pt-6 border-t border-[var(--border)]">
+                <Link
+                  to="/superadmin/login"
+                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/20 transition-colors"
+                >
+                  <Crown size={16} />
+                  Super Admin Sign In
+                </Link>
+              </div>
             </div>
           </div>
         </div>
