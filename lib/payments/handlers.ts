@@ -1,0 +1,156 @@
+import { createRazorpayClient, getRazorpayConfig } from './razorpay.js';
+import { getPlanAmount, isValidPlan, PLAN_LABELS } from './plans.js';
+import { verifyPaymentSignature, verifyWebhookSignature } from './verify.js';
+
+export interface CreateOrderInput {
+  plan: unknown;
+  companyId: string;
+  companyName?: string;
+  email?: string;
+}
+
+export interface CreateOrderResult {
+  orderId: string;
+  amount: number;
+  currency: 'INR';
+  keyId: string;
+  plan: 'monthly' | 'yearly';
+  companyId: string;
+  description: string;
+}
+
+export interface VerifyPaymentInput {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}
+
+export interface VerifyPaymentResult {
+  success: true;
+  plan: 'monthly' | 'yearly';
+  companyId: string;
+  paymentId: string;
+  orderId: string;
+}
+
+export async function handleCreateOrder(input: CreateOrderInput): Promise<CreateOrderResult> {
+  const { plan, companyId, companyName, email } = input;
+
+  if (!companyId || typeof companyId !== 'string') {
+    throw new Error('companyId is required');
+  }
+
+  if (!isValidPlan(plan)) {
+    throw new Error('Invalid plan. Use monthly or yearly.');
+  }
+
+  const amount = getPlanAmount(plan);
+  const { keyId } = getRazorpayConfig();
+  const razorpay = createRazorpayClient();
+
+  let order;
+  try {
+    order = await razorpay.orders.create({
+      amount,
+      currency: 'INR',
+      receipt: `sub_${companyId.slice(0, 8)}_${Date.now()}`,
+      notes: {
+        companyId,
+        plan,
+        companyName: companyName || '',
+        email: email || '',
+      },
+    });
+  } catch (error: unknown) {
+    const rzp = error as { error?: { description?: string; reason?: string } };
+    const detail = rzp.error?.description || rzp.error?.reason;
+    throw new Error(detail || 'Could not create Razorpay order. Check your API keys.');
+  }
+
+  return {
+    orderId: order.id,
+    amount,
+    currency: 'INR',
+    keyId,
+    plan,
+    companyId,
+    description: PLAN_LABELS[plan],
+  };
+}
+
+export async function handleVerifyPayment(input: VerifyPaymentInput): Promise<VerifyPaymentResult> {
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = input;
+
+  if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    throw new Error('Missing payment verification fields');
+  }
+
+  const { keySecret } = getRazorpayConfig();
+
+  const valid = verifyPaymentSignature(
+    razorpay_order_id,
+    razorpay_payment_id,
+    razorpay_signature,
+    keySecret,
+  );
+
+  if (!valid) {
+    throw new Error('Payment verification failed. Invalid signature.');
+  }
+
+  const razorpay = createRazorpayClient();
+  const order = await razorpay.orders.fetch(razorpay_order_id);
+  const notes = order.notes as Record<string, string> | undefined;
+  const plan = notes?.plan;
+  const companyId = notes?.companyId;
+
+  if (!isValidPlan(plan) || !companyId) {
+    throw new Error('Order metadata is invalid');
+  }
+
+  return {
+    success: true,
+    plan,
+    companyId,
+    paymentId: razorpay_payment_id,
+    orderId: razorpay_order_id,
+  };
+}
+
+export async function handleWebhook(rawBody: string, signature: string | undefined) {
+  const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+
+  if (!webhookSecret) {
+    throw new Error('RAZORPAY_WEBHOOK_SECRET is not configured');
+  }
+
+  if (!signature || !verifyWebhookSignature(rawBody, signature, webhookSecret)) {
+    throw new Error('Invalid webhook signature');
+  }
+
+  const event = JSON.parse(rawBody) as {
+    event: string;
+    payload?: {
+      payment?: {
+        entity?: {
+          id?: string;
+          order_id?: string;
+          status?: string;
+        };
+      };
+    };
+  };
+
+  if (event.event === 'payment.captured') {
+    const payment = event.payload?.payment?.entity;
+    return {
+      received: true,
+      event: event.event,
+      paymentId: payment?.id,
+      orderId: payment?.order_id,
+      status: payment?.status,
+    };
+  }
+
+  return { received: true, event: event.event };
+}

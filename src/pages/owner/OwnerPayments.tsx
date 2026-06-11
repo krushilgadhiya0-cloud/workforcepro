@@ -1,11 +1,26 @@
+import { useState } from 'react';
 import { Wallet, CreditCard, CheckCircle } from 'lucide-react';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Card, StatCard } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
-import { useCurrentCompany } from '../../contexts/DataContext';
+import { Button } from '../../components/ui/Button';
+import { Modal } from '../../components/ui/Modal';
+import { useCurrentCompany, useData, useCurrentUser } from '../../contexts/DataContext';
+import { useSubscriptionPayment } from '../../hooks/useSubscriptionPayment';
+import { RazorpayStatus } from '../../components/payments/RazorpayStatus';
+import type { SubscriptionPlan } from '../../types';
 
 export function OwnerPayments() {
   const company = useCurrentCompany();
+  const user = useCurrentUser();
+  const { subscribe } = useData();
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>('monthly');
+
+  const { pay, loading: paying, error: paymentError, clearError } = useSubscriptionPayment((plan, companyId) => {
+    subscribe(companyId, plan);
+    setShowUpgrade(false);
+  });
 
   const plans = {
     monthly: { name: 'Monthly Plan', price: 799, features: ['Unlimited Tasks', 'Worker Management', 'Payment Tracking'] },
@@ -14,9 +29,28 @@ export function OwnerPayments() {
 
   const currentPlan = company?.subscription ? plans[company.subscription] : null;
 
+  const handleUpgrade = async () => {
+    if (!company || !user) return;
+    clearError();
+    await pay(selectedPlan, {
+      companyId: company.id,
+      companyName: company.name,
+      email: company.email,
+      ownerName: company.ownerName,
+      phone: company.phone,
+    });
+  };
+
   return (
     <div>
-      <PageHeader title="Owner Subscription Payments" subtitle="Manage your platform subscription" showBack={false} />
+      <PageHeader
+        title="Owner Subscription Payments"
+        subtitle="Manage your platform subscription"
+        showBack={false}
+        action={!company?.subscription ? (
+          <Button onClick={() => setShowUpgrade(true)}>Subscribe Now</Button>
+        ) : undefined}
+      />
 
       <div className="grid sm:grid-cols-3 gap-4 mb-8">
         <StatCard title="Current Plan" value={currentPlan?.name || 'None'} icon={<Wallet size={22} className="text-[var(--primary)]" />} />
@@ -42,12 +76,52 @@ export function OwnerPayments() {
                 </li>
               ))}
             </ul>
-            <p className="text-xs text-[var(--text-muted)]">Demo mode — no real billing</p>
+            <Button variant="outline" onClick={() => setShowUpgrade(true)}>Change Plan</Button>
           </div>
         ) : (
-          <p className="text-[var(--text-muted)]">No active subscription. Subscribe from the home page when creating a business.</p>
+          <div className="space-y-4">
+            <p className="text-[var(--text-muted)]">No active subscription. Subscribe to unlock full platform access.</p>
+            <Button onClick={() => setShowUpgrade(true)}>Choose a Plan</Button>
+          </div>
         )}
       </Card>
+
+      <Modal isOpen={showUpgrade} onClose={() => !paying && setShowUpgrade(false)} title="Choose Your Plan" size="lg">
+        <div className="grid md:grid-cols-2 gap-4 mb-6">
+          {([
+            { plan: 'monthly' as const, price: '₹799', period: '/month', features: plans.monthly.features },
+            { plan: 'yearly' as const, price: '₹4,999', period: '/year', features: plans.yearly.features, popular: true },
+          ]).map((p) => (
+            <button
+              key={p.plan}
+              type="button"
+              onClick={() => setSelectedPlan(p.plan)}
+              className={`relative p-5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                selectedPlan === p.plan ? 'border-[var(--primary)] bg-[var(--primary)]/5' : 'border-[var(--border)] hover:border-[var(--primary)]/50'
+              }`}
+            >
+              {p.popular && <span className="absolute -top-2.5 right-4 px-3 py-0.5 rounded-full gradient-bg text-white text-xs font-medium">Best Value</span>}
+              <p className="text-sm text-[var(--text-muted)] capitalize">{p.plan} Plan</p>
+              <p className="text-3xl font-bold text-[var(--text)] mt-1">{p.price}<span className="text-sm font-normal text-[var(--text-muted)]">{p.period}</span></p>
+              <ul className="mt-4 space-y-2">
+                {p.features.map((f) => (
+                  <li key={f} className="text-sm text-[var(--text-muted)] flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)]" /> {f}
+                  </li>
+                ))}
+              </ul>
+            </button>
+          ))}
+        </div>
+        <RazorpayStatus />
+        {paymentError && <p className="text-sm text-red-500 text-center mb-4">{paymentError}</p>}
+        <div className="flex gap-3">
+          <Button className="flex-1" onClick={handleUpgrade} disabled={paying || !company}>
+            {paying ? 'Processing…' : 'Pay & Subscribe'}
+          </Button>
+          <Button variant="outline" className="flex-1" onClick={() => setShowUpgrade(false)} disabled={paying}>Cancel</Button>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -1,0 +1,80 @@
+import { existsSync } from 'fs';
+import { config as loadEnv } from 'dotenv';
+import express from 'express';
+
+if (existsSync('.env.local')) loadEnv({ path: '.env.local', override: true });
+loadEnv({ override: true });
+import { handleCreateOrder, handleVerifyPayment, handleWebhook } from '../lib/payments/handlers.js';
+import { getPaymentStatus } from '../lib/payments/razorpay.js';
+
+const app = express();
+const PORT = Number(process.env.API_PORT || 3001);
+
+app.use('/api/webhook', express.raw({ type: 'application/json' }));
+app.use(express.json());
+
+app.use((_req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-razorpay-signature');
+  next();
+});
+
+app.options('/api/create-order', (_req, res) => res.status(204).end());
+app.options('/api/verify-payment', (_req, res) => res.status(204).end());
+app.options('/api/webhook', (_req, res) => res.status(204).end());
+
+app.post('/api/create-order', async (req, res) => {
+  try {
+    const result = await handleCreateOrder(req.body ?? {});
+    res.status(200).json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to create order';
+    const status = message.includes('not configured') ? 503 : 400;
+    res.status(status).json({ error: message });
+  }
+});
+
+app.post('/api/verify-payment', async (req, res) => {
+  try {
+    const result = await handleVerifyPayment(req.body ?? {});
+    res.status(200).json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Payment verification failed';
+    const status = message.includes('not configured') ? 503 : 400;
+    res.status(status).json({ error: message });
+  }
+});
+
+app.post('/api/webhook', async (req, res) => {
+  try {
+    const rawBody = req.body instanceof Buffer ? req.body.toString('utf8') : JSON.stringify(req.body);
+    const signature = req.headers['x-razorpay-signature'];
+    const result = await handleWebhook(rawBody, typeof signature === 'string' ? signature : undefined);
+    res.status(200).json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Webhook processing failed';
+    res.status(400).json({ error: message });
+  }
+});
+
+app.get('/api/health', (_req, res) => {
+  res.json({ ok: true, service: 'workforcepro-payments' });
+});
+
+app.get('/api/payment-status', (_req, res) => {
+  res.json(getPaymentStatus());
+});
+
+const server = app.listen(PORT, () => {
+  console.log(`Payment API running at http://localhost:${PORT}`);
+});
+
+server.on('error', (error: NodeJS.ErrnoException) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use. Stop the other payment API process or set API_PORT in .env.local`);
+  } else {
+    console.error('Payment API failed to start:', error.message);
+  }
+  process.exit(1);
+});

@@ -10,6 +10,8 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { useData, useCurrentUser } from '../contexts/DataContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useSubscriptionPayment } from '../hooks/useSubscriptionPayment';
+import { RazorpayStatus } from '../components/payments/RazorpayStatus';
 
 const features = [
   { icon: ListTodo, title: 'Task Management', desc: 'Assign, track, and complete tasks efficiently' },
@@ -32,10 +34,17 @@ export function Landing() {
 
   const [showBusiness, setShowBusiness] = useState(false);
   const [showSubscription, setShowSubscription] = useState(false);
-  const [newCompanyId, setNewCompanyId] = useState('');
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('monthly');
+  const [createdCompany, setCreatedCompany] = useState<{ id: string; name: string; email: string; ownerName: string; phone: string } | null>(null);
   const [businessForm, setBusinessForm] = useState({
     name: '', ownerName: '', email: '', phone: '', address: '', industry: 'Technology', ownerPassword: '',
+  });
+
+  const { pay, loading: paying, error: paymentError } = useSubscriptionPayment((plan, companyId) => {
+    subscribe(companyId, plan);
+    setShowSubscription(false);
+    setCreatedCompany(null);
+    navigate('/dashboard');
   });
 
   const handleStartBusiness = () => {
@@ -69,15 +78,26 @@ export function Landing() {
       ownerId: userId,
       ownerPassword: businessForm.ownerPassword,
     });
-    setNewCompanyId(company.id);
+    setCreatedCompany({
+      id: company.id,
+      name: company.name,
+      email: company.email,
+      ownerName: company.ownerName,
+      phone: company.phone,
+    });
     setShowBusiness(false);
     setShowSubscription(true);
   };
 
-  const handleSubscribe = () => {
-    subscribe(newCompanyId, selectedPlan);
-    setShowSubscription(false);
-    navigate('/dashboard');
+  const handleSubscribe = async () => {
+    if (!createdCompany) return;
+    await pay(selectedPlan, {
+      companyId: createdCompany.id,
+      companyName: createdCompany.name,
+      email: createdCompany.email,
+      ownerName: createdCompany.ownerName,
+      phone: createdCompany.phone,
+    });
   };
 
   return (
@@ -220,10 +240,18 @@ export function Landing() {
             </button>
           ))}
         </div>
-        <p className="text-xs text-[var(--text-muted)] text-center mb-4">Demo mode — no real payment required</p>
+        <RazorpayStatus />
+        {paymentError && (
+          <p className="text-sm text-red-500 text-center mb-4">{paymentError}</p>
+        )}
+        <p className="text-xs text-[var(--text-muted)] text-center mb-4">
+          Secure payment via Razorpay (UPI, cards, netbanking)
+        </p>
         <div className="flex gap-3">
-          <Button className="flex-1" onClick={handleSubscribe}>Subscribe</Button>
-          <Button variant="outline" className="flex-1" onClick={() => setShowSubscription(false)}>Cancel</Button>
+          <Button className="flex-1" onClick={handleSubscribe} disabled={paying || !createdCompany}>
+            {paying ? 'Processing…' : 'Pay & Subscribe'}
+          </Button>
+          <Button variant="outline" className="flex-1" onClick={() => setShowSubscription(false)} disabled={paying}>Cancel</Button>
         </div>
       </Modal>
     </div>
