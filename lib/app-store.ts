@@ -2,14 +2,16 @@ import { head, put } from '@vercel/blob';
 import type { AppData } from '../src/types';
 import { mergeAppData, normalizeAppData } from './data-sync';
 import { getKvStore, getRedisEnvStatus, isKvConfigured } from './kv-store';
+import { getTcpRedisUrl, isTcpRedisConfigured, tcpRedisGet, tcpRedisSet } from './redis-tcp';
 
 const KV_KEY = 'workforce:app-data';
 const BLOB_PATH = 'workforce-app-data.json';
 
-export type StorageBackend = 'redis' | 'blob' | 'none';
+export type StorageBackend = 'redis' | 'redis-tcp' | 'blob' | 'none';
 
 export function getStorageBackend(): StorageBackend {
   if (isKvConfigured()) return 'redis';
+  if (isTcpRedisConfigured()) return 'redis-tcp';
   if (process.env.BLOB_READ_WRITE_TOKEN) return 'blob';
   return 'none';
 }
@@ -24,17 +26,22 @@ export function getStorageStatus() {
       urlKey: redis.urlKey,
       tokenKey: redis.tokenKey,
     },
+    redisTcp: {
+      configured: isTcpRedisConfigured(),
+      urlKey: isTcpRedisConfigured() ? 'KV_REST_API_REDIS_URL or REDIS_URL' : null,
+      urlType: getTcpRedisUrl()?.startsWith('rediss://') ? 'rediss' : 'redis',
+    },
     blob: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
   };
 }
 
-async function loadFromRedis(): Promise<AppData | null> {
+async function loadFromRestRedis(): Promise<AppData | null> {
   const kv = getKvStore();
   const data = await kv.get(KV_KEY);
   return data ? normalizeAppData(data as object) : null;
 }
 
-async function saveToRedis(data: AppData): Promise<AppData> {
+async function saveToRestRedis(data: AppData): Promise<AppData> {
   const kv = getKvStore();
   const existing = await kv.get(KV_KEY);
   const merged = mergeAppData(
@@ -42,6 +49,18 @@ async function saveToRedis(data: AppData): Promise<AppData> {
     data,
   );
   await kv.set(KV_KEY, merged);
+  return merged;
+}
+
+async function loadFromTcpRedis(): Promise<AppData | null> {
+  const data = await tcpRedisGet<AppData>(KV_KEY);
+  return data ? normalizeAppData(data) : null;
+}
+
+async function saveToTcpRedis(data: AppData): Promise<AppData> {
+  const existing = await loadFromTcpRedis();
+  const merged = mergeAppData(existing ?? {}, data);
+  await tcpRedisSet(KV_KEY, merged);
   return merged;
 }
 
@@ -69,14 +88,16 @@ async function saveToBlob(data: AppData): Promise<AppData> {
 
 export async function loadStoredAppData(): Promise<AppData | null> {
   const backend = getStorageBackend();
-  if (backend === 'redis') return loadFromRedis();
+  if (backend === 'redis') return loadFromRestRedis();
+  if (backend === 'redis-tcp') return loadFromTcpRedis();
   if (backend === 'blob') return loadFromBlob();
   return null;
 }
 
 export async function saveStoredAppData(data: AppData): Promise<AppData> {
   const backend = getStorageBackend();
-  if (backend === 'redis') return saveToRedis(data);
+  if (backend === 'redis') return saveToRestRedis(data);
+  if (backend === 'redis-tcp') return saveToTcpRedis(data);
   if (backend === 'blob') return saveToBlob(data);
-  throw new Error('No cloud storage configured. Add Redis or Blob storage in Vercel and redeploy.');
+  throw new Error('No cloud storage configured. Connect Redis to your Vercel project and redeploy.');
 }

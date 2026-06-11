@@ -20,17 +20,21 @@ function tokenCandidatesForUrlKey(urlKey: string): string[] {
   ];
 }
 
+function isTcpRedisUrl(value: string): boolean {
+  return value.startsWith('redis://') || value.startsWith('rediss://');
+}
+
 function resolveRedisEnv(): { url: string; token: string } | null {
   for (const [urlKey, tokenKey] of ENV_PAIRS) {
-    const url = process.env[urlKey];
-    const token = process.env[tokenKey];
-    if (url && token) return { url, token };
+    const url = process.env[urlKey]?.trim();
+    const token = process.env[tokenKey]?.trim();
+    if (url && token && !isTcpRedisUrl(url)) return { url, token };
   }
 
   for (const [key, value] of Object.entries(process.env)) {
-    if (!value || !key.endsWith('_URL')) continue;
+    if (!value || !key.endsWith('_URL') || isTcpRedisUrl(value)) continue;
     for (const tokenKey of tokenCandidatesForUrlKey(key)) {
-      const token = process.env[tokenKey];
+      const token = process.env[tokenKey]?.trim();
       if (token) return { url: value, token };
     }
   }
