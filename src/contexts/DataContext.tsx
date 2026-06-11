@@ -17,6 +17,7 @@ interface DataContextType extends AppData {
   subscribe: (companyId: string, plan: SubscriptionPlan) => void;
   removeCompany: (companyId: string, password: string) => boolean;
   removeCompanyAsSuperAdmin: (companyId: string) => void;
+  removeUserAsSuperAdmin: (userId: string) => boolean;
   addAdmin: (data: Omit<Admin, 'id' | 'createdAt' | 'userId'> & { password: string }) => Admin | null;
   updateAdmin: (id: string, data: Partial<Admin>) => boolean;
   deleteAdmin: (id: string) => void;
@@ -203,6 +204,46 @@ export function DataProvider({ children }: { children: ReactNode }) {
     d.payments = d.payments.filter((p) => p.companyId !== companyId);
     if (d.currentCompanyId === companyId) d.currentCompanyId = null;
     persist(d);
+  }, [data, persist]);
+
+  const removeUserAsSuperAdmin = useCallback((userId: string): boolean => {
+    const user = data.users.find((u) => u.id === userId);
+    if (!user || user.role === 'superadmin') return false;
+
+    const d = { ...data };
+
+    if (user.role === 'admin') {
+      d.admins = d.admins.filter((a) => a.userId !== userId);
+    } else if (user.role === 'worker') {
+      const worker = d.workers.find((w) => w.userId === userId);
+      if (worker) {
+        d.workers = d.workers.filter((w) => w.id !== worker.id);
+        d.tasks = d.tasks.filter((t) => t.workerId !== worker.id);
+        d.leaves = d.leaves.filter((l) => l.workerId !== worker.id);
+        d.payments = d.payments.filter((p) => p.workerId !== worker.id);
+      }
+    } else if (user.role === 'owner') {
+      const companyIds = d.companies.filter((c) => c.ownerId === userId).map((c) => c.id);
+      companyIds.forEach((companyId) => {
+        d.companies = d.companies.filter((c) => c.id !== companyId);
+        d.admins = d.admins.filter((a) => a.companyId !== companyId);
+        d.workers = d.workers.filter((w) => w.companyId !== companyId);
+        d.tasks = d.tasks.filter((t) => t.companyId !== companyId);
+        d.leaves = d.leaves.filter((l) => l.companyId !== companyId);
+        d.payments = d.payments.filter((p) => p.companyId !== companyId);
+        if (d.currentCompanyId === companyId) d.currentCompanyId = null;
+      });
+    }
+
+    d.users = d.users.filter((u) => u.id !== userId);
+    d.notifications = d.notifications.filter((n) => n.userId !== userId);
+    if (d.currentUserId === userId) {
+      d.currentUserId = null;
+      d.currentCompanyId = null;
+    }
+
+    persist(d);
+    return true;
   }, [data, persist]);
 
   const addAdmin = useCallback((adminData: Omit<Admin, 'id' | 'createdAt' | 'userId'> & { password: string }): Admin | null => {
@@ -523,6 +564,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       subscribe,
       removeCompany,
       removeCompanyAsSuperAdmin,
+      removeUserAsSuperAdmin,
       addAdmin,
       updateAdmin,
       deleteAdmin,
