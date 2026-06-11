@@ -3,10 +3,15 @@ import type {
   AppData, User, Company, Admin, Worker, Task, LeaveRequest, Payment, Notification,
   SubscriptionPlan, AdminRole, LeaveStatus, ActivityLog,
 } from '../types';
-import { loadData, saveData, syncFromServer, defaultData, generateId, generateTransactionId, SUPER_ADMIN_ID } from '../utils/storage';
+import {
+  loadData, saveData, syncFromServer, defaultData, generateId, generateTransactionId,
+  SUPER_ADMIN_ID, getSyncState, type SyncState,
+} from '../utils/storage';
 import { assertValidEmailFormat } from '../utils/email';
 
 interface DataContextType extends AppData {
+  syncState: SyncState;
+  syncError: string;
   refresh: () => Promise<AppData>;
   login: (email: string, password: string) => Promise<User | null>;
   register: (user: Omit<User, 'id' | 'createdAt'>) => Promise<User>;
@@ -50,19 +55,29 @@ const DataContext = createContext<DataContextType | null>(null);
 export function DataProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<AppData>(defaultData);
   const [loading, setLoading] = useState(true);
+  const [syncState, setSyncState] = useState<SyncState>('idle');
+  const [syncError, setSyncError] = useState('');
+
+  const updateSyncStatus = useCallback(() => {
+    const { state, error } = getSyncState();
+    setSyncState(state);
+    setSyncError(error);
+  }, []);
 
   useEffect(() => {
     loadData().then((loaded) => {
       setData(loaded);
+      updateSyncStatus();
       setLoading(false);
     });
-  }, []);
+  }, [updateSyncStatus]);
 
   const persist = useCallback(async (newData: AppData) => {
     const session = { currentUserId: newData.currentUserId, currentCompanyId: newData.currentCompanyId };
     const saved = await saveData(newData);
+    updateSyncStatus();
     setData({ ...saved, ...session });
-  }, []);
+  }, [updateSyncStatus]);
 
   const refresh = useCallback(async (): Promise<AppData> => {
     let session = { currentUserId: null as string | null, currentCompanyId: null as string | null };
@@ -71,9 +86,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       return prev;
     });
     const synced = await syncFromServer(session);
+    updateSyncStatus();
     setData(synced);
     return synced;
-  }, []);
+  }, [updateSyncStatus]);
 
   const appendNotification = (d: AppData, notif: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
     d.notifications.push({ ...notif, id: generateId(), read: false, createdAt: new Date().toISOString() });
@@ -665,6 +681,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   return (
     <DataContext.Provider value={{
       ...data,
+      syncState,
+      syncError,
       refresh,
       login,
       register,

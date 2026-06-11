@@ -8,15 +8,26 @@ export const SUPER_ADMIN_EMAIL = import.meta.env.VITE_SUPER_ADMIN_EMAIL ?? '';
 export const SUPER_ADMIN_PASSWORD = import.meta.env.VITE_SUPER_ADMIN_PASSWORD ?? '';
 
 export const defaultData: AppData = defaultAppData;
-
 export const API_URL = import.meta.env.VITE_API_URL || '/api/data';
+
+export type SyncState = 'idle' | 'syncing' | 'synced' | 'offline';
+
+let lastSyncState: SyncState = 'idle';
+let lastSyncError = '';
+
+export function getSyncState(): { state: SyncState; error: string } {
+  return { state: lastSyncState, error: lastSyncError };
+}
+
+function setSyncState(state: SyncState, error = '') {
+  lastSyncState = state;
+  lastSyncError = error;
+}
 
 function ensureSuperAdmin(data: AppData): AppData {
   if (!SUPER_ADMIN_EMAIL || !SUPER_ADMIN_PASSWORD) return data;
 
   const idx = data.users.findIndex((u) => u.role === 'superadmin');
-  let changed = false;
-
   if (idx === -1) {
     data.users.push({
       id: SUPER_ADMIN_ID,
@@ -26,7 +37,6 @@ function ensureSuperAdmin(data: AppData): AppData {
       role: 'superadmin',
       createdAt: new Date().toISOString(),
     });
-    changed = true;
   } else {
     const admin = data.users[idx];
     if (
@@ -41,12 +51,7 @@ function ensureSuperAdmin(data: AppData): AppData {
         password: SUPER_ADMIN_PASSWORD,
         role: 'superadmin',
       };
-      changed = true;
     }
-  }
-
-  if (changed) {
-    void saveData(data);
   }
   return data;
 }
@@ -60,23 +65,55 @@ export function getLocalData(): AppData {
   }
 }
 
-async function fetchRemoteData(): Promise<AppData | null> {
+type RemoteResult =
+  | { ok: true; data: AppData | null }
+  | { ok: false; error: string };
+
+async function fetchRemoteData(): Promise<RemoteResult> {
   try {
-    const res = await fetch(API_URL);
-    if (!res.ok) return null;
-    const apiData = await res.json();
-    return apiData ? normalizeAppData(apiData) : null;
+    const res = await fetch(API_URL, { cache: 'no-store' });
+    const body = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      const message = typeof body?.error === 'string'
+        ? body.error
+        : `Cloud sync unavailable (${res.status})`;
+      return { ok: false, error: message };
+    }
+
+    if (body?.error) {
+      return { ok: false, error: body.error };
+    }
+
+    if (body?.data && body.ok === true) {
+      return { ok: true, data: normalizeAppData(body.data) };
+    }
+
+    return { ok: true, data: body ? normalizeAppData(body) : null };
   } catch {
-    return null;
+    return { ok: false, error: 'Could not reach cloud storage. Check your connection and redeploy.' };
   }
 }
 
 export async function loadData(): Promise<AppData> {
-  const remote = await fetchRemoteData();
+  setSyncState('syncing');
   const local = getLocalData();
-  const merged = remote ? mergeAppData(remote, local) : local;
-  const data = stripSession(ensureSuperAdmin(merged));
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(stripSession(data)));
+  const remote = await fetchRemoteData();
+
+  let data: AppData;
+  if (remote.ok) {
+    data = remote.data
+      ? mergeAppData(local, remote.data)
+      : mergeAppData({}, local);
+    setSyncState('synced');
+  } else {
+    data = local;
+    setSyncState('offline', remote.error);
+    console.warn('Cloud sync load failed:', remote.error);
+  }
+
+  data = stripSession(ensureSuperAdmin(data));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   return data;
 }
 
@@ -88,29 +125,48 @@ export async function syncFromServer(
 }
 
 export async function saveData(data: AppData): Promise<AppData> {
+  setSyncState('syncing');
   const persisted = stripSession(data);
   const remote = await fetchRemoteData();
-  const merged = remote ? mergeAppData(remote, persisted) : persisted;
-  const finalData = stripSession(ensureSuperAdmin(merged));
 
+  let merged = persisted;
+  if (remote.ok) {
+    merged = mergeAppData(remote.data ?? {}, persisted);
+  }
+
+  const finalData = stripSession(ensureSuperAdmin(merged));
   localStorage.setItem(STORAGE_KEY, JSON.stringify(finalData));
 
   try {
     const res = await fetch(API_URL, {
       method: 'POST',
+      cache: 'no-store',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(finalData),
     });
-    if (res.ok) {
-      const result = await res.json();
-      if (result?.data) {
-        const serverData = stripSession(normalizeAppData(result.data));
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(serverData));
-        return serverData;
-      }
+    const result = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      const message = typeof result?.error === 'string'
+        ? result.error
+        : `Cloud save failed (${res.status})`;
+      setSyncState('offline', message);
+      console.error('Failed to save to cloud:', message);
+      return finalData;
     }
+
+    if (result?.data) {
+      const serverData = stripSession(normalizeAppData(result.data));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(serverData));
+      setSyncState('synced');
+      return serverData;
+    }
+
+    setSyncState('synced');
   } catch (error) {
-    console.error('Failed to save to API:', error);
+    const message = error instanceof Error ? error.message : 'Cloud save failed';
+    setSyncState('offline', message);
+    console.error('Failed to save to cloud:', error);
   }
 
   return finalData;

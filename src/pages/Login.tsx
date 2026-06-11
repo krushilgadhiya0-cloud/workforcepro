@@ -11,7 +11,7 @@ import { useEmailValidation } from '../hooks/useEmailValidation';
 export function Login() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { login, logout, register, refresh } = useData();
+  const { login, logout, register, refresh, syncState, syncError } = useData();
   const [submitting, setSubmitting] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { emailError, checking, validateEmail, clearEmailError } = useEmailValidation();
@@ -187,6 +187,13 @@ export function Login() {
                   Register
                 </button>
               </div>
+
+              {syncState === 'offline' && (
+                <div className="mb-4 p-3 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-400 text-sm">
+                  <strong>Cloud sync offline.</strong> Accounts only work on this device until Redis is connected in Vercel.
+                  {syncError && <span className="block mt-1 text-xs opacity-90">{syncError}</span>}
+                </div>
+              )}
 
               {error && <div className="mb-4 p-3 rounded-xl bg-red-500/10 text-red-500 text-sm">{error}</div>}
               {success && <div className="mb-4 p-3 rounded-xl bg-green-500/10 text-green-600 text-sm">{success}</div>}
