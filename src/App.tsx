@@ -22,6 +22,7 @@ import { WorkerLeaves } from './pages/worker/WorkerLeaves';
 import { WorkerPayments } from './pages/worker/WorkerPayments';
 import { WorkerSettings } from './pages/worker/WorkerSettings';
 import { WorkerNotifications } from './pages/worker/WorkerNotifications';
+import { SuperAdminLogin } from './pages/superadmin/SuperAdminLogin';
 import { SuperAdminDashboard } from './pages/superadmin/SuperAdminDashboard';
 import { SuperAdminCompanies } from './pages/superadmin/SuperAdminCompanies';
 import { SuperAdminPayments } from './pages/superadmin/SuperAdminPayments';
@@ -38,6 +39,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/superadmin/login" element={<SuperAdminLogin />} />
 
             <Route path="/superadmin" element={<ProtectedRoute roles={['superadmin']}><DashboardLayout><SuperAdminDashboard /></DashboardLayout></ProtectedRoute>} />
             <Route path="/superadmin/companies" element={<ProtectedRoute roles={['superadmin']}><DashboardLayout><SuperAdminCompanies /></DashboardLayout></ProtectedRoute>} />

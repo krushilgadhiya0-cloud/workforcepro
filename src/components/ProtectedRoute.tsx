@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useCurrentUser } from '../contexts/DataContext';
 
 function getHomeForRole(role: string) {
@@ -14,8 +14,12 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
   const user = useCurrentUser();
+  const location = useLocation();
 
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) {
+    const isSuperAdminRoute = location.pathname.startsWith('/superadmin') && location.pathname !== '/superadmin/login';
+    return <Navigate to={isSuperAdminRoute ? '/superadmin/login' : '/login'} replace />;
+  }
   if (roles && !roles.includes(user.role)) {
     return <Navigate to={getHomeForRole(user.role)} replace />;
   }

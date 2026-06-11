@@ -84,28 +84,32 @@ export function getLocalData(): AppData {
   }
 }
 
+function stripSession(data: AppData): AppData {
+  return { ...data, currentUserId: null, currentCompanyId: null };
+}
+
 export async function loadData(): Promise<AppData> {
   try {
     const res = await fetch(API_URL);
     const apiData = await res.json();
     const data = migrateCompanies(apiData ? { ...defaultData, ...apiData } : getLocalData());
-    return ensureSuperAdmin(data);
+    return stripSession(ensureSuperAdmin(data));
   } catch (error) {
     console.error('Failed to load from API, falling back to local:', error);
-    return ensureSuperAdmin(migrateCompanies(getLocalData()));
+    return stripSession(ensureSuperAdmin(migrateCompanies(getLocalData())));
   }
 }
 
 export async function saveData(data: AppData): Promise<void> {
-  // Save to local for immediate feedback/fallback
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  const persisted = stripSession(data);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
   
   // Save to API for sync
   try {
     await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify(persisted),
     });
   } catch (error) {
     console.error('Failed to save to API:', error);

@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import type { FormEvent } from 'react';
-import { Sparkles, Mail, Lock, User, Building2, Sun, Moon, ArrowLeft, Crown } from 'lucide-react';
-import { SUPER_ADMIN_EMAIL } from '../utils/storage';
+import { Sparkles, Mail, Lock, User, Building2, Sun, Moon, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useData } from '../contexts/DataContext';
@@ -12,11 +11,11 @@ import { useEmailValidation } from '../hooks/useEmailValidation';
 export function Login() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { login, register, users } = useData();
+  const { login, logout, register, users } = useData();
   const { theme, toggleTheme } = useTheme();
   const { emailError, checking, validateEmail, clearEmailError } = useEmailValidation();
 
-  const [mode, setMode] = useState<'login' | 'register' | 'superadmin'>('login');
+  const [mode, setMode] = useState<'login' | 'register'>('login');
   const [companyName, setCompanyName] = useState('');
   const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' });
   const [error, setError] = useState('');
@@ -25,36 +24,27 @@ export function Login() {
 
   const emptyForm = { name: '', email: '', password: '', confirmPassword: '' };
 
-  const setAuthMode = (next: 'login' | 'register' | 'superadmin') => {
+  const setAuthMode = (next: 'login' | 'register') => {
     setMode(next);
     setError('');
     setSuccess('');
     setStep('form');
-    if (next === 'login') {
-      setForm(emptyForm);
-      setSearchParams({});
-    } else if (next === 'register') {
-      setForm(emptyForm);
+    setForm(emptyForm);
+    if (next === 'register') {
       setSearchParams({ mode: 'register' });
     } else {
-      setForm({ ...emptyForm, email: SUPER_ADMIN_EMAIL });
-      setSearchParams({ mode: 'superadmin' });
+      setSearchParams({});
     }
   };
 
   useEffect(() => {
     const m = searchParams.get('mode');
-    if (m === 'register') {
-      setMode('register');
-      return;
-    }
     if (m === 'superadmin') {
-      setMode('superadmin');
-      setForm((prev) => ({ ...prev, email: SUPER_ADMIN_EMAIL, password: '' }));
+      navigate('/superadmin/login', { replace: true });
       return;
     }
-    setMode('login');
-  }, [searchParams]);
+    setMode(m === 'register' ? 'register' : 'login');
+  }, [searchParams, navigate]);
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
@@ -65,13 +55,17 @@ export function Login() {
       return;
     }
     const user = login(form.email, form.password);
-    if (user) {
-      if (user.role === 'superadmin') navigate('/superadmin');
-      else if (user.role === 'worker') navigate('/worker');
-      else navigate('/dashboard');
-    } else {
+    if (!user) {
       setError('Invalid email or password. Please check your credentials.');
+      return;
     }
+    if (user.role === 'superadmin') {
+      logout();
+      setError('Super Admin must use the secure admin sign-in page.');
+      return;
+    }
+    if (user.role === 'worker') navigate('/worker');
+    else navigate('/dashboard');
   };
 
   const handleRegister = async (e: FormEvent) => {
@@ -102,7 +96,7 @@ export function Login() {
         name: form.name,
         role: 'owner',
       });
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
       setStep('form');
@@ -160,10 +154,10 @@ export function Login() {
                   />
                 </div>
                 <h2 className="text-2xl font-bold text-[var(--text)]">
-                  {mode === 'superadmin' ? 'Super Admin' : mode === 'login' ? 'Sign In' : 'Create Account'}
+                  {mode === 'login' ? 'Sign In' : 'Create Account'}
                 </h2>
                 <p className="text-sm text-[var(--text-muted)] mt-1">
-                  {mode === 'superadmin' ? 'Platform administrator access — view all companies & payments' : mode === 'login' ? 'Sign in with credentials from your business owner or admin' : 'Business owners only — create your company account'}
+                  {mode === 'login' ? 'Sign in with credentials from your business owner or admin' : 'Business owners only — create your company account'}
                 </p>
               </div>
 
@@ -182,13 +176,6 @@ export function Login() {
                 >
                   Register
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setAuthMode('superadmin')}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer flex items-center justify-center gap-1 ${mode === 'superadmin' ? 'bg-amber-500/20 shadow-sm text-amber-600 dark:text-amber-400' : 'text-[var(--text-muted)]'}`}
-                >
-                  <Crown size={14} /> Super Admin
-                </button>
               </div>
 
               {error && <div className="mb-4 p-3 rounded-xl bg-red-500/10 text-red-500 text-sm">{error}</div>}
@@ -203,12 +190,6 @@ export function Login() {
               {mode === 'register' && (
                 <div className="mb-4 p-3 rounded-xl bg-[var(--primary)]/10 text-xs text-[var(--text-muted)]">
                   <strong className="text-[var(--text)]">Owners only.</strong> Workers and admins are added by the business owner and receive login credentials automatically.
-                </div>
-              )}
-
-              {mode === 'superadmin' && (
-                <div className="mb-4 p-3 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs">
-                  <strong>Super Admin access.</strong> Use the credentials configured for this deployment.
                 </div>
               )}
 
@@ -244,8 +225,8 @@ export function Login() {
                       <Input label="Confirm Password" type="password" value={form.confirmPassword} onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} className="pl-10" placeholder="••••••••" required />
                     </div>
                   )}
-                  <Button type="submit" disabled={checking} className={`w-full ${mode === 'superadmin' ? 'bg-amber-500 hover:bg-amber-600' : ''}`}>
-                    {checking ? 'Checking email…' : mode === 'superadmin' ? 'Sign In as Super Admin' : mode === 'login' ? 'Sign In' : 'Register & Verify Email'}
+                  <Button type="submit" disabled={checking} className="w-full">
+                    {checking ? 'Checking email…' : mode === 'login' ? 'Sign In' : 'Register & Verify Email'}
                   </Button>
                 </form>
               ) : (
@@ -263,8 +244,6 @@ export function Login() {
                 <p className="text-center text-sm text-[var(--text-muted)] mt-4">
                   Business owner?{' '}
                   <button type="button" onClick={() => setAuthMode('register')} className="text-[var(--primary)] font-medium cursor-pointer">Register</button>
-                  {' · '}
-                  <button type="button" onClick={() => setAuthMode('superadmin')} className="text-amber-600 font-medium cursor-pointer">Super Admin</button>
                 </p>
               )}
             </div>

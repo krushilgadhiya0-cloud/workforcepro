@@ -8,7 +8,7 @@ import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
-import { useData, useCurrentUser } from '../contexts/DataContext';
+import { useData } from '../contexts/DataContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useSubscriptionPayment } from '../hooks/useSubscriptionPayment';
 import { useEmailValidation } from '../hooks/useEmailValidation';
@@ -31,7 +31,6 @@ export function Landing() {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const { register, createCompany, subscribe } = useData();
-  const currentUser = useCurrentUser();
 
   const [showBusiness, setShowBusiness] = useState(false);
   const [showSubscription, setShowSubscription] = useState(false);
@@ -51,11 +50,7 @@ export function Landing() {
   });
 
   const handleStartBusiness = () => {
-    if (currentUser) {
-      setShowBusiness(true);
-    } else {
-      navigate('/login?mode=register');
-    }
+    navigate('/login?mode=register');
   };
 
   const handleCreateBusiness = async () => {
@@ -69,17 +64,14 @@ export function Landing() {
       setBusinessError(emailCheck.message);
       return;
     }
-    let userId = currentUser?.id;
-    if (!userId) {
-      const user = register({
-        email: businessForm.email,
-        password: businessForm.ownerPassword,
-        name: businessForm.ownerName,
-        role: 'owner',
-        phone: businessForm.phone,
-      });
-      userId = user.id;
-    }
+    const user = register({
+      email: businessForm.email,
+      password: businessForm.ownerPassword,
+      name: businessForm.ownerName,
+      role: 'owner',
+      phone: businessForm.phone,
+    });
+    const userId = user.id;
     const company = createCompany({
       name: businessForm.name,
       ownerName: businessForm.ownerName,
@@ -126,23 +118,8 @@ export function Landing() {
             <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-[var(--border)]/50 transition-colors cursor-pointer">
               {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
             </button>
-            {currentUser ? (
-              <>
-                <Button variant="outline" size="sm" onClick={() => navigate('/')}>Home</Button>
-                <Button size="sm" onClick={() => navigate(
-                  currentUser.role === 'superadmin' ? '/superadmin' :
-                  currentUser.role === 'worker' ? '/worker' : '/dashboard'
-                )}>
-                  Go to Dashboard
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button variant="outline" size="sm" onClick={() => navigate('/login', { replace: true })}>Login</Button>
-                <Button size="sm" onClick={() => navigate('/login?mode=register')}>Register</Button>
-                <Button variant="outline" size="sm" onClick={() => navigate('/login?mode=superadmin')}>Super Admin</Button>
-              </>
-            )}
+            <Button variant="outline" size="sm" onClick={() => navigate('/login', { replace: true })}>Login</Button>
+            <Button size="sm" onClick={() => navigate('/login?mode=register')}>Register</Button>
           </div>
         </div>
       </nav>
