@@ -36,8 +36,10 @@ function migrateCompanies(data: AppData): AppData {
 function ensureSuperAdmin(data: AppData): AppData {
   if (!SUPER_ADMIN_EMAIL || !SUPER_ADMIN_PASSWORD) return migrateCompanies(data);
 
-  const exists = data.users.some((u) => u.role === 'superadmin');
-  if (!exists) {
+  const idx = data.users.findIndex((u) => u.role === 'superadmin');
+  let changed = false;
+
+  if (idx === -1) {
     data.users.push({
       id: SUPER_ADMIN_ID,
       email: SUPER_ADMIN_EMAIL,
@@ -46,7 +48,27 @@ function ensureSuperAdmin(data: AppData): AppData {
       role: 'superadmin',
       createdAt: new Date().toISOString(),
     });
-    saveData(data);
+    changed = true;
+  } else {
+    const admin = data.users[idx];
+    if (
+      admin.id !== SUPER_ADMIN_ID ||
+      admin.email !== SUPER_ADMIN_EMAIL ||
+      admin.password !== SUPER_ADMIN_PASSWORD
+    ) {
+      data.users[idx] = {
+        ...admin,
+        id: SUPER_ADMIN_ID,
+        email: SUPER_ADMIN_EMAIL,
+        password: SUPER_ADMIN_PASSWORD,
+        role: 'superadmin',
+      };
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    void saveData(data);
   }
   return migrateCompanies(data);
 }
