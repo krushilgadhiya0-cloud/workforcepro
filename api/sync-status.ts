@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getStorageBackend, getStorageStatus } from '../lib/app-store.js';
 import { setCorsHeaders, handleOptions } from './_cors.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -10,10 +9,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const backend = getStorageBackend();
-  return res.status(backend === 'none' ? 503 : 200).json({
-    ok: backend !== 'none',
-    backend,
-    status: getStorageStatus(),
-  });
+  try {
+    const { getStorageBackend, getStorageStatus } = await import('../lib/app-store.js');
+    const backend = getStorageBackend();
+    return res.status(backend === 'none' ? 503 : 200).json({
+      ok: backend !== 'none',
+      backend,
+      status: getStorageStatus(),
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Status check failed';
+    return res.status(500).json({ ok: false, error: message });
+  }
 }

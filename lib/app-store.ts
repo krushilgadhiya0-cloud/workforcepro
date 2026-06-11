@@ -1,8 +1,8 @@
-import { head, put } from '@vercel/blob';
 import type { AppData } from '../src/types';
 import { mergeAppData, normalizeAppData } from './data-sync';
 import { getKvStore, getRedisEnvStatus, isKvConfigured } from './kv-store';
-import { getTcpRedisUrl, isTcpRedisConfigured, tcpRedisGet, tcpRedisSet } from './redis-tcp';
+import { isTcpRedisConfigured } from './redis-tcp-env';
+import { ensureSuperAdminInData } from './super-admin';
 
 const KV_KEY = 'workforce:app-data';
 const BLOB_PATH = 'workforce-app-data.json';
@@ -28,17 +28,19 @@ export function getStorageStatus() {
     },
     redisTcp: {
       configured: isTcpRedisConfigured(),
-      urlKey: isTcpRedisConfigured() ? 'KV_REST_API_REDIS_URL or REDIS_URL' : null,
-      urlType: getTcpRedisUrl()?.startsWith('rediss://') ? 'rediss' : 'redis',
     },
     blob: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
+    superAdmin: Boolean(
+      process.env.SUPER_ADMIN_EMAIL
+      || process.env.VITE_SUPER_ADMIN_EMAIL,
+    ),
   };
 }
 
 async function loadFromRestRedis(): Promise<AppData | null> {
   const kv = getKvStore();
   const data = await kv.get(KV_KEY);
-  return data ? normalizeAppData(data as object) : null;
+  return data ? ensureSuperAdminInData(normalizeAppData(data as object)) : ensureSuperAdminInData(normalizeAppData(null));
 }
 
 async function saveToRestRedis(data: AppData): Promise<AppData> {
@@ -46,38 +48,42 @@ async function saveToRestRedis(data: AppData): Promise<AppData> {
   const existing = await kv.get(KV_KEY);
   const merged = mergeAppData(
     existing ? normalizeAppData(existing as object) : {},
-    data,
+    ensureSuperAdminInData(data),
   );
   await kv.set(KV_KEY, merged);
   return merged;
 }
 
 async function loadFromTcpRedis(): Promise<AppData | null> {
+  const { tcpRedisGet } = await import('./redis-tcp.js');
   const data = await tcpRedisGet<AppData>(KV_KEY);
-  return data ? normalizeAppData(data) : null;
+  return data ? ensureSuperAdminInData(normalizeAppData(data)) : ensureSuperAdminInData(normalizeAppData(null));
 }
 
 async function saveToTcpRedis(data: AppData): Promise<AppData> {
-  const existing = await loadFromTcpRedis();
-  const merged = mergeAppData(existing ?? {}, data);
+  const { tcpRedisGet, tcpRedisSet } = await import('./redis-tcp.js');
+  const existing = await tcpRedisGet<AppData>(KV_KEY);
+  const merged = mergeAppData(existing ?? {}, ensureSuperAdminInData(data));
   await tcpRedisSet(KV_KEY, merged);
   return merged;
 }
 
 async function loadFromBlob(): Promise<AppData | null> {
   try {
+    const { head } = await import('@vercel/blob');
     const meta = await head(BLOB_PATH);
     const res = await fetch(meta.url, { cache: 'no-store' });
-    if (!res.ok) return null;
-    return normalizeAppData(await res.json());
+    if (!res.ok) return ensureSuperAdminInData(normalizeAppData(null));
+    return ensureSuperAdminInData(normalizeAppData(await res.json()));
   } catch {
     return null;
   }
 }
 
 async function saveToBlob(data: AppData): Promise<AppData> {
+  const { put } = await import('@vercel/blob');
   const existing = await loadFromBlob();
-  const merged = mergeAppData(existing ?? {}, data);
+  const merged = mergeAppData(existing ?? {}, ensureSuperAdminInData(data));
   await put(BLOB_PATH, JSON.stringify(merged), {
     access: 'public',
     addRandomSuffix: false,
@@ -88,9 +94,14 @@ async function saveToBlob(data: AppData): Promise<AppData> {
 
 export async function loadStoredAppData(): Promise<AppData | null> {
   const backend = getStorageBackend();
-  if (backend === 'redis') return loadFromRestRedis();
-  if (backend === 'redis-tcp') return loadFromTcpRedis();
-  if (backend === 'blob') return loadFromBlob();
+  try {
+    if (backend === 'redis') return await loadFromRestRedis();
+    if (backend === 'redis-tcp') return await loadFromTcpRedis();
+    if (backend === 'blob') return await loadFromBlob();
+  } catch (error) {
+    console.error('Storage load failed:', error);
+    throw error;
+  }
   return null;
 }
 

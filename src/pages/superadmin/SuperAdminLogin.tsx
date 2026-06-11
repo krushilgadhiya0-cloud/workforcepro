@@ -5,6 +5,7 @@ import { Crown, Mail, Lock, Sun, Moon, ArrowLeft, Shield } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { useData } from '../../contexts/DataContext';
+import { isSuperAdminConfigured } from '../../utils/storage';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useEmailValidation } from '../../hooks/useEmailValidation';
 
@@ -76,6 +77,13 @@ export function SuperAdminLogin() {
             <Shield size={14} className="mt-0.5 shrink-0" />
             <span>This portal is separate from business owner login. Access is granted only with valid Super Admin credentials.</span>
           </div>
+
+          {!isSuperAdminConfigured() && (
+            <div className="mb-4 p-3 rounded-xl bg-red-500/10 text-red-500 text-sm">
+              Super Admin is not configured. Add <strong>VITE_SUPER_ADMIN_EMAIL</strong> and{' '}
+              <strong>VITE_SUPER_ADMIN_PASSWORD</strong> in Vercel environment variables, then redeploy.
+            </div>
+          )}
 
           {error && <div className="mb-4 p-3 rounded-xl bg-red-500/10 text-red-500 text-sm">{error}</div>}
 

@@ -7,6 +7,18 @@ export const SUPER_ADMIN_ID = 'super-admin-system';
 export const SUPER_ADMIN_EMAIL = import.meta.env.VITE_SUPER_ADMIN_EMAIL ?? '';
 export const SUPER_ADMIN_PASSWORD = import.meta.env.VITE_SUPER_ADMIN_PASSWORD ?? '';
 
+export function isSuperAdminConfigured(): boolean {
+  return Boolean(SUPER_ADMIN_EMAIL && SUPER_ADMIN_PASSWORD);
+}
+
+export function matchesSuperAdminLogin(email: string, password: string): boolean {
+  if (!isSuperAdminConfigured()) return false;
+  return (
+    email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()
+    && password === SUPER_ADMIN_PASSWORD
+  );
+}
+
 export const defaultData: AppData = defaultAppData;
 export const API_URL = import.meta.env.VITE_API_URL || '/api/data';
 
@@ -24,7 +36,7 @@ function setSyncState(state: SyncState, error = '') {
   lastSyncError = error;
 }
 
-function ensureSuperAdmin(data: AppData): AppData {
+export function ensureSuperAdminFromStorage(data: AppData): AppData {
   if (!SUPER_ADMIN_EMAIL || !SUPER_ADMIN_PASSWORD) return data;
 
   const idx = data.users.findIndex((u) => u.role === 'superadmin');
@@ -69,9 +81,21 @@ type RemoteResult =
   | { ok: true; data: AppData | null }
   | { ok: false; error: string };
 
+const FETCH_TIMEOUT_MS = 6000;
+
+async function fetchWithTimeout(input: string, init?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal, cache: 'no-store' });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function fetchRemoteData(): Promise<RemoteResult> {
   try {
-    const res = await fetch(API_URL, { cache: 'no-store' });
+    const res = await fetchWithTimeout(API_URL);
     const body = await res.json().catch(() => null);
 
     if (!res.ok) {
@@ -90,8 +114,11 @@ async function fetchRemoteData(): Promise<RemoteResult> {
     }
 
     return { ok: true, data: body ? normalizeAppData(body) : null };
-  } catch {
-    return { ok: false, error: 'Could not reach cloud storage. Check your connection and redeploy.' };
+  } catch (error) {
+    const message = error instanceof Error && error.name === 'AbortError'
+      ? 'Cloud sync timed out. You can still sign in locally.'
+      : 'Could not reach cloud storage. Check your connection and redeploy.';
+    return { ok: false, error: message };
   }
 }
 
@@ -112,7 +139,7 @@ export async function loadData(): Promise<AppData> {
     console.warn('Cloud sync load failed:', remote.error);
   }
 
-  data = stripSession(ensureSuperAdmin(data));
+  data = stripSession(ensureSuperAdminFromStorage(data));
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   return data;
 }
@@ -134,13 +161,12 @@ export async function saveData(data: AppData): Promise<AppData> {
     merged = mergeAppData(remote.data ?? {}, persisted);
   }
 
-  const finalData = stripSession(ensureSuperAdmin(merged));
+  const finalData = stripSession(ensureSuperAdminFromStorage(merged));
   localStorage.setItem(STORAGE_KEY, JSON.stringify(finalData));
 
   try {
-    const res = await fetch(API_URL, {
+    const res = await fetchWithTimeout(API_URL, {
       method: 'POST',
-      cache: 'no-store',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(finalData),
     });

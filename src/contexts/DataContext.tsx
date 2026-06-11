@@ -5,7 +5,8 @@ import type {
 } from '../types';
 import {
   loadData, saveData, syncFromServer, defaultData, generateId, generateTransactionId,
-  SUPER_ADMIN_ID, getSyncState, type SyncState,
+  SUPER_ADMIN_ID, getSyncState, getLocalData, ensureSuperAdminFromStorage,
+  matchesSuperAdminLogin, type SyncState,
 } from '../utils/storage';
 import { assertValidEmailFormat } from '../utils/email';
 
@@ -65,11 +66,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    loadData().then((loaded) => {
-      setData(loaded);
-      updateSyncStatus();
-      setLoading(false);
-    });
+    const fallbackTimer = setTimeout(() => setLoading(false), 8000);
+    loadData()
+      .then((loaded) => {
+        setData(loaded);
+        updateSyncStatus();
+      })
+      .catch(() => {
+        const local = ensureSuperAdminFromStorage(getLocalData());
+        setData(local);
+        updateSyncStatus();
+      })
+      .finally(() => {
+        clearTimeout(fallbackTimer);
+        setLoading(false);
+      });
   }, [updateSyncStatus]);
 
   const persist = useCallback(async (newData: AppData) => {
@@ -126,8 +137,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string): Promise<User | null> => {
-    const fresh = await syncFromServer({ currentUserId: null, currentCompanyId: null });
-    const user = fresh.users.find((u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+    let fresh: AppData;
+    try {
+      fresh = await Promise.race([
+        syncFromServer({ currentUserId: null, currentCompanyId: null }),
+        new Promise<AppData>((_, reject) => {
+          setTimeout(() => reject(new Error('sync timeout')), 7000);
+        }),
+      ]);
+    } catch {
+      fresh = ensureSuperAdminFromStorage(getLocalData());
+    }
+    fresh = ensureSuperAdminFromStorage(fresh);
+
+    let user = fresh.users.find(
+      (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password,
+    );
+
+    if (!user && matchesSuperAdminLogin(email, password)) {
+      fresh = ensureSuperAdminFromStorage(fresh);
+      user = fresh.users.find((u) => u.role === 'superadmin');
+    }
+
     if (!user) return null;
 
     const d = { ...fresh };
