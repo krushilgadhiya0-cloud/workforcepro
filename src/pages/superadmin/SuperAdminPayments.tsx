@@ -1,4 +1,5 @@
-import { FileText } from 'lucide-react';
+import { useState } from 'react';
+import { FileText, Search } from 'lucide-react';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -8,12 +9,13 @@ import { downloadReceipt } from '../../utils/pdf';
 
 export function SuperAdminPayments() {
   const { payments, workers, companies, markPaymentPaid } = useData();
+  const [search, setSearch] = useState('');
 
   const getWorkerName = (workerId: string) => workers.find((w) => w.id === workerId)?.name || 'Unknown';
   const getCompanyName = (companyId: string) => companies.find((c) => c.id === companyId)?.name || 'Unknown';
 
   const subscriptionPayments = companies
-    .filter((c) => c.subscription)
+    .filter((c) => c.subscription && c.name.toLowerCase().includes(search.toLowerCase()))
     .map((c) => ({
       id: c.id,
       companyName: c.name,
@@ -22,6 +24,13 @@ export function SuperAdminPayments() {
       date: c.subscriptionDate,
       status: 'paid' as const,
     }));
+
+  const filteredWorkerPayments = payments.filter((p) => {
+    const company = getCompanyName(p.companyId).toLowerCase();
+    const worker = getWorkerName(p.workerId).toLowerCase();
+    const query = search.toLowerCase();
+    return company.includes(query) || worker.includes(query);
+  });
 
   const totalWorkerPaid = payments.filter((p) => p.status === 'paid').reduce((s, p) => s + p.amount, 0);
   const totalSubscription = subscriptionPayments.reduce((s, p) => s + p.amount, 0);
@@ -41,7 +50,17 @@ export function SuperAdminPayments() {
 
   return (
     <div>
-      <PageHeader title="All Payments" subtitle="Worker salaries and subscription payments across all companies" showBack={false} />
+      <PageHeader title="All Payments" subtitle={`${subscriptionPayments.length + filteredWorkerPayments.length} payments matched`} showBack={false} />
+
+      <div className="relative mb-8">
+        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+        <input 
+          value={search} 
+          onChange={(e) => setSearch(e.target.value)} 
+          placeholder="Search by company or worker..." 
+          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--card)] text-sm outline-none focus:border-[var(--primary)] transition-all" 
+        />
+      </div>
 
       <div className="grid sm:grid-cols-3 gap-4 mb-8">
         <Card><p className="text-sm text-[var(--text-muted)]">Worker Payments (Paid)</p><p className="text-2xl font-bold mt-1">₹{totalWorkerPaid.toLocaleString('en-IN')}</p></Card>
@@ -93,7 +112,7 @@ export function SuperAdminPayments() {
               </tr>
             </thead>
             <tbody>
-              {payments.map((payment) => (
+              {filteredWorkerPayments.map((payment) => (
                 <tr key={payment.id} className={`border-b border-[var(--border)] ${payment.status === 'due' ? 'bg-red-500/5' : ''}`}>
                   <td className="p-4 text-[var(--text-muted)]">{getCompanyName(payment.companyId)}</td>
                   <td className="p-4 font-medium">{getWorkerName(payment.workerId)}</td>

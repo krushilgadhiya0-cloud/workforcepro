@@ -64,7 +64,7 @@ export async function handleCreateOrder(input: CreateOrderInput): Promise<Create
   } catch (error: unknown) {
     const rzp = error as { error?: { description?: string; reason?: string } };
     const detail = rzp.error?.description || rzp.error?.reason;
-    throw new Error(detail || 'Could not create Razorpay order. Check your API keys.');
+    throw new Error(detail || 'Could not create Razorpay order. Check your API keys.', { cause: error });
   }
 
   return {

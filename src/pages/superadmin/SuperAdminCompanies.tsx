@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Building2, Trash2, Mail, Phone, MapPin, Briefcase, Users, CreditCard } from 'lucide-react';
+import { Building2, Search, Mail, Phone, MapPin, Briefcase, Users, CreditCard } from 'lucide-react';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -8,9 +8,15 @@ import { Badge } from '../../components/ui/Badge';
 import { useData } from '../../contexts/DataContext';
 
 export function SuperAdminCompanies() {
-  const { companies, workers, payments, tasks, removeCompanyAsSuperAdmin } = useData();
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const { companies, workers, payments, tasks } = useData();
+  const [search, setSearch] = useState('');
   const [viewId, setViewId] = useState<string | null>(null);
+
+  const filtered = companies.filter((c) => 
+    c.name.toLowerCase().includes(search.toLowerCase()) || 
+    c.industry.toLowerCase().includes(search.toLowerCase()) ||
+    c.ownerName.toLowerCase().includes(search.toLowerCase())
+  );
 
   const company = companies.find((c) => c.id === viewId);
 
@@ -24,10 +30,20 @@ export function SuperAdminCompanies() {
 
   return (
     <div>
-      <PageHeader title="All Companies" subtitle={`${companies.length} companies on the platform`} showBack={false} />
+      <PageHeader title="All Companies" subtitle={`${filtered.length} companies matched`} showBack={false} />
+
+      <div className="relative mb-6">
+        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+        <input 
+          value={search} 
+          onChange={(e) => setSearch(e.target.value)} 
+          placeholder="Search by name, industry or owner..." 
+          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--card)] text-sm outline-none focus:border-[var(--primary)] transition-all" 
+        />
+      </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        {companies.map((c) => {
+        {filtered.map((c) => {
           const stats = getCompanyStats(c.id);
           return (
             <Card key={c.id} hover>
@@ -70,7 +86,6 @@ export function SuperAdminCompanies() {
 
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" className="flex-1" onClick={() => setViewId(c.id)}>View Details</Button>
-                <Button size="sm" variant="danger" onClick={() => setDeleteId(c.id)}><Trash2 size={16} /></Button>
               </div>
             </Card>
           );
@@ -108,13 +123,6 @@ export function SuperAdminCompanies() {
         )}
       </Modal>
 
-      <Modal isOpen={!!deleteId} onClose={() => setDeleteId(null)} title="Remove Company">
-        <p className="text-sm text-[var(--text-muted)] mb-4">As Super Admin, you can permanently remove this company and all its data (workers, tasks, payments, leaves).</p>
-        <div className="flex gap-3">
-          <Button variant="danger" className="flex-1" onClick={() => { if (deleteId) { removeCompanyAsSuperAdmin(deleteId); setDeleteId(null); } }}>Remove Company</Button>
-          <Button variant="outline" className="flex-1" onClick={() => setDeleteId(null)}>Cancel</Button>
-        </div>
-      </Modal>
     </div>
   );
 }

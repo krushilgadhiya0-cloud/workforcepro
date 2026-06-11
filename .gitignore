@@ -17,6 +17,9 @@ dist-ssr
 .env.*
 !.env.example
 
+# Local dev data (contains user passwords)
+data/
+
 # Local tooling
 .tools
 

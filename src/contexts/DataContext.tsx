@@ -1,9 +1,9 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import type {
   AppData, User, Company, Admin, Worker, Task, LeaveRequest, Payment, Notification,
   SubscriptionPlan, AdminRole, LeaveStatus,
 } from '../types';
-import { loadData, saveData, generateId, generateTransactionId, SUPER_ADMIN_ID } from '../utils/storage';
+import { loadData, saveData, defaultData, generateId, generateTransactionId, SUPER_ADMIN_ID } from '../utils/storage';
 
 interface DataContextType extends AppData {
   refresh: () => void;
@@ -46,29 +46,43 @@ interface DataContextType extends AppData {
 const DataContext = createContext<DataContextType | null>(null);
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<AppData>(loadData);
+  const [data, setData] = useState<AppData>(defaultData);
+  const [loading, setLoading] = useState(true);
 
-  const persist = useCallback((newData: AppData) => {
-    setData(newData);
-    saveData(newData);
+  useEffect(() => {
+    loadData().then((loaded) => {
+      setData(loaded);
+      setLoading(false);
+    });
   }, []);
 
-  const refresh = useCallback(() => setData(loadData()), []);
+  const persist = useCallback(async (newData: AppData) => {
+    setData(newData);
+    await saveData(newData);
+  }, []);
+
+  const refresh = useCallback(async () => {
+    const loaded = await loadData();
+    setData(loaded);
+  }, []);
 
   const appendNotification = (d: AppData, notif: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
     d.notifications.push({ ...notif, id: generateId(), read: false, createdAt: new Date().toISOString() });
   };
 
-  const addNotification = useCallback((notif: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
-    const d = loadData();
-    appendNotification(d, notif);
-    persist(d);
-  }, [persist]);
+  const addNotification = useCallback(async (notif: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
+    setData(prev => {
+      const d = { ...prev };
+      appendNotification(d, notif);
+      saveData(d);
+      return d;
+    });
+  }, []);
 
   const login = useCallback((email: string, password: string): User | null => {
-    const d = loadData();
-    const user = d.users.find((u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+    const user = data.users.find((u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
     if (user) {
+      const d = { ...data };
       d.currentUserId = user.id;
       if (user.role === 'superadmin') {
         d.currentCompanyId = null;
@@ -85,45 +99,43 @@ export function DataProvider({ children }: { children: ReactNode }) {
       return user;
     }
     return null;
-  }, [persist]);
+  }, [data, persist]);
 
   const register = useCallback((userData: Omit<User, 'id' | 'createdAt'>): User => {
     if (userData.role !== 'owner') {
       throw new Error('Only business owners can self-register. Workers and admins must be added by an owner.');
     }
-    const d = loadData();
-    if (d.users.some((u) => u.email.toLowerCase() === userData.email.toLowerCase())) {
+    if (data.users.some((u) => u.email.toLowerCase() === userData.email.toLowerCase())) {
       throw new Error('Email already registered');
     }
     const user: User = { ...userData, id: generateId(), createdAt: new Date().toISOString() };
+    const d = { ...data };
     d.users.push(user);
     d.currentUserId = user.id;
     persist(d);
     return user;
-  }, [persist]);
+  }, [data, persist]);
 
   const isEmailTaken = useCallback((email: string, excludeUserId?: string): boolean => {
-    const d = loadData();
-    return d.users.some(
+    return data.users.some(
       (u) => u.email.toLowerCase() === email.toLowerCase() && u.id !== excludeUserId,
     );
-  }, []);
+  }, [data.users]);
 
   const logout = useCallback(() => {
-    const d = loadData();
+    const d = { ...data };
     d.currentUserId = null;
     d.currentCompanyId = null;
     persist(d);
-  }, [persist]);
+  }, [data, persist]);
 
   const setCurrentCompany = useCallback((id: string) => {
-    const d = loadData();
+    const d = { ...data };
     d.currentCompanyId = id;
     persist(d);
-  }, [persist]);
+  }, [data, persist]);
 
   const createCompany = useCallback((companyData: Omit<Company, 'id' | 'createdAt' | 'subscription' | 'subscriptionDate' | 'monthlyRevenue' | 'monthlyRevenueUpdatedAt'>): Company => {
-    const d = loadData();
     const company: Company = {
       ...companyData,
       id: generateId(),
@@ -133,6 +145,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       monthlyRevenueUpdatedAt: null,
       createdAt: new Date().toISOString(),
     };
+    const d = { ...data };
     d.companies.push(company);
     d.currentCompanyId = company.id;
     const owner = d.users.find((u) => u.id === company.ownerId);
@@ -153,22 +166,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
     persist(d);
     return company;
-  }, [persist]);
+  }, [data, persist]);
 
   const subscribe = useCallback((companyId: string, plan: SubscriptionPlan) => {
-    const d = loadData();
+    const d = { ...data };
     const company = d.companies.find((c) => c.id === companyId);
     if (company) {
       company.subscription = plan;
       company.subscriptionDate = new Date().toISOString();
       persist(d);
     }
-  }, [persist]);
+  }, [data, persist]);
 
   const removeCompany = useCallback((companyId: string, password: string): boolean => {
-    const d = loadData();
-    const company = d.companies.find((c) => c.id === companyId);
+    const company = data.companies.find((c) => c.id === companyId);
     if (!company || company.ownerPassword !== password) return false;
+    const d = { ...data };
     d.companies = d.companies.filter((c) => c.id !== companyId);
     d.admins = d.admins.filter((a) => a.companyId !== companyId);
     d.workers = d.workers.filter((w) => w.companyId !== companyId);
@@ -178,10 +191,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (d.currentCompanyId === companyId) d.currentCompanyId = d.companies[0]?.id || null;
     persist(d);
     return true;
-  }, [persist]);
+  }, [data, persist]);
 
   const removeCompanyAsSuperAdmin = useCallback((companyId: string) => {
-    const d = loadData();
+    const d = { ...data };
     d.companies = d.companies.filter((c) => c.id !== companyId);
     d.admins = d.admins.filter((a) => a.companyId !== companyId);
     d.workers = d.workers.filter((w) => w.companyId !== companyId);
@@ -190,11 +203,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     d.payments = d.payments.filter((p) => p.companyId !== companyId);
     if (d.currentCompanyId === companyId) d.currentCompanyId = null;
     persist(d);
-  }, [persist]);
+  }, [data, persist]);
 
   const addAdmin = useCallback((adminData: Omit<Admin, 'id' | 'createdAt' | 'userId'> & { password: string }): Admin | null => {
-    const d = loadData();
-    if (d.users.some((u) => u.email.toLowerCase() === adminData.email.toLowerCase())) {
+    if (data.users.some((u) => u.email.toLowerCase() === adminData.email.toLowerCase())) {
       return null;
     }
     const user: User = {
@@ -207,7 +219,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       phone: adminData.phone,
       createdAt: new Date().toISOString(),
     };
-    d.users.push(user);
     const admin: Admin = {
       id: generateId(),
       companyId: adminData.companyId,
@@ -218,6 +229,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       userId: user.id,
       createdAt: new Date().toISOString(),
     };
+    const d = { ...data };
+    d.users.push(user);
     d.admins.push(admin);
     appendNotification(d, {
       userId: user.id,
@@ -227,10 +240,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
     persist(d);
     return admin;
-  }, [persist]);
+  }, [data, persist]);
 
   const updateAdmin = useCallback((id: string, updates: Partial<Admin>) => {
-    const d = loadData();
+    const d = { ...data };
     const idx = d.admins.findIndex((a) => a.id === id);
     if (idx >= 0) {
       const admin = d.admins[idx];
@@ -247,21 +260,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
     persist(d);
     return true;
-  }, [persist]);
+  }, [data, persist]);
 
   const deleteAdmin = useCallback((id: string) => {
-    const d = loadData();
-    const admin = d.admins.find((a) => a.id === id);
+    const admin = data.admins.find((a) => a.id === id);
     if (admin) {
+      const d = { ...data };
       d.users = d.users.filter((u) => u.id !== admin.userId);
       d.admins = d.admins.filter((a) => a.id !== id);
       persist(d);
     }
-  }, [persist]);
+  }, [data, persist]);
 
   const addWorker = useCallback((workerData: Omit<Worker, 'id' | 'createdAt' | 'userId' | 'attendanceStatus'> & { password: string }): Worker | null => {
-    const d = loadData();
-    if (d.users.some((u) => u.email.toLowerCase() === workerData.email.toLowerCase())) {
+    if (data.users.some((u) => u.email.toLowerCase() === workerData.email.toLowerCase())) {
       return null;
     }
     const user: User = {
@@ -274,7 +286,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       phone: workerData.phone,
       createdAt: new Date().toISOString(),
     };
-    d.users.push(user);
     const worker: Worker = {
       id: generateId(),
       companyId: workerData.companyId,
@@ -288,6 +299,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       attendanceStatus: 'present',
       createdAt: new Date().toISOString(),
     };
+    const d = { ...data };
+    d.users.push(user);
     d.workers.push(worker);
     appendNotification(d, {
       userId: user.id,
@@ -297,10 +310,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
     persist(d);
     return worker;
-  }, [persist]);
+  }, [data, persist]);
 
   const updateWorker = useCallback((id: string, updates: Partial<Worker>) => {
-    const d = loadData();
+    const d = { ...data };
     const idx = d.workers.findIndex((w) => w.id === id);
     if (idx >= 0) {
       const worker = d.workers[idx];
@@ -317,22 +330,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
     persist(d);
     return true;
-  }, [persist]);
+  }, [data, persist]);
 
   const deleteWorker = useCallback((id: string) => {
-    const d = loadData();
-    const worker = d.workers.find((w) => w.id === id);
+    const worker = data.workers.find((w) => w.id === id);
     if (worker) {
+      const d = { ...data };
       d.users = d.users.filter((u) => u.id !== worker.userId);
       d.workers = d.workers.filter((w) => w.id !== id);
       d.tasks = d.tasks.filter((t) => t.workerId !== id);
       persist(d);
     }
-  }, [persist]);
+  }, [data, persist]);
 
   const addTask = useCallback((taskData: Omit<Task, 'id' | 'createdAt' | 'status'>) => {
-    const d = loadData();
     const task: Task = { ...taskData, id: generateId(), status: 'pending', createdAt: new Date().toISOString() };
+    const d = { ...data };
     d.tasks.push(task);
     const worker = d.workers.find((w) => w.id === task.workerId);
     if (worker) {
@@ -340,62 +353,63 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
     persist(d);
     return task;
-  }, [persist]);
+  }, [data, persist]);
 
   const updateTask = useCallback((id: string, updates: Partial<Task>) => {
-    const d = loadData();
+    const d = { ...data };
     const idx = d.tasks.findIndex((t) => t.id === id);
     if (idx >= 0) {
-      d.tasks[idx] = { ...d.tasks[idx], ...updates };
+      const oldTask = d.tasks[idx];
+      d.tasks[idx] = { ...oldTask, ...updates };
       const task = d.tasks[idx];
       const worker = d.workers.find((w) => w.id === task.workerId);
       if (worker && updates.status === 'completed') {
         const admins = d.admins.filter((a) => a.companyId === task.companyId);
-        admins.forEach((a) => addNotification({ userId: a.userId, title: 'Task Completed', message: `${worker.name} completed: ${task.title}`, type: 'task' }));
-        const owner = d.companies.find((c) => c.id === task.companyId);
-        if (owner) {
-          const ownerUser = d.users.find((u) => u.id === owner.ownerId);
-          if (ownerUser) addNotification({ userId: ownerUser.id, title: 'Task Completed', message: `${worker.name} completed: ${task.title}`, type: 'task' });
+        admins.forEach((a) => appendNotification(d, { userId: a.userId, title: 'Task Completed', message: `${worker.name} completed: ${task.title}`, type: 'task' }));
+        const company = d.companies.find((c) => c.id === task.companyId);
+        if (company) {
+          const ownerUser = d.users.find((u) => u.id === company.ownerId);
+          if (ownerUser) appendNotification(d, { userId: ownerUser.id, title: 'Task Completed', message: `${worker.name} completed: ${task.title}`, type: 'task' });
         }
       }
       if (worker && updates.title) {
-        addNotification({ userId: worker.userId, title: 'Task Updated', message: `Task "${task.title}" has been updated`, type: 'task' });
+        appendNotification(d, { userId: worker.userId, title: 'Task Updated', message: `Task "${task.title}" has been updated`, type: 'task' });
       }
     }
     persist(d);
-  }, [persist, addNotification]);
+  }, [data, persist]);
 
   const deleteTask = useCallback((id: string) => {
-    const d = loadData();
+    const d = { ...data };
     d.tasks = d.tasks.filter((t) => t.id !== id);
     persist(d);
-  }, [persist]);
+  }, [data, persist]);
 
   const applyLeave = useCallback((leaveData: Omit<LeaveRequest, 'id' | 'createdAt' | 'status'>) => {
-    const d = loadData();
     const leave: LeaveRequest = { ...leaveData, id: generateId(), status: 'pending', createdAt: new Date().toISOString() };
+    const d = { ...data };
     d.leaves.push(leave);
     const worker = d.workers.find((w) => w.id === leave.workerId);
     const admins = d.admins.filter((a) => a.companyId === leave.companyId);
-    admins.forEach((a) => addNotification({ userId: a.userId, title: 'New Leave Request', message: `${worker?.name || 'Worker'} requested leave`, type: 'leave' }));
+    admins.forEach((a) => appendNotification(d, { userId: a.userId, title: 'New Leave Request', message: `${worker?.name || 'Worker'} requested leave`, type: 'leave' }));
     const company = d.companies.find((c) => c.id === leave.companyId);
     if (company) {
       const ownerUser = d.users.find((u) => u.id === company.ownerId);
-      if (ownerUser) addNotification({ userId: ownerUser.id, title: 'New Leave Request', message: `${worker?.name || 'Worker'} requested leave`, type: 'leave' });
+      if (ownerUser) appendNotification(d, { userId: ownerUser.id, title: 'New Leave Request', message: `${worker?.name || 'Worker'} requested leave`, type: 'leave' });
     }
     persist(d);
     return leave;
-  }, [persist, addNotification]);
+  }, [data, persist]);
 
   const updateLeave = useCallback((id: string, status: LeaveStatus) => {
-    const d = loadData();
+    const d = { ...data };
     const idx = d.leaves.findIndex((l) => l.id === id);
     if (idx >= 0) {
       d.leaves[idx].status = status;
       const leave = d.leaves[idx];
       const worker = d.workers.find((w) => w.id === leave.workerId);
       if (worker) {
-        addNotification({
+        appendNotification(d, {
           userId: worker.userId,
           title: status === 'approved' ? 'Leave Approved' : 'Leave Rejected',
           message: `Your leave request for ${leave.leaveDate} has been ${status}`,
@@ -404,18 +418,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
     }
     persist(d);
-  }, [persist, addNotification]);
+  }, [data, persist]);
 
   const addPayment = useCallback((paymentData: Omit<Payment, 'id' | 'createdAt' | 'status'>) => {
-    const d = loadData();
     const payment: Payment = { ...paymentData, id: generateId(), status: 'due', createdAt: new Date().toISOString() };
+    const d = { ...data };
     d.payments.push(payment);
     persist(d);
     return payment;
-  }, [persist]);
+  }, [data, persist]);
 
   const markPaymentPaid = useCallback((id: string) => {
-    const d = loadData();
+    const d = { ...data };
     const idx = d.payments.findIndex((p) => p.id === id);
     if (idx >= 0) {
       d.payments[idx].status = 'paid';
@@ -424,44 +438,43 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const payment = d.payments[idx];
       const worker = d.workers.find((w) => w.id === payment.workerId);
       if (worker) {
-        addNotification({ userId: worker.userId, title: 'Salary Paid', message: `₹${payment.amount} has been paid to your account`, type: 'payment' });
+        appendNotification(d, { userId: worker.userId, title: 'Salary Paid', message: `₹${payment.amount} has been paid to your account`, type: 'payment' });
       }
     }
     persist(d);
-  }, [persist, addNotification]);
+  }, [data, persist]);
 
   const markNotificationRead = useCallback((id: string) => {
-    const d = loadData();
+    const d = { ...data };
     const notif = d.notifications.find((n) => n.id === id);
     if (notif) notif.read = true;
     persist(d);
-  }, [persist]);
+  }, [data, persist]);
 
   const markAllNotificationsRead = useCallback((userId: string) => {
-    const d = loadData();
+    const d = { ...data };
     d.notifications.forEach((n) => {
       if (n.userId === userId) n.read = true;
     });
     persist(d);
-  }, [persist]);
+  }, [data, persist]);
 
   const updateSettings = useCallback((settings: Partial<AppData['settings']>) => {
-    const d = loadData();
-    d.settings = { ...d.settings, ...settings };
+    const d = { ...data, settings: { ...data.settings, ...settings } };
     persist(d);
-  }, [persist]);
+  }, [data, persist]);
 
   const changePassword = useCallback((userId: string, oldPassword: string, newPassword: string): boolean => {
-    const d = loadData();
+    const d = { ...data };
     const user = d.users.find((u) => u.id === userId);
     if (!user || user.password !== oldPassword) return false;
     user.password = newPassword;
     persist(d);
     return true;
-  }, [persist]);
+  }, [data, persist]);
 
   const updateMonthlyRevenue = useCallback((companyId: string, amount: number) => {
-    const d = loadData();
+    const d = { ...data };
     const idx = d.companies.findIndex((c) => c.id === companyId);
     if (idx >= 0) {
       const company = d.companies[idx];
@@ -475,10 +488,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       });
     }
     persist(d);
-  }, [persist]);
+  }, [data, persist]);
 
   const updateCompany = useCallback((id: string, updates: Partial<Company>): boolean => {
-    const d = loadData();
+    const d = { ...data };
     const idx = d.companies.findIndex((c) => c.id === id);
     if (idx < 0) return false;
     d.companies[idx] = { ...d.companies[idx], ...updates };
@@ -490,7 +503,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
     persist(d);
     return true;
-  }, [persist]);
+  }, [data, persist]);
 
   const getCompanyWorkers = useCallback((companyId: string) => data.workers.filter((w) => w.companyId === companyId), [data.workers]);
   const getCompanyTasks = useCallback((companyId: string) => data.tasks.filter((t) => t.companyId === companyId), [data.tasks]);
@@ -537,7 +550,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
       getCompanyLeaves,
       getUserNotifications,
     }}>
-      {children}
+      {!loading && children}
+      {loading && (
+        <div className="fixed inset-0 bg-[var(--bg)] flex items-center justify-center z-50">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 rounded-full border-4 border-[var(--primary)] border-t-transparent animate-spin" />
+            <p className="text-[var(--text-muted)] animate-pulse">Synchronizing Data...</p>
+          </div>
+        </div>
+      )}
     </DataContext.Provider>
   );
 }

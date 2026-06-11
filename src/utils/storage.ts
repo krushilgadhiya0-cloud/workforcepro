@@ -6,7 +6,7 @@ export const SUPER_ADMIN_ID = 'super-admin-system';
 export const SUPER_ADMIN_EMAIL = import.meta.env.VITE_SUPER_ADMIN_EMAIL ?? '';
 export const SUPER_ADMIN_PASSWORD = import.meta.env.VITE_SUPER_ADMIN_PASSWORD ?? '';
 
-const defaultData: AppData = {
+export const defaultData: AppData = {
   users: [],
   companies: [],
   admins: [],
@@ -51,18 +51,43 @@ function ensureSuperAdmin(data: AppData): AppData {
   return migrateCompanies(data);
 }
 
-export function loadData(): AppData {
+export const API_URL = `http://localhost:${import.meta.env.API_PORT || 3001}/api/data`;
+
+export function getLocalData(): AppData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    const data = migrateCompanies(raw ? { ...defaultData, ...JSON.parse(raw) } : { ...defaultData });
-    return ensureSuperAdmin(data);
+    return raw ? { ...defaultData, ...JSON.parse(raw) } : { ...defaultData };
   } catch {
-    return ensureSuperAdmin(migrateCompanies({ ...defaultData }));
+    return { ...defaultData };
   }
 }
 
-export function saveData(data: AppData): void {
+export async function loadData(): Promise<AppData> {
+  try {
+    const res = await fetch(API_URL);
+    const apiData = await res.json();
+    const data = migrateCompanies(apiData ? { ...defaultData, ...apiData } : getLocalData());
+    return ensureSuperAdmin(data);
+  } catch (error) {
+    console.error('Failed to load from API, falling back to local:', error);
+    return ensureSuperAdmin(migrateCompanies(getLocalData()));
+  }
+}
+
+export async function saveData(data: AppData): Promise<void> {
+  // Save to local for immediate feedback/fallback
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  
+  // Save to API for sync
+  try {
+    await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  } catch (error) {
+    console.error('Failed to save to API:', error);
+  }
 }
 
 export function generateId(): string {

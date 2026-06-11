@@ -1,4 +1,5 @@
-import { existsSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { join } from 'path';
 import { config as loadEnv } from 'dotenv';
 import express from 'express';
 
@@ -64,6 +65,30 @@ app.get('/api/health', (_req, res) => {
 
 app.get('/api/payment-status', (_req, res) => {
   res.json(getPaymentStatus());
+});
+
+const DATA_FILE = join(process.cwd(), 'data', 'app-data.json');
+
+app.get('/api/data', (_req, res) => {
+  try {
+    if (existsSync(DATA_FILE)) {
+      const data = readFileSync(DATA_FILE, 'utf-8');
+      res.json(JSON.parse(data));
+    } else {
+      res.json(null);
+    }
+  } catch {
+    res.status(500).json({ error: 'Failed to read data' });
+  }
+});
+
+app.post('/api/data', (req, res) => {
+  try {
+    writeFileSync(DATA_FILE, JSON.stringify(req.body, null, 2), 'utf-8');
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: 'Failed to save data' });
+  }
 });
 
 const server = app.listen(PORT, () => {
