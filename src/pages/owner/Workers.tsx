@@ -1,0 +1,186 @@
+import { useState } from 'react';
+import { Plus, Pencil, Trash2, Search, CheckCircle } from 'lucide-react';
+import { PageHeader } from '../../components/layout/PageHeader';
+import { Button } from '../../components/ui/Button';
+import { Modal } from '../../components/ui/Modal';
+import { Input } from '../../components/ui/Input';
+import { Badge } from '../../components/ui/Badge';
+import { useData, useCurrentCompany } from '../../contexts/DataContext';
+import type { Worker } from '../../types';
+
+export function Workers() {
+  const { workers, tasks, payments, addWorker, updateWorker, deleteWorker } = useData();
+  const company = useCurrentCompany();
+  const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState<Worker | null>(null);
+  const [search, setSearch] = useState('');
+  const [form, setForm] = useState({ name: '', email: '', phone: '', joiningDate: '', password: 'worker123' });
+  const [credentials, setCredentials] = useState<{ email: string; password: string; name: string } | null>(null);
+  const [formError, setFormError] = useState('');
+
+  const companyWorkers = workers.filter((w) => w.companyId === company?.id);
+
+  const filtered = companyWorkers.filter((w) =>
+    w.name.toLowerCase().includes(search.toLowerCase()) || w.email.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const getTaskCount = (workerId: string) => tasks.filter((t) => t.workerId === workerId).length;
+  const getPaymentStatus = (workerId: string) => {
+    const wp = payments.filter((p) => p.workerId === workerId);
+    if (wp.some((p) => p.status === 'due')) return 'due';
+    if (wp.some((p) => p.status === 'pending')) return 'pending';
+    return 'paid';
+  };
+
+  const openAdd = () => {
+    setEditing(null);
+    setForm({ name: '', email: '', phone: '', joiningDate: new Date().toISOString().split('T')[0], password: 'worker123' });
+    setFormError('');
+    setShowModal(true);
+  };
+
+  const openEdit = (worker: Worker) => {
+    setEditing(worker);
+    setForm({ name: worker.name, email: worker.email, phone: worker.phone, joiningDate: worker.joiningDate, password: '' });
+    setFormError('');
+    setShowModal(true);
+  };
+
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!company) {
+      setFormError('No business found. Please create a business from the home page first.');
+      return;
+    }
+    if (!form.name.trim() || !form.email.trim()) {
+      setFormError('Name and email are required');
+      return;
+    }
+    if (!form.joiningDate) {
+      setFormError('Joining date is required');
+      return;
+    }
+    if (!editing && !form.password.trim()) {
+      setFormError('Login password is required');
+      return;
+    }
+    if (editing) {
+      const ok = updateWorker(editing.id, { name: form.name.trim(), email: form.email.trim(), phone: form.phone, joiningDate: form.joiningDate });
+      if (!ok) {
+        setFormError('Email already in use by another account');
+        return;
+      }
+      setShowModal(false);
+      return;
+    }
+    const worker = addWorker({
+      name: form.name.trim(),
+      email: form.email.trim(),
+      phone: form.phone,
+      joiningDate: form.joiningDate,
+      password: form.password,
+      companyId: company.id,
+      department: '',
+      designation: '',
+    });
+    if (!worker) {
+      setFormError('Email already registered. Use a different email for this worker.');
+      return;
+    }
+    setShowModal(false);
+    setCredentials({ email: worker.email, password: form.password, name: worker.name });
+  };
+
+  return (
+    <div>
+      <PageHeader title="Worker Management" subtitle={`${companyWorkers.length} workers — accounts auto-registered on add`} action={<Button onClick={openAdd}><Plus size={18} /> Add Worker</Button>} showBack={false} />
+
+      {!company && (
+        <div className="mb-4 p-3 rounded-xl bg-red-500/10 text-red-600 text-sm">
+          No business linked to your account. Go to the home page and click <strong>Start Business</strong> to set up your company first.
+        </div>
+      )}
+
+      <div className="mb-4 p-3 rounded-xl bg-[var(--primary)]/10 text-sm text-[var(--text-muted)]">
+        <strong className="text-[var(--text)]">Note:</strong> Workers cannot self-register. Adding a worker here automatically creates their login account.
+      </div>
+
+      <div className="relative mb-6">
+        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search workers..." className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--card)] text-sm outline-none focus:border-[var(--primary)]" />
+      </div>
+
+      <div className="glass-card rounded-2xl overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[var(--border)] bg-[var(--border)]/20">
+                <th className="text-left p-4 font-medium text-[var(--text-muted)]">Name</th>
+                <th className="text-left p-4 font-medium text-[var(--text-muted)]">Email</th>
+                <th className="text-left p-4 font-medium text-[var(--text-muted)]">Phone</th>
+                <th className="text-left p-4 font-medium text-[var(--text-muted)]">Tasks</th>
+                <th className="text-left p-4 font-medium text-[var(--text-muted)]">Payment</th>
+                <th className="text-left p-4 font-medium text-[var(--text-muted)]">Attendance</th>
+                <th className="text-right p-4 font-medium text-[var(--text-muted)]">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((worker) => (
+                <tr key={worker.id} className="border-b border-[var(--border)] hover:bg-[var(--border)]/10">
+                  <td className="p-4 font-medium">{worker.name}</td>
+                  <td className="p-4 text-[var(--text-muted)]">{worker.email}</td>
+                  <td className="p-4 text-[var(--text-muted)]">{worker.phone}</td>
+                  <td className="p-4">{getTaskCount(worker.id)}</td>
+                  <td className="p-4"><Badge status={getPaymentStatus(worker.id)} /></td>
+                  <td className="p-4"><Badge status={worker.attendanceStatus === 'present' ? 'completed' : worker.attendanceStatus === 'on_leave' ? 'pending' : 'rejected'} label={worker.attendanceStatus.replace('_', ' ')} /></td>
+                  <td className="p-4 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button onClick={() => openEdit(worker)} className="p-1.5 rounded-lg hover:bg-[var(--border)]/50 cursor-pointer"><Pencil size={16} /></button>
+                      <button onClick={() => deleteWorker(worker.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-500 cursor-pointer"><Trash2 size={16} /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {filtered.length === 0 && <p className="text-center py-12 text-[var(--text-muted)]">No workers found</p>}
+        </div>
+      </div>
+
+      <Modal isOpen={showModal} onClose={() => { setShowModal(false); setFormError(''); }} title={editing ? 'Edit Worker' : 'Add Worker'}>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {formError && <div className="p-3 rounded-xl bg-red-500/10 text-red-500 text-sm">{formError}</div>}
+          {!editing && (
+            <div className="p-3 rounded-xl bg-green-500/10 text-green-700 dark:text-green-400 text-xs">
+              Login account will be auto-registered. Worker can sign in with the email and password below.
+            </div>
+          )}
+          <Input label="Worker Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+          <Input label="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+          <Input label="Phone Number" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+          <Input label="Joining Date" type="date" value={form.joiningDate} onChange={(e) => setForm({ ...form, joiningDate: e.target.value })} required />
+          {!editing && <Input label="Login Password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />}
+          <div className="flex gap-3">
+            <Button type="submit" className="flex-1">{editing ? 'Update' : 'Add Worker'}</Button>
+            <Button type="button" variant="outline" className="flex-1" onClick={() => { setShowModal(false); setFormError(''); }}>Cancel</Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={!!credentials} onClose={() => setCredentials(null)} title="Worker Account Auto-Registered">
+        <div className="space-y-3">
+          <div className="p-3 rounded-xl bg-green-500/10 text-green-700 dark:text-green-400 text-sm">
+            <CheckCircle size={16} className="inline mr-1" />
+            <strong>{credentials?.name}</strong> can login now with these credentials:
+          </div>
+          <div className="p-4 rounded-xl bg-[var(--border)]/20 space-y-2">
+            <p className="text-sm"><strong>Email:</strong> {credentials?.email}</p>
+            <p className="text-sm"><strong>Password:</strong> {credentials?.password}</p>
+          </div>
+          <p className="text-xs text-[var(--text-muted)]">Workers cannot register themselves. Share these credentials so they can access their dashboard.</p>
+          <Button className="w-full" onClick={() => setCredentials(null)}>Done</Button>
+        </div>
+      </Modal>
+    </div>
+  );
+}

@@ -1,0 +1,125 @@
+export type UserRole = 'owner' | 'admin' | 'worker' | 'superadmin';
+export type TaskStatus = 'pending' | 'in_progress' | 'completed';
+export type TaskPriority = 'low' | 'medium' | 'high';
+export type LeaveStatus = 'pending' | 'approved' | 'rejected';
+export type PaymentStatus = 'paid' | 'due' | 'pending';
+export type SubscriptionPlan = 'monthly' | 'yearly';
+export type AdminRole = 'manager' | 'hr' | 'supervisor' | 'finance';
+
+export interface User {
+  id: string;
+  email: string;
+  password: string;
+  name: string;
+  role: UserRole;
+  companyId?: string;
+  phone?: string;
+  createdAt: string;
+}
+
+export interface Company {
+  id: string;
+  name: string;
+  ownerName: string;
+  email: string;
+  phone: string;
+  address: string;
+  industry: string;
+  ownerId: string;
+  ownerPassword: string;
+  subscription: SubscriptionPlan | null;
+  subscriptionDate: string | null;
+  monthlyRevenue: number;
+  monthlyRevenueUpdatedAt: string | null;
+  createdAt: string;
+}
+
+export interface Admin {
+  id: string;
+  companyId: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: AdminRole;
+  userId: string;
+  createdAt: string;
+}
+
+export interface Worker {
+  id: string;
+  companyId: string;
+  name: string;
+  email: string;
+  phone: string;
+  department: string;
+  designation: string;
+  joiningDate: string;
+  userId: string;
+  attendanceStatus: 'present' | 'absent' | 'on_leave';
+  createdAt: string;
+}
+
+export interface Task {
+  id: string;
+  companyId: string;
+  title: string;
+  description: string;
+  priority: TaskPriority;
+  deadline: string;
+  workerId: string;
+  status: TaskStatus;
+  createdAt: string;
+}
+
+export interface LeaveRequest {
+  id: string;
+  companyId: string;
+  workerId: string;
+  leaveDate: string;
+  days: number;
+  reason: string;
+  status: LeaveStatus;
+  createdAt: string;
+}
+
+export interface Payment {
+  id: string;
+  companyId: string;
+  workerId: string;
+  amount: number;
+  dueDate: string;
+  status: PaymentStatus;
+  paidDate?: string;
+  transactionId?: string;
+  createdAt: string;
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: 'task' | 'leave' | 'payment' | 'general';
+  read: boolean;
+  createdAt: string;
+}
+
+export interface AppSettings {
+  theme: 'light' | 'dark';
+  emailNotifications: boolean;
+  pushNotifications: boolean;
+}
+
+export interface AppData {
+  users: User[];
+  companies: Company[];
+  admins: Admin[];
+  workers: Worker[];
+  tasks: Task[];
+  leaves: LeaveRequest[];
+  payments: Payment[];
+  notifications: Notification[];
+  settings: AppSettings;
+  currentUserId: string | null;
+  currentCompanyId: string | null;
+}
