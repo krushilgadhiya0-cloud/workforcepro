@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, CreditCard, Wallet, CalendarOff, BarChart3,
   Settings, LogOut, Building2, ChevronLeft, ChevronRight, Bell, Shield,
-  ListTodo, Crown, UserCog,
+  ListTodo, Crown, UserCog, Home,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useData, useCurrentUser } from '../../contexts/DataContext';
@@ -91,6 +91,19 @@ export function Sidebar({ role }: SidebarProps) {
       </div>
 
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+        <NavLink
+          to="/"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+              isActive
+                ? 'bg-[var(--border)]/40 text-[var(--text)]'
+                : 'text-[var(--text-muted)] hover:bg-[var(--border)]/30 hover:text-[var(--text)]'
+            }`
+          }
+        >
+          <Home size={20} />
+          {!collapsed && <span>Home</span>}
+        </NavLink>
         {links.map((link) => (
           <NavLink
             key={link.to}

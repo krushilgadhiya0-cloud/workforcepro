@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   ListTodo, Users, CreditCard, CalendarOff, BarChart3, Shield,
   ArrowRight, Sparkles, Sun, Moon,
@@ -104,26 +104,29 @@ export function Landing() {
     <div className="min-h-screen bg-[var(--bg)]">
       <nav className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-[var(--border)]">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
             <div className="w-9 h-9 rounded-xl gradient-bg flex items-center justify-center">
               <Sparkles size={18} className="text-white" />
             </div>
             <span className="text-lg font-bold gradient-text">WorkForce Pro</span>
-          </div>
+          </Link>
           <div className="flex items-center gap-3">
             <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-[var(--border)]/50 transition-colors cursor-pointer">
               {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
             </button>
             {currentUser ? (
-              <Button size="sm" onClick={() => navigate(
-                currentUser.role === 'superadmin' ? '/superadmin' :
-                currentUser.role === 'worker' ? '/worker' : '/dashboard'
-              )}>
-                Go to Dashboard
-              </Button>
+              <>
+                <Button variant="outline" size="sm" onClick={() => navigate('/')}>Home</Button>
+                <Button size="sm" onClick={() => navigate(
+                  currentUser.role === 'superadmin' ? '/superadmin' :
+                  currentUser.role === 'worker' ? '/worker' : '/dashboard'
+                )}>
+                  Go to Dashboard
+                </Button>
+              </>
             ) : (
               <>
-                <Button variant="outline" size="sm" onClick={() => navigate('/login')}>Login</Button>
+                <Button variant="outline" size="sm" onClick={() => navigate('/login', { replace: true })}>Login</Button>
                 <Button size="sm" onClick={() => navigate('/login?mode=register')}>Register</Button>
                 <Button variant="outline" size="sm" onClick={() => navigate('/login?mode=superadmin')}>Super Admin</Button>
               </>

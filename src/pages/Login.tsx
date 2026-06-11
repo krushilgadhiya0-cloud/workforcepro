@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import type { FormEvent } from 'react';
 import { Sparkles, Mail, Lock, User, Building2, Sun, Moon, ArrowLeft, Crown } from 'lucide-react';
 import { SUPER_ADMIN_EMAIL } from '../utils/storage';
 import { Button } from '../components/ui/Button';
@@ -8,7 +9,7 @@ import { useData } from '../contexts/DataContext';
 import { useTheme } from '../contexts/ThemeContext';
 
 export function Login() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { login, register, users } = useData();
   const { theme, toggleTheme } = useTheme();
@@ -20,13 +21,40 @@ export function Login() {
   const [success, setSuccess] = useState('');
   const [step, setStep] = useState<'form' | 'verify'>('form');
 
+  const emptyForm = { name: '', email: '', password: '', confirmPassword: '' };
+
+  const setAuthMode = (next: 'login' | 'register' | 'superadmin') => {
+    setMode(next);
+    setError('');
+    setSuccess('');
+    setStep('form');
+    if (next === 'login') {
+      setForm(emptyForm);
+      setSearchParams({});
+    } else if (next === 'register') {
+      setForm(emptyForm);
+      setSearchParams({ mode: 'register' });
+    } else {
+      setForm({ ...emptyForm, email: SUPER_ADMIN_EMAIL });
+      setSearchParams({ mode: 'superadmin' });
+    }
+  };
+
   useEffect(() => {
     const m = searchParams.get('mode');
-    if (m === 'register') setMode('register');
-    if (m === 'superadmin') setMode('superadmin');
+    if (m === 'register') {
+      setMode('register');
+      return;
+    }
+    if (m === 'superadmin') {
+      setMode('superadmin');
+      setForm((prev) => ({ ...prev, email: SUPER_ADMIN_EMAIL, password: '' }));
+      return;
+    }
+    setMode('login');
   }, [searchParams]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = (e: FormEvent) => {
     e.preventDefault();
     setError('');
     const user = login(form.email, form.password);
@@ -39,7 +67,7 @@ export function Login() {
     }
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = (e: FormEvent) => {
     e.preventDefault();
     setError('');
     if (form.password !== form.confirmPassword) {
@@ -129,19 +157,22 @@ export function Login() {
 
               <div className="flex rounded-xl bg-[var(--border)]/30 p-1 mb-6">
                 <button
-                  onClick={() => { setMode('login'); setError(''); setStep('form'); }}
+                  type="button"
+                  onClick={() => setAuthMode('login')}
                   className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${mode === 'login' ? 'bg-[var(--card)] shadow-sm text-[var(--text)]' : 'text-[var(--text-muted)]'}`}
                 >
                   Login
                 </button>
                 <button
-                  onClick={() => { setMode('register'); setError(''); setStep('form'); }}
+                  type="button"
+                  onClick={() => setAuthMode('register')}
                   className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${mode === 'register' ? 'bg-[var(--card)] shadow-sm text-[var(--text)]' : 'text-[var(--text-muted)]'}`}
                 >
                   Register
                 </button>
                 <button
-                  onClick={() => { setMode('superadmin'); setError(''); setStep('form'); setForm({ ...form, email: SUPER_ADMIN_EMAIL, password: '' }); }}
+                  type="button"
+                  onClick={() => setAuthMode('superadmin')}
                   className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer flex items-center justify-center gap-1 ${mode === 'superadmin' ? 'bg-amber-500/20 shadow-sm text-amber-600 dark:text-amber-400' : 'text-[var(--text-muted)]'}`}
                 >
                   <Crown size={14} /> Super Admin
@@ -209,9 +240,9 @@ export function Login() {
               {mode === 'login' && (
                 <p className="text-center text-sm text-[var(--text-muted)] mt-4">
                   Business owner?{' '}
-                  <button onClick={() => setMode('register')} className="text-[var(--primary)] font-medium cursor-pointer">Register</button>
+                  <button type="button" onClick={() => setAuthMode('register')} className="text-[var(--primary)] font-medium cursor-pointer">Register</button>
                   {' · '}
-                  <button onClick={() => { setMode('superadmin'); setForm({ ...form, email: SUPER_ADMIN_EMAIL, password: '' }); }} className="text-amber-600 font-medium cursor-pointer">Super Admin</button>
+                  <button type="button" onClick={() => setAuthMode('superadmin')} className="text-amber-600 font-medium cursor-pointer">Super Admin</button>
                 </p>
               )}
             </div>
