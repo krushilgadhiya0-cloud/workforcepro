@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, CreditCard, Wallet, CalendarOff, BarChart3,
   Settings, LogOut, Building2, ChevronLeft, ChevronRight, Bell, Shield,
-  ListTodo, Crown, UserCog, Home,
+  ListTodo, Crown, UserCog, Home, Activity,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useData, useCurrentUser } from '../../contexts/DataContext';
@@ -40,6 +40,7 @@ const superAdminLinks: NavItem[] = [
   { to: '/superadmin/payments', icon: CreditCard, label: 'All Payments' },
   { to: '/superadmin/workers', icon: Users, label: 'All Workers' },
   { to: '/superadmin/users', icon: UserCog, label: 'All Users' },
+  { to: '/superadmin/activity', icon: Activity, label: 'User Activity' },
   { to: '/superadmin/notifications', icon: Bell, label: 'Notifications', badge: true },
   { to: '/superadmin/settings', icon: Settings, label: 'Settings' },
 ];

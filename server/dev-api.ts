@@ -8,6 +8,7 @@ loadEnv({ override: true });
 import { handleCreateOrder, handleVerifyPayment, handleWebhook } from '../lib/payments/handlers.js';
 import { getPaymentStatus } from '../lib/payments/razorpay.js';
 import { verifyEmailAddress } from '../lib/email/verify.js';
+import { mergeAppData, normalizeAppData } from '../lib/data-sync.js';
 
 const app = express();
 const PORT = Number(process.env.API_PORT || 3001);
@@ -88,7 +89,7 @@ app.get('/api/data', (_req, res) => {
   try {
     if (existsSync(DATA_FILE)) {
       const data = readFileSync(DATA_FILE, 'utf-8');
-      res.json(JSON.parse(data));
+      res.json(normalizeAppData(JSON.parse(data)));
     } else {
       res.json(null);
     }
@@ -99,15 +100,20 @@ app.get('/api/data', (_req, res) => {
 
 app.post('/api/data', (req, res) => {
   try {
-    writeFileSync(DATA_FILE, JSON.stringify(req.body, null, 2), 'utf-8');
-    res.json({ ok: true });
+    let existing = null;
+    if (existsSync(DATA_FILE)) {
+      existing = normalizeAppData(JSON.parse(readFileSync(DATA_FILE, 'utf-8')));
+    }
+    const merged = mergeAppData(existing ?? {}, normalizeAppData(req.body ?? {}));
+    writeFileSync(DATA_FILE, JSON.stringify(merged, null, 2), 'utf-8');
+    res.json({ ok: true, data: merged });
   } catch {
     res.status(500).json({ error: 'Failed to save data' });
   }
 });
 
-const server = app.listen(PORT, () => {
-  console.log(`Payment API running at http://localhost:${PORT}`);
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`API running at http://localhost:${PORT} (LAN devices can sync via this host)`);
 });
 
 server.on('error', (error: NodeJS.ErrnoException) => {

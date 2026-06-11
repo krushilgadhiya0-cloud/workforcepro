@@ -11,7 +11,8 @@ import { useEmailValidation } from '../hooks/useEmailValidation';
 export function Login() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { login, logout, register, users } = useData();
+  const { login, logout, register, refresh } = useData();
+  const [submitting, setSubmitting] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { emailError, checking, validateEmail, clearEmailError } = useEmailValidation();
 
@@ -49,23 +50,28 @@ export function Login() {
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
-    const formatCheck = await validateEmail(form.email);
-    if (!formatCheck.valid) {
-      setError(formatCheck.message);
-      return;
+    setSubmitting(true);
+    try {
+      const formatCheck = await validateEmail(form.email);
+      if (!formatCheck.valid) {
+        setError(formatCheck.message);
+        return;
+      }
+      const user = await login(form.email, form.password);
+      if (!user) {
+        setError('Invalid email or password. Please check your credentials.');
+        return;
+      }
+      if (user.role === 'superadmin') {
+        await logout();
+        setError('Super Admin must use the secure admin sign-in page.');
+        return;
+      }
+      if (user.role === 'worker') navigate('/worker');
+      else navigate('/dashboard');
+    } finally {
+      setSubmitting(false);
     }
-    const user = login(form.email, form.password);
-    if (!user) {
-      setError('Invalid email or password. Please check your credentials.');
-      return;
-    }
-    if (user.role === 'superadmin') {
-      logout();
-      setError('Super Admin must use the secure admin sign-in page.');
-      return;
-    }
-    if (user.role === 'worker') navigate('/worker');
-    else navigate('/dashboard');
   };
 
   const handleRegister = async (e: FormEvent) => {
@@ -80,7 +86,8 @@ export function Login() {
       setError(emailCheck.message);
       return;
     }
-    if (users.some((u) => u.email.toLowerCase() === form.email.toLowerCase())) {
+    const latest = await refresh();
+    if (latest.users.some((u) => u.email.toLowerCase() === form.email.toLowerCase())) {
       setError('Email already registered. Please login instead.');
       return;
     }
@@ -88,9 +95,10 @@ export function Login() {
     setSuccess(`Verification email sent to ${form.email}. For demo, click "Complete Registration" below.`);
   };
 
-  const completeRegistration = () => {
+  const completeRegistration = async () => {
+    setSubmitting(true);
     try {
-      register({
+      await register({
         email: form.email,
         password: form.password,
         name: form.name,
@@ -100,6 +108,8 @@ export function Login() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
       setStep('form');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -225,8 +235,8 @@ export function Login() {
                       <Input label="Confirm Password" type="password" value={form.confirmPassword} onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} className="pl-10" placeholder="••••••••" required />
                     </div>
                   )}
-                  <Button type="submit" disabled={checking} className="w-full">
-                    {checking ? 'Checking email…' : mode === 'login' ? 'Sign In' : 'Register & Verify Email'}
+                  <Button type="submit" disabled={checking || submitting} className="w-full">
+                    {submitting ? 'Syncing…' : checking ? 'Checking email…' : mode === 'login' ? 'Sign In' : 'Register & Verify Email'}
                   </Button>
                 </form>
               ) : (
@@ -235,7 +245,9 @@ export function Login() {
                     <Mail size={48} className="mx-auto text-[var(--primary)] mb-3" />
                     <p className="text-sm text-[var(--text-muted)]">Check your inbox at <strong>{form.email}</strong></p>
                   </div>
-                  <Button className="w-full" onClick={completeRegistration}>Complete Registration (Demo)</Button>
+                  <Button className="w-full" disabled={submitting} onClick={() => void completeRegistration()}>
+                    {submitting ? 'Saving…' : 'Complete Registration (Demo)'}
+                  </Button>
                   <Button variant="outline" className="w-full" onClick={() => setStep('form')}>Back</Button>
                 </div>
               )}

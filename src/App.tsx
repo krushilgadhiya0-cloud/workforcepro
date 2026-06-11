@@ -30,6 +30,7 @@ import { SuperAdminWorkers } from './pages/superadmin/SuperAdminWorkers';
 import { SuperAdminUsers } from './pages/superadmin/SuperAdminUsers';
 import { SuperAdminSettings } from './pages/superadmin/SuperAdminSettings';
 import { SuperAdminNotifications } from './pages/superadmin/SuperAdminNotifications';
+import { SuperAdminActivity } from './pages/superadmin/SuperAdminActivity';
 
 function App() {
   return (
@@ -46,6 +47,7 @@ function App() {
             <Route path="/superadmin/payments" element={<ProtectedRoute roles={['superadmin']}><DashboardLayout><SuperAdminPayments /></DashboardLayout></ProtectedRoute>} />
             <Route path="/superadmin/workers" element={<ProtectedRoute roles={['superadmin']}><DashboardLayout><SuperAdminWorkers /></DashboardLayout></ProtectedRoute>} />
             <Route path="/superadmin/users" element={<ProtectedRoute roles={['superadmin']}><DashboardLayout><SuperAdminUsers /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/superadmin/activity" element={<ProtectedRoute roles={['superadmin']}><DashboardLayout><SuperAdminActivity /></DashboardLayout></ProtectedRoute>} />
             <Route path="/superadmin/settings" element={<ProtectedRoute roles={['superadmin']}><DashboardLayout><SuperAdminSettings /></DashboardLayout></ProtectedRoute>} />
             <Route path="/superadmin/notifications" element={<ProtectedRoute roles={['superadmin']}><DashboardLayout><SuperAdminNotifications /></DashboardLayout></ProtectedRoute>} />
 

@@ -110,6 +110,27 @@ export interface AppSettings {
   pushNotifications: boolean;
 }
 
+export type ActivityType =
+  | 'user_registered'
+  | 'user_login'
+  | 'user_logout'
+  | 'company_created'
+  | 'worker_added'
+  | 'admin_added'
+  | 'subscription_started';
+
+export interface ActivityLog {
+  id: string;
+  type: ActivityType;
+  userId: string;
+  userName: string;
+  userRole: UserRole;
+  companyId?: string;
+  companyName?: string;
+  message: string;
+  createdAt: string;
+}
+
 export interface AppData {
   users: User[];
   companies: Company[];
@@ -119,6 +140,7 @@ export interface AppData {
   leaves: LeaveRequest[];
   payments: Payment[];
   notifications: Notification[];
+  activities: ActivityLog[];
   settings: AppSettings;
   currentUserId: string | null;
   currentCompanyId: string | null;

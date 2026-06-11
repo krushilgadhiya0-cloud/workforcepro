@@ -1,15 +1,15 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import type {
   AppData, User, Company, Admin, Worker, Task, LeaveRequest, Payment, Notification,
-  SubscriptionPlan, AdminRole, LeaveStatus,
+  SubscriptionPlan, AdminRole, LeaveStatus, ActivityLog,
 } from '../types';
-import { loadData, saveData, defaultData, generateId, generateTransactionId, SUPER_ADMIN_ID } from '../utils/storage';
+import { loadData, saveData, syncFromServer, defaultData, generateId, generateTransactionId, SUPER_ADMIN_ID } from '../utils/storage';
 import { assertValidEmailFormat } from '../utils/email';
 
 interface DataContextType extends AppData {
-  refresh: () => void;
-  login: (email: string, password: string) => User | null;
-  register: (user: Omit<User, 'id' | 'createdAt'>) => User;
+  refresh: () => Promise<AppData>;
+  login: (email: string, password: string) => Promise<User | null>;
+  register: (user: Omit<User, 'id' | 'createdAt'>) => Promise<User>;
   logout: () => void;
   setCurrentCompany: (id: string) => void;
   createCompany: (data: Omit<Company, 'id' | 'createdAt' | 'subscription' | 'subscriptionDate' | 'monthlyRevenue' | 'monthlyRevenueUpdatedAt'>) => Company;
@@ -59,18 +59,46 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const persist = useCallback(async (newData: AppData) => {
-    setData(newData);
-    await saveData(newData);
+    const session = { currentUserId: newData.currentUserId, currentCompanyId: newData.currentCompanyId };
+    const saved = await saveData(newData);
+    setData({ ...saved, ...session });
   }, []);
 
-  const refresh = useCallback(async () => {
-    const loaded = await loadData();
-    setData(loaded);
+  const refresh = useCallback(async (): Promise<AppData> => {
+    let session = { currentUserId: null as string | null, currentCompanyId: null as string | null };
+    setData((prev) => {
+      session = { currentUserId: prev.currentUserId, currentCompanyId: prev.currentCompanyId };
+      return prev;
+    });
+    const synced = await syncFromServer(session);
+    setData(synced);
+    return synced;
   }, []);
 
   const appendNotification = (d: AppData, notif: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
     d.notifications.push({ ...notif, id: generateId(), read: false, createdAt: new Date().toISOString() });
   };
+
+  const appendActivity = (d: AppData, activity: Omit<ActivityLog, 'id' | 'createdAt'>) => {
+    d.activities.unshift({
+      ...activity,
+      id: generateId(),
+      createdAt: new Date().toISOString(),
+    });
+    if (d.activities.length > 500) d.activities.length = 500;
+  };
+
+  useEffect(() => {
+    const userId = data.currentUserId;
+    if (!userId) return;
+    const user = data.users.find((u) => u.id === userId);
+    if (user?.role !== 'superadmin') return;
+
+    const interval = setInterval(() => {
+      void refresh();
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [data.currentUserId, data.users, refresh]);
 
   const addNotification = useCallback(async (notif: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
     setData(prev => {
@@ -81,43 +109,62 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const login = useCallback((email: string, password: string): User | null => {
-    const user = data.users.find((u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
-    if (user) {
-      const d = { ...data };
-      d.currentUserId = user.id;
-      if (user.role === 'superadmin') {
-        d.currentCompanyId = null;
-      } else if (user.companyId) {
-        d.currentCompanyId = user.companyId;
-      } else if (user.role === 'owner') {
-        const owned = d.companies.find((c) => c.ownerId === user.id);
-        if (owned) {
-          d.currentCompanyId = owned.id;
-          user.companyId = owned.id;
-        }
-      }
-      persist(d);
-      return user;
-    }
-    return null;
-  }, [data, persist]);
+  const login = useCallback(async (email: string, password: string): Promise<User | null> => {
+    const fresh = await syncFromServer({ currentUserId: null, currentCompanyId: null });
+    const user = fresh.users.find((u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+    if (!user) return null;
 
-  const register = useCallback((userData: Omit<User, 'id' | 'createdAt'>): User => {
+    const d = { ...fresh };
+    d.currentUserId = user.id;
+    if (user.role === 'superadmin') {
+      d.currentCompanyId = null;
+    } else if (user.companyId) {
+      d.currentCompanyId = user.companyId;
+    } else if (user.role === 'owner') {
+      const owned = d.companies.find((c) => c.ownerId === user.id);
+      if (owned) {
+        d.currentCompanyId = owned.id;
+        user.companyId = owned.id;
+      }
+    }
+
+    const company = d.currentCompanyId ? d.companies.find((c) => c.id === d.currentCompanyId) : undefined;
+    appendActivity(d, {
+      type: 'user_login',
+      userId: user.id,
+      userName: user.name,
+      userRole: user.role,
+      companyId: company?.id,
+      companyName: company?.name,
+      message: `${user.name} (${user.role}) signed in`,
+    });
+    await persist(d);
+    return user;
+  }, [persist]);
+
+  const register = useCallback(async (userData: Omit<User, 'id' | 'createdAt'>): Promise<User> => {
     if (userData.role !== 'owner') {
       throw new Error('Only business owners can self-register. Workers and admins must be added by an owner.');
     }
+    const fresh = await syncFromServer({ currentUserId: null, currentCompanyId: null });
     const email = assertValidEmailFormat(userData.email);
-    if (data.users.some((u) => u.email.toLowerCase() === email)) {
+    if (fresh.users.some((u) => u.email.toLowerCase() === email)) {
       throw new Error('Email already registered');
     }
     const user: User = { ...userData, email, id: generateId(), createdAt: new Date().toISOString() };
-    const d = { ...data };
+    const d = { ...fresh };
     d.users.push(user);
     d.currentUserId = user.id;
-    persist(d);
+    appendActivity(d, {
+      type: 'user_registered',
+      userId: user.id,
+      userName: user.name,
+      userRole: user.role,
+      message: `${user.name} registered as business owner (${email})`,
+    });
+    await persist(d);
     return user;
-  }, [data, persist]);
+  }, [persist]);
 
   const isEmailTaken = useCallback((email: string, excludeUserId?: string): boolean => {
     return data.users.some(
@@ -125,11 +172,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
     );
   }, [data.users]);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    const user = data.users.find((u) => u.id === data.currentUserId);
+    const company = data.currentCompanyId
+      ? data.companies.find((c) => c.id === data.currentCompanyId)
+      : undefined;
     const d = { ...data };
+    if (user) {
+      appendActivity(d, {
+        type: 'user_logout',
+        userId: user.id,
+        userName: user.name,
+        userRole: user.role,
+        companyId: company?.id,
+        companyName: company?.name,
+        message: `${user.name} signed out`,
+      });
+    }
     d.currentUserId = null;
     d.currentCompanyId = null;
-    persist(d);
+    await persist(d);
   }, [data, persist]);
 
   const setCurrentCompany = useCallback((id: string) => {
@@ -169,6 +231,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
         type: 'general',
       });
     }
+    appendActivity(d, {
+      type: 'company_created',
+      userId: owner?.id ?? company.ownerId,
+      userName: company.ownerName,
+      userRole: 'owner',
+      companyId: company.id,
+      companyName: company.name,
+      message: `Business "${company.name}" was created`,
+    });
     persist(d);
     return company;
   }, [data, persist]);
@@ -179,6 +250,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (company) {
       company.subscription = plan;
       company.subscriptionDate = new Date().toISOString();
+      const owner = d.users.find((u) => u.id === company.ownerId);
+      appendActivity(d, {
+        type: 'subscription_started',
+        userId: owner?.id ?? company.ownerId,
+        userName: company.ownerName,
+        userRole: 'owner',
+        companyId: company.id,
+        companyName: company.name,
+        message: `${company.name} subscribed to ${plan} plan`,
+      });
       persist(d);
     }
   }, [data, persist]);
@@ -284,6 +365,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
       message: `Your admin account is ready. Login with email: ${adminData.email} and the password shared by your owner.`,
       type: 'general',
     });
+    const company = d.companies.find((c) => c.id === adminData.companyId);
+    appendActivity(d, {
+      type: 'admin_added',
+      userId: user.id,
+      userName: admin.name,
+      userRole: 'admin',
+      companyId: company?.id,
+      companyName: company?.name,
+      message: `Admin ${admin.name} was added to ${company?.name ?? 'a company'}`,
+    });
     persist(d);
     return admin;
   }, [data, persist]);
@@ -355,6 +446,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
       title: 'Account Registered',
       message: `Your worker account is ready. Login with email: ${workerData.email} and the password shared by your admin.`,
       type: 'general',
+    });
+    const company = d.companies.find((c) => c.id === workerData.companyId);
+    appendActivity(d, {
+      type: 'worker_added',
+      userId: user.id,
+      userName: worker.name,
+      userRole: 'worker',
+      companyId: company?.id,
+      companyName: company?.name,
+      message: `Worker ${worker.name} was added to ${company?.name ?? 'a company'}`,
     });
     persist(d);
     return worker;

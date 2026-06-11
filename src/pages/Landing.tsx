@@ -64,7 +64,7 @@ export function Landing() {
       setBusinessError(emailCheck.message);
       return;
     }
-    const user = register({
+    const user = await register({
       email: businessForm.email,
       password: businessForm.ownerPassword,
       name: businessForm.ownerName,

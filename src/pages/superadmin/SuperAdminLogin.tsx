@@ -17,6 +17,7 @@ export function SuperAdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -28,18 +29,23 @@ export function SuperAdminLogin() {
       return;
     }
 
-    const user = login(email, password);
-    if (!user) {
-      setError('Invalid Super Admin credentials.');
-      return;
-    }
-    if (user.role !== 'superadmin') {
-      logout();
-      setError('This account is not authorized for Super Admin access.');
-      return;
-    }
+    setSubmitting(true);
+    try {
+      const user = await login(email, password);
+      if (!user) {
+        setError('Invalid Super Admin credentials.');
+        return;
+      }
+      if (user.role !== 'superadmin') {
+        await logout();
+        setError('This account is not authorized for Super Admin access.');
+        return;
+      }
 
-    navigate('/superadmin', { replace: true });
+      navigate('/superadmin', { replace: true });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -102,8 +108,8 @@ export function SuperAdminLogin() {
                 required
               />
             </div>
-            <Button type="submit" disabled={checking} className="w-full bg-amber-500 hover:bg-amber-600">
-              {checking ? 'Verifying…' : 'Sign In as Super Admin'}
+            <Button type="submit" disabled={checking || submitting} className="w-full bg-amber-500 hover:bg-amber-600">
+              {submitting ? 'Syncing…' : checking ? 'Verifying…' : 'Sign In as Super Admin'}
             </Button>
           </form>
 
