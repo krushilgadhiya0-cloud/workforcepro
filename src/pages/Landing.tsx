@@ -11,6 +11,7 @@ import { Select } from '../components/ui/Select';
 import { useData, useCurrentUser } from '../contexts/DataContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useSubscriptionPayment } from '../hooks/useSubscriptionPayment';
+import { useEmailValidation } from '../hooks/useEmailValidation';
 import { RazorpayStatus } from '../components/payments/RazorpayStatus';
 
 const features = [
@@ -39,7 +40,9 @@ export function Landing() {
   const [businessForm, setBusinessForm] = useState({
     name: '', ownerName: '', email: '', phone: '', address: '', industry: 'Technology', ownerPassword: '',
   });
+  const [businessError, setBusinessError] = useState('');
 
+  const { emailError, checking, validateEmail, clearEmailError } = useEmailValidation();
   const { pay, loading: paying, error: paymentError } = useSubscriptionPayment((plan, companyId) => {
     subscribe(companyId, plan);
     setShowSubscription(false);
@@ -55,8 +58,17 @@ export function Landing() {
     }
   };
 
-  const handleCreateBusiness = () => {
-    if (!businessForm.name || !businessForm.ownerName || !businessForm.email || !businessForm.ownerPassword) return;
+  const handleCreateBusiness = async () => {
+    setBusinessError('');
+    if (!businessForm.name || !businessForm.ownerName || !businessForm.email || !businessForm.ownerPassword) {
+      setBusinessError('Please fill in all required fields');
+      return;
+    }
+    const emailCheck = await validateEmail(businessForm.email, { checkDeliverability: true });
+    if (!emailCheck.valid) {
+      setBusinessError(emailCheck.message);
+      return;
+    }
     let userId = currentUser?.id;
     if (!userId) {
       const user = register({
@@ -201,17 +213,28 @@ export function Landing() {
         © 2026 WorkForce Pro. All rights reserved.
       </footer>
 
-      <Modal isOpen={showBusiness} onClose={() => setShowBusiness(false)} title="Create Business">
+      <Modal isOpen={showBusiness} onClose={() => { setShowBusiness(false); setBusinessError(''); }} title="Create Business">
         <div className="space-y-4">
+          {businessError && <div className="p-3 rounded-xl bg-red-500/10 text-red-500 text-sm">{businessError}</div>}
           <Input label="Business Name" value={businessForm.name} onChange={(e) => setBusinessForm({ ...businessForm, name: e.target.value })} placeholder="Your business name" />
           <Input label="Owner Name" value={businessForm.ownerName} onChange={(e) => setBusinessForm({ ...businessForm, ownerName: e.target.value })} placeholder="Full name" />
-          <Input label="Business Email" type="email" value={businessForm.email} onChange={(e) => setBusinessForm({ ...businessForm, email: e.target.value })} placeholder="business@email.com" />
+          <Input
+            label="Business Email"
+            type="email"
+            value={businessForm.email}
+            onChange={(e) => { setBusinessForm({ ...businessForm, email: e.target.value }); clearEmailError(); setBusinessError(''); }}
+            onBlur={() => { if (businessForm.email.trim()) void validateEmail(businessForm.email, { checkDeliverability: true }); }}
+            error={emailError}
+            placeholder="business@email.com"
+          />
           <Input label="Phone Number" value={businessForm.phone} onChange={(e) => setBusinessForm({ ...businessForm, phone: e.target.value })} placeholder="+91 98765 43210" />
           <Input label="Business Address" value={businessForm.address} onChange={(e) => setBusinessForm({ ...businessForm, address: e.target.value })} placeholder="Full address" />
           <Select label="Industry Type" options={industries} value={businessForm.industry} onChange={(e) => setBusinessForm({ ...businessForm, industry: e.target.value })} />
           <Input label="Owner Password" type="password" value={businessForm.ownerPassword} onChange={(e) => setBusinessForm({ ...businessForm, ownerPassword: e.target.value })} placeholder="Set a secure password" />
           <div className="flex gap-3 pt-2">
-            <Button className="flex-1" onClick={handleCreateBusiness}>Continue</Button>
+            <Button className="flex-1" onClick={() => void handleCreateBusiness()} disabled={checking}>
+              {checking ? 'Checking email…' : 'Continue'}
+            </Button>
             <Button variant="outline" className="flex-1" onClick={() => setShowBusiness(false)}>Cancel</Button>
           </div>
         </div>

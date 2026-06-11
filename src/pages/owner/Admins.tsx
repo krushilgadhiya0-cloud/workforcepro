@@ -8,6 +8,7 @@ import { Select } from '../../components/ui/Select';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 import { useData, useCurrentCompany } from '../../contexts/DataContext';
+import { useEmailValidation } from '../../hooks/useEmailValidation';
 import type { Admin, AdminRole } from '../../types';
 
 const roleOptions = [
@@ -25,6 +26,7 @@ export function Admins() {
   const [form, setForm] = useState({ name: '', email: '', phone: '', role: 'manager' as AdminRole, password: 'admin123' });
   const [credentials, setCredentials] = useState<{ email: string; password: string; name: string } | null>(null);
   const [formError, setFormError] = useState('');
+  const { emailError, checking, validateEmail, clearEmailError } = useEmailValidation();
   const [monthlyRevenue, setMonthlyRevenue] = useState(String(company?.monthlyRevenue || ''));
   const [revenueSaved, setRevenueSaved] = useState(false);
 
@@ -48,27 +50,36 @@ export function Admins() {
     setShowModal(true);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!company) return;
     if (!form.name || !form.email) {
       setFormError('Name and email are required');
       return;
     }
-    if (editing) {
-      const ok = updateAdmin(editing.id, { name: form.name, email: form.email, phone: form.phone, role: form.role });
-      if (!ok) {
-        setFormError('Email already in use by another account');
-        return;
-      }
-    } else {
-      const admin = addAdmin({ ...form, companyId: company.id });
-      if (!admin) {
-        setFormError('Email already registered. This admin may already have an account.');
-        return;
-      }
-      setCredentials({ email: admin.email, password: form.password, name: admin.name });
+    const emailCheck = await validateEmail(form.email, { checkDeliverability: true });
+    if (!emailCheck.valid) {
+      setFormError(emailCheck.message);
+      return;
     }
-    setShowModal(false);
+    try {
+      if (editing) {
+        const ok = updateAdmin(editing.id, { name: form.name, email: form.email, phone: form.phone, role: form.role });
+        if (!ok) {
+          setFormError('Email already in use by another account');
+          return;
+        }
+      } else {
+        const admin = addAdmin({ ...form, companyId: company.id });
+        if (!admin) {
+          setFormError('Email already registered. This admin may already have an account.');
+          return;
+        }
+        setCredentials({ email: admin.email, password: form.password, name: admin.name });
+      }
+      setShowModal(false);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Could not save admin');
+    }
   };
 
   const handleSaveRevenue = () => {
@@ -165,12 +176,21 @@ export function Admins() {
             </div>
           )}
           <Input label="Admin Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          <Input label="Email Address" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          <Input
+            label="Email Address"
+            type="email"
+            value={form.email}
+            onChange={(e) => { setForm({ ...form, email: e.target.value }); clearEmailError(); setFormError(''); }}
+            onBlur={() => { if (form.email.trim()) void validateEmail(form.email, { checkDeliverability: true }); }}
+            error={emailError}
+          />
           <Input label="Phone Number" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
           <Select label="Role" options={roleOptions} value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as AdminRole })} />
           {!editing && <Input label="Login Password" type="text" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />}
           <div className="flex gap-3">
-            <Button className="flex-1" onClick={handleSubmit}>{editing ? 'Update' : 'Add Admin'}</Button>
+            <Button className="flex-1" onClick={() => void handleSubmit()} disabled={checking}>
+              {checking ? 'Checking email…' : editing ? 'Update' : 'Add Admin'}
+            </Button>
             <Button variant="outline" className="flex-1" onClick={() => setShowModal(false)}>Cancel</Button>
           </div>
         </div>

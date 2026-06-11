@@ -4,6 +4,7 @@ import type {
   SubscriptionPlan, AdminRole, LeaveStatus,
 } from '../types';
 import { loadData, saveData, defaultData, generateId, generateTransactionId, SUPER_ADMIN_ID } from '../utils/storage';
+import { assertValidEmailFormat } from '../utils/email';
 
 interface DataContextType extends AppData {
   refresh: () => void;
@@ -106,10 +107,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (userData.role !== 'owner') {
       throw new Error('Only business owners can self-register. Workers and admins must be added by an owner.');
     }
-    if (data.users.some((u) => u.email.toLowerCase() === userData.email.toLowerCase())) {
+    const email = assertValidEmailFormat(userData.email);
+    if (data.users.some((u) => u.email.toLowerCase() === email)) {
       throw new Error('Email already registered');
     }
-    const user: User = { ...userData, id: generateId(), createdAt: new Date().toISOString() };
+    const user: User = { ...userData, email, id: generateId(), createdAt: new Date().toISOString() };
     const d = { ...data };
     d.users.push(user);
     d.currentUserId = user.id;
@@ -137,8 +139,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [data, persist]);
 
   const createCompany = useCallback((companyData: Omit<Company, 'id' | 'createdAt' | 'subscription' | 'subscriptionDate' | 'monthlyRevenue' | 'monthlyRevenueUpdatedAt'>): Company => {
+    const email = assertValidEmailFormat(companyData.email);
     const company: Company = {
       ...companyData,
+      email,
       id: generateId(),
       subscription: null,
       subscriptionDate: null,
@@ -247,12 +251,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [data, persist]);
 
   const addAdmin = useCallback((adminData: Omit<Admin, 'id' | 'createdAt' | 'userId'> & { password: string }): Admin | null => {
-    if (data.users.some((u) => u.email.toLowerCase() === adminData.email.toLowerCase())) {
+    const email = assertValidEmailFormat(adminData.email);
+    if (data.users.some((u) => u.email.toLowerCase() === email)) {
       return null;
     }
     const user: User = {
       id: generateId(),
-      email: adminData.email,
+      email,
       password: adminData.password,
       name: adminData.name,
       role: 'admin',
@@ -264,7 +269,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       id: generateId(),
       companyId: adminData.companyId,
       name: adminData.name,
-      email: adminData.email,
+      email,
       phone: adminData.phone,
       role: adminData.role as AdminRole,
       userId: user.id,
@@ -288,14 +293,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const idx = d.admins.findIndex((a) => a.id === id);
     if (idx >= 0) {
       const admin = d.admins[idx];
-      if (updates.email && d.users.some((u) => u.email.toLowerCase() === updates.email!.toLowerCase() && u.id !== admin.userId)) {
+      const nextEmail = updates.email ? assertValidEmailFormat(updates.email) : undefined;
+      if (nextEmail && d.users.some((u) => u.email.toLowerCase() === nextEmail && u.id !== admin.userId)) {
         return false;
       }
-      d.admins[idx] = { ...admin, ...updates };
+      d.admins[idx] = { ...admin, ...updates, ...(nextEmail ? { email: nextEmail } : {}) };
       const user = d.users.find((u) => u.id === admin.userId);
       if (user) {
         if (updates.name) user.name = updates.name;
-        if (updates.email) user.email = updates.email;
+        if (nextEmail) user.email = nextEmail;
         if (updates.phone) user.phone = updates.phone;
       }
     }
@@ -314,12 +320,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [data, persist]);
 
   const addWorker = useCallback((workerData: Omit<Worker, 'id' | 'createdAt' | 'userId' | 'attendanceStatus'> & { password: string }): Worker | null => {
-    if (data.users.some((u) => u.email.toLowerCase() === workerData.email.toLowerCase())) {
+    const email = assertValidEmailFormat(workerData.email);
+    if (data.users.some((u) => u.email.toLowerCase() === email)) {
       return null;
     }
     const user: User = {
       id: generateId(),
-      email: workerData.email,
+      email,
       password: workerData.password,
       name: workerData.name,
       role: 'worker',
@@ -331,7 +338,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       id: generateId(),
       companyId: workerData.companyId,
       name: workerData.name,
-      email: workerData.email,
+      email,
       phone: workerData.phone,
       department: workerData.department,
       designation: workerData.designation,
@@ -358,14 +365,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const idx = d.workers.findIndex((w) => w.id === id);
     if (idx >= 0) {
       const worker = d.workers[idx];
-      if (updates.email && d.users.some((u) => u.email.toLowerCase() === updates.email!.toLowerCase() && u.id !== worker.userId)) {
+      const nextEmail = updates.email ? assertValidEmailFormat(updates.email) : undefined;
+      if (nextEmail && d.users.some((u) => u.email.toLowerCase() === nextEmail && u.id !== worker.userId)) {
         return false;
       }
-      d.workers[idx] = { ...worker, ...updates };
+      d.workers[idx] = { ...worker, ...updates, ...(nextEmail ? { email: nextEmail } : {}) };
       const user = d.users.find((u) => u.id === worker.userId);
       if (user) {
         if (updates.name) user.name = updates.name;
-        if (updates.email) user.email = updates.email;
+        if (nextEmail) user.email = nextEmail;
         if (updates.phone) user.phone = updates.phone;
       }
     }
@@ -535,7 +543,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const d = { ...data };
     const idx = d.companies.findIndex((c) => c.id === id);
     if (idx < 0) return false;
-    d.companies[idx] = { ...d.companies[idx], ...updates };
+    const nextEmail = updates.email ? assertValidEmailFormat(updates.email) : undefined;
+    d.companies[idx] = { ...d.companies[idx], ...updates, ...(nextEmail ? { email: nextEmail } : {}) };
     const company = d.companies[idx];
     const owner = d.users.find((u) => u.id === company.ownerId);
     if (owner) {

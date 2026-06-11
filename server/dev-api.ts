@@ -7,6 +7,7 @@ if (existsSync('.env.local')) loadEnv({ path: '.env.local', override: true });
 loadEnv({ override: true });
 import { handleCreateOrder, handleVerifyPayment, handleWebhook } from '../lib/payments/handlers.js';
 import { getPaymentStatus } from '../lib/payments/razorpay.js';
+import { verifyEmailAddress } from '../lib/email/verify.js';
 
 const app = express();
 const PORT = Number(process.env.API_PORT || 3001);
@@ -24,6 +25,7 @@ app.use((_req, res, next) => {
 app.options('/api/create-order', (_req, res) => res.status(204).end());
 app.options('/api/verify-payment', (_req, res) => res.status(204).end());
 app.options('/api/webhook', (_req, res) => res.status(204).end());
+app.options('/api/verify-email', (_req, res) => res.status(204).end());
 
 app.post('/api/create-order', async (req, res) => {
   try {
@@ -65,6 +67,19 @@ app.get('/api/health', (_req, res) => {
 
 app.get('/api/payment-status', (_req, res) => {
   res.json(getPaymentStatus());
+});
+
+app.post('/api/verify-email', async (req, res) => {
+  const email = typeof req.body?.email === 'string' ? req.body.email : '';
+  if (!email.trim()) {
+    return res.status(400).json({ valid: false, message: 'Email is required' });
+  }
+  try {
+    const result = await verifyEmailAddress(email);
+    return res.status(result.valid ? 200 : 400).json(result);
+  } catch {
+    return res.status(500).json({ valid: false, message: 'Could not verify email right now. Try again.' });
+  }
 });
 
 const DATA_FILE = join(process.cwd(), 'data', 'app-data.json');

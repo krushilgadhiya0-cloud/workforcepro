@@ -9,6 +9,7 @@ import { Modal } from '../../components/ui/Modal';
 import { Badge } from '../../components/ui/Badge';
 import { useData, useCurrentCompany, useCurrentUser } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useEmailValidation } from '../../hooks/useEmailValidation';
 import type { Company } from '../../types';
 
 const industries = [
@@ -49,6 +50,7 @@ export function Settings() {
   const [companyForm, setCompanyForm] = useState(emptyForm);
   const [companyFormError, setCompanyFormError] = useState('');
   const [companyFormMsg, setCompanyFormMsg] = useState('');
+  const { emailError, checking, validateEmail, clearEmailError } = useEmailValidation();
 
   useEffect(() => {
     if (company) {
@@ -91,7 +93,7 @@ export function Settings() {
     setShowEditModal(true);
   };
 
-  const handleCreateCompany = () => {
+  const handleCreateCompany = async () => {
     setCompanyFormError('');
     if (!user) return;
     if (!companyForm.name.trim() || !companyForm.ownerName.trim() || !companyForm.email.trim()) {
@@ -102,6 +104,12 @@ export function Settings() {
       setCompanyFormError('Set an owner password for this business (used to remove it later)');
       return;
     }
+    const emailCheck = await validateEmail(companyForm.email, { checkDeliverability: true });
+    if (!emailCheck.valid) {
+      setCompanyFormError(emailCheck.message);
+      return;
+    }
+    try {
     createCompany({
       name: companyForm.name.trim(),
       ownerName: companyForm.ownerName.trim(),
@@ -117,15 +125,24 @@ export function Settings() {
       setShowNewModal(false);
       setCompanyFormMsg('');
     }, 1200);
+    } catch (err) {
+      setCompanyFormError(err instanceof Error ? err.message : 'Could not create business');
+    }
   };
 
-  const handleEditCompany = () => {
+  const handleEditCompany = async () => {
     setCompanyFormError('');
     if (!editingCompany) return;
     if (!companyForm.name.trim() || !companyForm.ownerName.trim() || !companyForm.email.trim()) {
       setCompanyFormError('Business name, owner name, and email are required');
       return;
     }
+    const emailCheck = await validateEmail(companyForm.email, { checkDeliverability: true });
+    if (!emailCheck.valid) {
+      setCompanyFormError(emailCheck.message);
+      return;
+    }
+    try {
     const success = updateCompany(editingCompany.id, {
       name: companyForm.name.trim(),
       ownerName: companyForm.ownerName.trim(),
@@ -144,6 +161,9 @@ export function Settings() {
     } else {
       setCompanyFormError('Failed to update business');
     }
+    } catch (err) {
+      setCompanyFormError(err instanceof Error ? err.message : 'Could not update business');
+    }
   };
 
   const handleDeleteCompany = () => {
@@ -159,7 +179,7 @@ export function Settings() {
     }
   };
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     setProfileError('');
     setProfileMsg('');
     if (!company) {
@@ -170,6 +190,12 @@ export function Settings() {
       setProfileError('Business name, owner name, and email are required');
       return;
     }
+    const emailCheck = await validateEmail(profile.email, { checkDeliverability: true });
+    if (!emailCheck.valid) {
+      setProfileError(emailCheck.message);
+      return;
+    }
+    try {
     const success = updateCompany(company.id, {
       name: profile.name.trim(),
       ownerName: profile.ownerName.trim(),
@@ -183,6 +209,9 @@ export function Settings() {
       setTimeout(() => setProfileMsg(''), 3000);
     } else {
       setProfileError('Failed to save profile. Please try again.');
+    }
+    } catch (err) {
+      setProfileError(err instanceof Error ? err.message : 'Could not save profile');
     }
   };
 
@@ -210,7 +239,16 @@ export function Settings() {
     <div className="space-y-4">
       <Input label="Business Name" hint="Your company or store name" value={companyForm.name} onChange={(e) => setCompanyForm({ ...companyForm, name: e.target.value })} required />
       <Input label="Owner Name" hint="Legal owner of this business" value={companyForm.ownerName} onChange={(e) => setCompanyForm({ ...companyForm, ownerName: e.target.value })} required />
-      <Input label="Business Email" type="email" hint="Contact email for this business" value={companyForm.email} onChange={(e) => setCompanyForm({ ...companyForm, email: e.target.value })} required />
+      <Input
+        label="Business Email"
+        type="email"
+        hint="Contact email for this business"
+        value={companyForm.email}
+        onChange={(e) => { setCompanyForm({ ...companyForm, email: e.target.value }); clearEmailError(); setCompanyFormError(''); }}
+        onBlur={() => { if (companyForm.email.trim()) void validateEmail(companyForm.email, { checkDeliverability: true }); }}
+        error={emailError}
+        required
+      />
       <Input label="Phone Number" value={companyForm.phone} onChange={(e) => setCompanyForm({ ...companyForm, phone: e.target.value })} />
       <Input label="Business Address" value={companyForm.address} onChange={(e) => setCompanyForm({ ...companyForm, address: e.target.value })} />
       <Select label="Industry Type" options={industries} value={companyForm.industry} onChange={(e) => setCompanyForm({ ...companyForm, industry: e.target.value })} />
@@ -289,7 +327,16 @@ export function Settings() {
             <div className="space-y-4">
               <Input label="Business Name" hint="Shown on dashboard, reports, and receipts." value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} disabled={!isOwner} />
               <Input label="Owner Name" hint="Displayed on company cards and documents." value={profile.ownerName} onChange={(e) => setProfile({ ...profile, ownerName: e.target.value })} disabled={!isOwner} />
-              <Input label="Business Email" hint="Contact email for notifications." type="email" value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} disabled={!isOwner} />
+              <Input
+                label="Business Email"
+                hint="Contact email for notifications."
+                type="email"
+                value={profile.email}
+                onChange={(e) => { setProfile({ ...profile, email: e.target.value }); clearEmailError(); setProfileError(''); }}
+                onBlur={() => { if (profile.email.trim()) void validateEmail(profile.email, { checkDeliverability: true }); }}
+                error={emailError}
+                disabled={!isOwner}
+              />
               <Input label="Phone Number" hint="Contact number for workers and admins." value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} disabled={!isOwner} />
               <Input label="Business Address" hint="Shown on reports and company profile." value={profile.address} onChange={(e) => setProfile({ ...profile, address: e.target.value })} disabled={!isOwner} />
               <Input label="Industry Type" hint="Used for dashboard categorization." value={profile.industry} onChange={(e) => setProfile({ ...profile, industry: e.target.value })} disabled={!isOwner} />
@@ -299,7 +346,9 @@ export function Settings() {
 
               {isOwner && (
                 <div className="flex gap-3">
-                  <Button className="flex-1" onClick={handleSaveProfile}>Save Profile</Button>
+                  <Button className="flex-1" onClick={() => void handleSaveProfile()} disabled={checking}>
+                    {checking ? 'Checking email…' : 'Save Profile'}
+                  </Button>
                   <Button variant="outline" className="flex-1" onClick={() => company && openEditCompany(company)}><Pencil size={16} /> Full Edit</Button>
                 </div>
               )}
@@ -381,7 +430,9 @@ export function Settings() {
       <Modal isOpen={showNewModal} onClose={() => setShowNewModal(false)} title="Start New Business" size="lg">
         {companyFormFields}
         <div className="flex gap-3 mt-4">
-          <Button className="flex-1" onClick={handleCreateCompany}><Plus size={16} /> Create Business</Button>
+          <Button className="flex-1" onClick={() => void handleCreateCompany()} disabled={checking}>
+            <Plus size={16} /> {checking ? 'Checking email…' : 'Create Business'}
+          </Button>
           <Button variant="outline" className="flex-1" onClick={() => setShowNewModal(false)}>Cancel</Button>
         </div>
       </Modal>
@@ -390,7 +441,9 @@ export function Settings() {
       <Modal isOpen={showEditModal} onClose={() => { setShowEditModal(false); setEditingCompany(null); }} title={`Edit — ${editingCompany?.name || 'Business'}`} size="lg">
         {companyFormFields}
         <div className="flex gap-3 mt-4">
-          <Button className="flex-1" onClick={handleEditCompany}><CheckCircle size={16} /> Save Changes</Button>
+          <Button className="flex-1" onClick={() => void handleEditCompany()} disabled={checking}>
+            <CheckCircle size={16} /> {checking ? 'Checking email…' : 'Save Changes'}
+          </Button>
           <Button variant="outline" className="flex-1" onClick={() => { setShowEditModal(false); setEditingCompany(null); }}>Cancel</Button>
         </div>
       </Modal>

@@ -6,6 +6,7 @@ import { Modal } from '../../components/ui/Modal';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { useData, useCurrentCompany } from '../../contexts/DataContext';
+import { useEmailValidation } from '../../hooks/useEmailValidation';
 import type { Worker } from '../../types';
 
 export function Workers() {
@@ -17,6 +18,7 @@ export function Workers() {
   const [form, setForm] = useState({ name: '', email: '', phone: '', joiningDate: '', password: 'worker123' });
   const [credentials, setCredentials] = useState<{ email: string; password: string; name: string } | null>(null);
   const [formError, setFormError] = useState('');
+  const { emailError, checking, validateEmail, clearEmailError } = useEmailValidation();
 
   const companyWorkers = workers.filter((w) => w.companyId === company?.id);
 
@@ -46,7 +48,7 @@ export function Workers() {
     setShowModal(true);
   };
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!company) {
       setFormError('No business found. Please create a business from the home page first.');
@@ -64,31 +66,40 @@ export function Workers() {
       setFormError('Login password is required');
       return;
     }
-    if (editing) {
-      const ok = updateWorker(editing.id, { name: form.name.trim(), email: form.email.trim(), phone: form.phone, joiningDate: form.joiningDate });
-      if (!ok) {
-        setFormError('Email already in use by another account');
+    const emailCheck = await validateEmail(form.email, { checkDeliverability: true });
+    if (!emailCheck.valid) {
+      setFormError(emailCheck.message);
+      return;
+    }
+    try {
+      if (editing) {
+        const ok = updateWorker(editing.id, { name: form.name.trim(), email: form.email.trim(), phone: form.phone, joiningDate: form.joiningDate });
+        if (!ok) {
+          setFormError('Email already in use by another account');
+          return;
+        }
+        setShowModal(false);
+        return;
+      }
+      const worker = addWorker({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone,
+        joiningDate: form.joiningDate,
+        password: form.password,
+        companyId: company.id,
+        department: '',
+        designation: '',
+      });
+      if (!worker) {
+        setFormError('Email already registered. Use a different email for this worker.');
         return;
       }
       setShowModal(false);
-      return;
+      setCredentials({ email: worker.email, password: form.password, name: worker.name });
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Could not save worker');
     }
-    const worker = addWorker({
-      name: form.name.trim(),
-      email: form.email.trim(),
-      phone: form.phone,
-      joiningDate: form.joiningDate,
-      password: form.password,
-      companyId: company.id,
-      department: '',
-      designation: '',
-    });
-    if (!worker) {
-      setFormError('Email already registered. Use a different email for this worker.');
-      return;
-    }
-    setShowModal(false);
-    setCredentials({ email: worker.email, password: form.password, name: worker.name });
   };
 
   return (
@@ -156,12 +167,22 @@ export function Workers() {
             </div>
           )}
           <Input label="Worker Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-          <Input label="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+          <Input
+            label="Email"
+            type="email"
+            value={form.email}
+            onChange={(e) => { setForm({ ...form, email: e.target.value }); clearEmailError(); setFormError(''); }}
+            onBlur={() => { if (form.email.trim()) void validateEmail(form.email, { checkDeliverability: true }); }}
+            error={emailError}
+            required
+          />
           <Input label="Phone Number" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
           <Input label="Joining Date" type="date" value={form.joiningDate} onChange={(e) => setForm({ ...form, joiningDate: e.target.value })} required />
           {!editing && <Input label="Login Password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />}
           <div className="flex gap-3">
-            <Button type="submit" className="flex-1">{editing ? 'Update' : 'Add Worker'}</Button>
+            <Button type="submit" className="flex-1" disabled={checking}>
+              {checking ? 'Checking email…' : editing ? 'Update' : 'Add Worker'}
+            </Button>
             <Button type="button" variant="outline" className="flex-1" onClick={() => { setShowModal(false); setFormError(''); }}>Cancel</Button>
           </div>
         </form>

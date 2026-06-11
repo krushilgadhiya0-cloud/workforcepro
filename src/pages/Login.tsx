@@ -7,12 +7,14 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useData } from '../contexts/DataContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useEmailValidation } from '../hooks/useEmailValidation';
 
 export function Login() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { login, register, users } = useData();
   const { theme, toggleTheme } = useTheme();
+  const { emailError, checking, validateEmail, clearEmailError } = useEmailValidation();
 
   const [mode, setMode] = useState<'login' | 'register' | 'superadmin'>('login');
   const [companyName, setCompanyName] = useState('');
@@ -54,9 +56,14 @@ export function Login() {
     setMode('login');
   }, [searchParams]);
 
-  const handleLogin = (e: FormEvent) => {
+  const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+    const formatCheck = await validateEmail(form.email);
+    if (!formatCheck.valid) {
+      setError(formatCheck.message);
+      return;
+    }
     const user = login(form.email, form.password);
     if (user) {
       if (user.role === 'superadmin') navigate('/superadmin');
@@ -67,11 +74,16 @@ export function Login() {
     }
   };
 
-  const handleRegister = (e: FormEvent) => {
+  const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
     if (form.password !== form.confirmPassword) {
       setError('Passwords do not match');
+      return;
+    }
+    const emailCheck = await validateEmail(form.email, { checkDeliverability: true });
+    if (!emailCheck.valid) {
+      setError(emailCheck.message);
       return;
     }
     if (users.some((u) => u.email.toLowerCase() === form.email.toLowerCase())) {
@@ -210,7 +222,17 @@ export function Login() {
                   )}
                   <div className="relative">
                     <Mail size={18} className="absolute left-3 top-[38px] text-[var(--text-muted)]" />
-                    <Input label="Email Address" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="pl-10" placeholder="you@company.com" required />
+                    <Input
+                      label="Email Address"
+                      type="email"
+                      value={form.email}
+                      onChange={(e) => { setForm({ ...form, email: e.target.value }); clearEmailError(); setError(''); }}
+                      onBlur={() => { if (form.email.trim()) void validateEmail(form.email, { checkDeliverability: mode === 'register' }); }}
+                      error={emailError}
+                      className="pl-10"
+                      placeholder="you@company.com"
+                      required
+                    />
                   </div>
                   <div className="relative">
                     <Lock size={18} className="absolute left-3 top-[38px] text-[var(--text-muted)]" />
@@ -222,8 +244,8 @@ export function Login() {
                       <Input label="Confirm Password" type="password" value={form.confirmPassword} onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} className="pl-10" placeholder="••••••••" required />
                     </div>
                   )}
-                  <Button type="submit" className={`w-full ${mode === 'superadmin' ? 'bg-amber-500 hover:bg-amber-600' : ''}`}>
-                    {mode === 'superadmin' ? 'Sign In as Super Admin' : mode === 'login' ? 'Sign In' : 'Register & Verify Email'}
+                  <Button type="submit" disabled={checking} className={`w-full ${mode === 'superadmin' ? 'bg-amber-500 hover:bg-amber-600' : ''}`}>
+                    {checking ? 'Checking email…' : mode === 'superadmin' ? 'Sign In as Super Admin' : mode === 'login' ? 'Sign In' : 'Register & Verify Email'}
                   </Button>
                 </form>
               ) : (
