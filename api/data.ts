@@ -29,6 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const merged = await saveStoredAppData(normalizeAppData(req.body ?? {}));
     return res.status(200).json({ ok: true, data: merged, backend });
   } catch (error) {
+    console.error('Vercel API Data Error:', error);
     const message = error instanceof Error ? error.message : 'Data sync failed';
     return res.status(500).json({ error: message });
   }
