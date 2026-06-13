@@ -1,10 +1,10 @@
+import { createClient } from 'redis';
 import { getTcpRedisUrl } from './redis-tcp-env';
 
 async function withTcpClient<T>(fn: (client: { get: (key: string) => Promise<string | null>; set: (key: string, value: string) => Promise<unknown> }) => Promise<T>): Promise<T> {
   const url = getTcpRedisUrl();
   if (!url) throw new Error('TCP Redis URL not configured');
 
-  const { createClient } = await import('redis');
   const client = createClient({ url });
   client.on('error', () => {});
   await client.connect();
