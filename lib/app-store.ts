@@ -107,8 +107,9 @@ export async function loadStoredAppData(): Promise<AppData | null> {
 
 export async function saveStoredAppData(data: AppData): Promise<AppData> {
   const backend = getStorageBackend();
-  if (backend === 'redis') return saveToRestRedis(data);
-  if (backend === 'redis-tcp') return saveToTcpRedis(data);
-  if (backend === 'blob') return saveToBlob(data);
+  const stripped = { ...data, currentUserId: null, currentCompanyId: null };
+  if (backend === 'redis') return saveToRestRedis(stripped);
+  if (backend === 'redis-tcp') return saveToTcpRedis(stripped);
+  if (backend === 'blob') return saveToBlob(stripped);
   throw new Error('No cloud storage configured. Connect Redis to your Vercel project and redeploy.');
 }

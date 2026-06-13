@@ -68,8 +68,8 @@ export function mergeAppData(base: Partial<AppData>, incoming: Partial<AppData>)
       (x, y) => new Date(y.createdAt).getTime() - new Date(x.createdAt).getTime(),
     ),
     settings: { ...a.settings, ...b.settings },
-    currentUserId: b.currentUserId ?? a.currentUserId,
-    currentCompanyId: b.currentCompanyId ?? a.currentCompanyId,
+    currentUserId: b.currentUserId === undefined ? a.currentUserId : b.currentUserId,
+    currentCompanyId: b.currentCompanyId === undefined ? a.currentCompanyId : b.currentCompanyId,
   };
 
   if (merged.activities.length > 500) {

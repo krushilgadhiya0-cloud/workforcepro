@@ -139,9 +139,9 @@ export async function loadData(): Promise<AppData> {
     console.warn('Cloud sync load failed:', remote.error);
   }
 
-  data = stripSession(ensureSuperAdminFromStorage(data));
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  return data;
+  const finalData = ensureSuperAdminFromStorage(data);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(finalData));
+  return finalData;
 }
 
 export async function syncFromServer(
@@ -161,8 +161,10 @@ export async function saveData(data: AppData): Promise<AppData> {
     merged = mergeAppData(remote.data ?? {}, persisted);
   }
 
-  const finalData = stripSession(ensureSuperAdminFromStorage(merged));
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(finalData));
+  const localData = ensureSuperAdminFromStorage(merged);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(localData));
+
+  const finalData = stripSession(localData);
 
   try {
     const res = await fetchWithTimeout(API_URL, {
@@ -182,10 +184,13 @@ export async function saveData(data: AppData): Promise<AppData> {
     }
 
     if (result?.data) {
-      const serverData = stripSession(normalizeAppData(result.data));
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(serverData));
+      const serverData = normalizeAppData(result.data);
+      // We merge with local session before saving to localStorage
+      const session = { currentUserId: data.currentUserId, currentCompanyId: data.currentCompanyId };
+      const localWithSession = { ...serverData, ...session };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(localWithSession));
       setSyncState('synced');
-      return serverData;
+      return localWithSession;
     }
 
     setSyncState('synced');

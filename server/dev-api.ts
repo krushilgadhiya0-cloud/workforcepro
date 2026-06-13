@@ -85,21 +85,38 @@ app.post('/api/verify-email', async (req, res) => {
 
 const DATA_FILE = join(process.cwd(), 'data', 'app-data.json');
 
-app.get('/api/data', (_req, res) => {
+app.get('/api/data', async (_req, res) => {
   try {
+    const { loadStoredAppData, getStorageBackend } = await import('../lib/app-store.js');
+    const backend = getStorageBackend();
+
+    if (backend !== 'none') {
+      const data = await loadStoredAppData();
+      return res.json(data);
+    }
+
     if (existsSync(DATA_FILE)) {
       const data = readFileSync(DATA_FILE, 'utf-8');
       res.json(normalizeAppData(JSON.parse(data)));
     } else {
       res.json(null);
     }
-  } catch {
+  } catch (error) {
+    console.error('Local API read failed:', error);
     res.status(500).json({ error: 'Failed to read data' });
   }
 });
 
-app.post('/api/data', (req, res) => {
+app.post('/api/data', async (req, res) => {
   try {
+    const { saveStoredAppData, getStorageBackend } = await import('../lib/app-store.js');
+    const backend = getStorageBackend();
+
+    if (backend !== 'none') {
+      const merged = await saveStoredAppData(normalizeAppData(req.body ?? {}));
+      return res.json({ ok: true, data: merged, backend });
+    }
+
     let existing = null;
     if (existsSync(DATA_FILE)) {
       existing = normalizeAppData(JSON.parse(readFileSync(DATA_FILE, 'utf-8')));
@@ -107,7 +124,8 @@ app.post('/api/data', (req, res) => {
     const merged = mergeAppData(existing ?? {}, normalizeAppData(req.body ?? {}));
     writeFileSync(DATA_FILE, JSON.stringify(merged, null, 2), 'utf-8');
     res.json({ ok: true, data: merged });
-  } catch {
+  } catch (error) {
+    console.error('Local API save failed:', error);
     res.status(500).json({ error: 'Failed to save data' });
   }
 });
