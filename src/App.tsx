@@ -1,10 +1,16 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { DataProvider } from './contexts/DataContext';
+import { DataProvider, useCurrentUser } from './contexts/DataContext';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { Landing } from './pages/Landing';
 import { Login } from './pages/Login';
+
+function HomeRedirect() {
+  const user = useCurrentUser();
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role === 'worker') return <Navigate to="/worker" replace />;
+  return <Navigate to="/dashboard" replace />;
+}
 import { OwnerDashboard } from './pages/owner/Dashboard';
 import { Companies } from './pages/owner/Companies';
 import { Admins } from './pages/owner/Admins';
@@ -38,7 +44,7 @@ function App() {
       <DataProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Landing />} />
+            <Route path="/" element={<HomeRedirect />} />
             <Route path="/login" element={<Login />} />
             <Route path="/superadmin/login" element={<SuperAdminLogin />} />
 
