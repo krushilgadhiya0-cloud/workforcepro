@@ -335,6 +335,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     d.leaves = d.leaves.filter((l) => l.companyId !== companyId);
     d.payments = d.payments.filter((p) => p.companyId !== companyId);
     if (d.currentCompanyId === companyId) d.currentCompanyId = null;
+    setData(d); // Update UI immediately
     persist(d);
   }, [data, persist]);
 
@@ -374,6 +375,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       d.currentCompanyId = null;
     }
 
+    setData(d); // Update UI immediately
     persist(d);
     return true;
   }, [data, persist]);
