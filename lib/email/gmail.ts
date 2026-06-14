@@ -98,3 +98,54 @@ export async function sendSubscriptionReminderEmail(email: string, name: string,
     return { success: false, error };
   }
 }
+
+export async function sendPaymentReceiptEmail(email: string, name: string, details: { plan: string; amount: number; paymentId: string; orderId: string }) {
+  try {
+    await transporter.sendMail({
+      from: `"WorkForcePro Billing" <${process.env.GMAIL_USER}>`,
+      to: email,
+      subject: `Payment Receipt: Your ${details.plan} is now active!`,
+      html: `
+        <div style="font-family: sans-serif; line-height: 1.5; color: #111; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 30px; border-radius: 12px;">
+          <h2 style="color: #2563eb; margin-top: 0;">Payment Receipt</h2>
+          <p>Hello ${name},</p>
+          <p>Thank you for your payment! Your subscription to <strong>WorkForcePro</strong> has been successfully activated.</p>
+          
+          <div style="background-color: #f8fafc; border-radius: 8px; padding: 20px; margin: 25px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 5px 0; color: #64748b;">Plan:</td>
+                <td style="padding: 5px 0; text-align: right; font-weight: bold;">${details.plan}</td>
+              </tr>
+              <tr>
+                <td style="padding: 5px 0; color: #64748b;">Amount Paid:</td>
+                <td style="padding: 5px 0; text-align: right; font-weight: bold;">₹${details.amount}</td>
+              </tr>
+              <tr>
+                <td style="padding: 5px 0; color: #64748b;">Payment Date:</td>
+                <td style="padding: 5px 0; text-align: right;">${new Date().toLocaleDateString()}</td>
+              </tr>
+              <tr>
+                <td style="padding: 15px 0 0; color: #64748b; font-size: 12px;">Payment ID:</td>
+                <td style="padding: 15px 0 0; text-align: right; font-size: 12px;">${details.paymentId}</td>
+              </tr>
+              <tr>
+                <td style="padding: 5px 0; color: #64748b; font-size: 12px;">Order ID:</td>
+                <td style="padding: 5px 0; text-align: right; font-size: 12px;">${details.orderId}</td>
+              </tr>
+            </table>
+          </div>
+
+          <p>You can now access all premium features in your dashboard.</p>
+          
+          <p>Best regards,<br>
+          <strong>The WorkForcePro Finance Team</strong></p>
+        </div>
+      `,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send payment receipt email:', error);
+    return { success: false, error };
+  }
+}

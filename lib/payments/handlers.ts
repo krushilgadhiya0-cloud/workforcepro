@@ -2,6 +2,7 @@ import { createRazorpayClient, getRazorpayConfig } from './razorpay.js';
 import { getPlanAmount, isValidPlan, PLAN_LABELS } from './plans.js';
 import { verifyPaymentSignature, verifyWebhookSignature } from './verify.js';
 import { loadStoredAppData, saveStoredAppData } from '../app-store.js';
+import { sendPaymentReceiptEmail } from '../email/gmail.js';
 import type { SubscriptionPlan } from '../types';
 
 export interface CreateOrderInput {
@@ -134,6 +135,15 @@ export async function handleVerifyPayment(input: VerifyPaymentInput): Promise<Ve
         });
         
         await saveStoredAppData(data);
+
+        // SEND RECEIPT EMAIL
+        console.log(`Sending Receipt Email to ${company.email}...`);
+        await sendPaymentReceiptEmail(company.email, company.ownerName, {
+          plan: PLAN_LABELS[plan as SubscriptionPlan],
+          amount: getPlanAmount(plan as SubscriptionPlan) / 100, // Convert paise to INR
+          paymentId: razorpay_payment_id,
+          orderId: razorpay_order_id,
+        });
       }
     }
   } catch (dbError) {
