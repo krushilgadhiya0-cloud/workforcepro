@@ -11,44 +11,27 @@ const transporter = nodemailer.createTransport({
 export async function sendWelcomeEmail(email: string, name: string) {
   try {
     await transporter.sendMail({
-      from: `"WorkForcePro" <${process.env.GMAIL_USER}>`,
+      from: `"Krushil from WorkForcePro" <${process.env.GMAIL_USER}>`,
       to: email,
-      subject: 'Welcome to WorkForcePro!',
+      subject: `Welcome to WorkForcePro, ${name}!`,
       html: `
-        <div style="font-family: sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-          <div style="background-color: #000; padding: 24px; text-align: center;">
-            <h1 style="color: #fff; margin: 0; font-size: 24px; letter-spacing: 1px;">WorkForcePro</h1>
-          </div>
-          <div style="padding: 40px 30px;">
-            <h2 style="margin-top: 0; color: #111;">Hello ${name},</h2>
-            <p>Welcome to <strong>WorkForcePro</strong>!</p>
-            <p>We're excited to have you join our growing community of professionals and employers.</p>
-            
-            <p style="margin: 25px 0;">With WorkForcePro, you can:</p>
-            <ul style="padding-left: 20px;">
-              <li style="margin-bottom: 8px;">✅ Create and manage your professional profile</li>
-              <li style="margin-bottom: 8px;">✅ Connect with employers and recruiters</li>
-              <li style="margin-bottom: 8px;">✅ Track applications and career progress</li>
-              <li style="margin-bottom: 8px;">✅ Access workforce management tools</li>
-            </ul>
+        <div style="font-family: sans-serif; line-height: 1.5; color: #111;">
+          <h2>Hello ${name},</h2>
+          <p>Welcome to WorkForcePro! We're glad to have you with us.</p>
+          
+          <p>You can now start managing your tasks, workers, and payments directly from your dashboard.</p>
+          
+          <p><strong>To get started:</strong></p>
+          <ul>
+            <li>Complete your profile information</li>
+            <li>Verify your business details</li>
+            <li>Add your first worker</li>
+          </ul>
 
-            <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; margin: 30px 0;">
-              <p style="margin-top: 0; font-weight: bold;">To get started:</p>
-              <ol style="margin-bottom: 0;">
-                <li style="margin-bottom: 5px;">Complete your profile information.</li>
-                <li style="margin-bottom: 5px;">Verify your email address.</li>
-                <li style="margin-bottom: 5px;">Upload your resume and skills.</li>
-                <li>Start exploring opportunities.</li>
-              </ol>
-            </div>
-
-            <p>If you have any questions or need assistance, simply reply to this email and our team will be happy to help.</p>
-            <p style="margin-bottom: 0;">Thank you for choosing WorkForcePro.</p>
-          </div>
-          <div style="padding: 30px; border-top: 1px solid #eee; text-align: center; font-size: 14px; background-color: #fcfcfc;">
-            <p style="margin: 0; font-weight: bold; color: #111;">Best regards,</p>
-            <p style="margin: 5px 0 0; color: #666;">The WorkForcePro Team</p>
-          </div>
+          <p>If you need any help, just reply to this email and I'll be happy to assist you personally.</p>
+          
+          <p>Best regards,<br>
+          <strong>The WorkForcePro Team</strong></p>
         </div>
       `,
     });
