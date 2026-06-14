@@ -9,8 +9,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { email } = req.body;
-  if (!email) return res.status(400).json({ error: 'Email is required' });
+  const { email: rawEmail } = req.body;
+  if (!rawEmail) return res.status(400).json({ error: 'Email is required' });
+  const email = rawEmail.toLowerCase().trim();
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const kv = getKvStore();
