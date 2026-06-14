@@ -3,6 +3,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { StatCard } from '../../components/ui/Card';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { useData, useCurrentCompany } from '../../contexts/DataContext';
+import { AnimatedCounter } from '../../components/ui/AnimatedCounter';
 
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -39,15 +40,15 @@ export function OwnerDashboard() {
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        <StatCard title="Total Workers" value={companyWorkers.length} icon={<Users size={22} className="text-[var(--primary)]" />} />
-        <StatCard title="Pending Tasks" value={pendingTasks} icon={<ListTodo size={22} className="text-yellow-500" />} color="bg-yellow-500/10" />
-        <StatCard title="Completed Tasks" value={completedTasks} icon={<CheckCircle size={22} className="text-green-500" />} color="bg-green-500/10" />
+        <StatCard title="Total Workers" value={<AnimatedCounter value={companyWorkers.length} />} icon={<Users size={22} className="text-[var(--primary)]" />} />
+        <StatCard title="Pending Tasks" value={<AnimatedCounter value={pendingTasks} />} icon={<ListTodo size={22} className="text-yellow-500" />} color="bg-yellow-500/10" />
+        <StatCard title="Completed Tasks" value={<AnimatedCounter value={completedTasks} />} icon={<CheckCircle size={22} className="text-green-500" />} color="bg-green-500/10" />
       </div>
-
+-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        <StatCard title="Payments Due" value={paymentsDue} icon={<AlertCircle size={22} className="text-red-500" />} color="bg-red-500/10" />
-        <StatCard title="Total Payments Made" value={`₹${totalPaid.toLocaleString('en-IN')}`} icon={<IndianRupee size={22} className="text-[var(--primary)]" />} />
-        <StatCard title="Monthly Revenue" value={`₹${monthlyRevenue.toLocaleString('en-IN')}`} icon={<TrendingUp size={22} className="text-[var(--accent)]" />} trend={company?.monthlyRevenueUpdatedAt ? `Updated ${new Date(company.monthlyRevenueUpdatedAt).toLocaleDateString()}` : 'Set in Admin section'} />
+        <StatCard title="Payments Due" value={<AnimatedCounter value={paymentsDue} />} icon={<AlertCircle size={22} className="text-red-500" />} color="bg-red-500/10" />
+        <StatCard title="Total Payments Made" value={<AnimatedCounter value={totalPaid} prefix="₹" />} icon={<IndianRupee size={22} className="text-[var(--primary)]" />} />
+        <StatCard title="Monthly Revenue" value={<AnimatedCounter value={monthlyRevenue} prefix="₹" />} icon={<TrendingUp size={22} className="text-[var(--accent)]" />} trend={company?.monthlyRevenueUpdatedAt ? `Updated ${new Date(company.monthlyRevenueUpdatedAt).toLocaleDateString()}` : 'Set in Admin section'} />
       </div>
 
       <div className="glass-card rounded-2xl p-6">

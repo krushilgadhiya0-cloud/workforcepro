@@ -16,7 +16,7 @@ export function Card({ children, className = '', hover = false }: CardProps) {
 
 interface StatCardProps {
   title: string;
-  value: string | number;
+  value: string | number | ReactNode;
   icon: ReactNode;
   trend?: string;
   color?: string;
@@ -24,7 +24,7 @@ interface StatCardProps {
 
 export function StatCard({ title, value, icon, trend, color }: StatCardProps) {
   return (
-    <Card hover className="animate-fade-in">
+    <Card hover className="animate-fade-in shimmer overflow-hidden">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm text-[var(--text-muted)] mb-1">{title}</p>

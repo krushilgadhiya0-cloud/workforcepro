@@ -10,16 +10,24 @@ import { useSubscriptionPayment } from '../../hooks/useSubscriptionPayment';
 import { RazorpayStatus } from '../../components/payments/RazorpayStatus';
 import type { SubscriptionPlan } from '../../types';
 
+import { fireCelebration } from '../../utils/confetti';
+
 export function OwnerPayments() {
   const company = useCurrentCompany();
   const user = useCurrentUser();
   const { subscribe } = useData();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>('monthly');
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const { pay, loading: paying, error: paymentError, clearError } = useSubscriptionPayment((plan, companyId) => {
     subscribe(companyId, plan);
-    setShowUpgrade(false);
+    setIsSuccess(true);
+    fireCelebration();
+    setTimeout(() => {
+      setShowUpgrade(false);
+      setIsSuccess(false);
+    }, 3000);
   });
 
   const plans = {
@@ -116,10 +124,14 @@ export function OwnerPayments() {
         <RazorpayStatus />
         {paymentError && <p className="text-sm text-red-500 text-center mb-4">{paymentError}</p>}
         <div className="flex gap-3">
-          <Button className="flex-1" onClick={handleUpgrade} disabled={paying || !company}>
-            {paying ? 'Processing…' : 'Pay & Subscribe'}
+          <Button 
+            className={`flex-1 ${!paying && !isSuccess ? 'glow-primary' : ''}`} 
+            onClick={handleUpgrade} 
+            disabled={paying || isSuccess || !company}
+          >
+            {isSuccess ? '✓ Success!' : paying ? 'Processing…' : 'Pay & Subscribe'}
           </Button>
-          <Button variant="outline" className="flex-1" onClick={() => setShowUpgrade(false)} disabled={paying}>Cancel</Button>
+          <Button variant="outline" className="flex-1" onClick={() => setShowUpgrade(false)} disabled={paying || isSuccess}>Cancel</Button>
         </div>
       </Modal>
     </div>

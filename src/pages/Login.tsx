@@ -8,6 +8,8 @@ import { useData } from '../contexts/DataContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useEmailValidation } from '../hooks/useEmailValidation';
 
+import { fireCelebration } from '../utils/confetti';
+
 export function Login() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -143,7 +145,12 @@ export function Login() {
         name: form.name,
         role: 'owner',
       });
-      navigate('/dashboard');
+      
+      fireCelebration();
+      
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Verification failed');
     } finally {
