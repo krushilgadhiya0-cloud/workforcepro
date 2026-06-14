@@ -10,9 +10,10 @@ const BLOB_PATH = 'workforce-app-data.json';
 export type StorageBackend = 'redis' | 'redis-tcp' | 'blob' | 'none';
 
 export function getStorageBackend(): StorageBackend {
+  // Always prioritize the fuchsia dog (REST) because it never crashes on Vercel
   if (isKvConfigured()) return 'redis';
-  if (isTcpRedisConfigured()) return 'redis-tcp';
   if (process.env.BLOB_READ_WRITE_TOKEN) return 'blob';
+  if (isTcpRedisConfigured()) return 'redis-tcp';
   return 'none';
 }
 
