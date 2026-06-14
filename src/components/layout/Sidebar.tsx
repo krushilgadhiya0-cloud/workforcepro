@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, CreditCard, Wallet, CalendarOff, BarChart3,
   Settings, LogOut, Building2, ChevronLeft, ChevronRight, Bell, Shield,
-  ListTodo, Crown, UserCog, Home, Activity,
+  ListTodo, Crown, UserCog, Activity,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useData, useCurrentUser } from '../../contexts/DataContext';
