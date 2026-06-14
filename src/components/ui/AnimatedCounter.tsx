@@ -19,7 +19,7 @@ export function AnimatedCounter({ value, duration = 1000, prefix = '', suffix = 
       // Easing function: cubic-bezier(0.34, 1.56, 0.64, 1)
       const easeOutBack = 1 + 2.70158 * Math.pow(progress - 1, 3) + 1.70158 * Math.pow(progress - 1, 2);
       
-      setCount(Math.floor(progress * value));
+      setCount(Math.floor(easeOutBack * value));
       
       if (progress < 1) {
         window.requestAnimationFrame(step);
