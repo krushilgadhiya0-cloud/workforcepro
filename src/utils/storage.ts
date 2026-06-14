@@ -158,7 +158,7 @@ export async function saveData(data: AppData): Promise<AppData> {
 
   let merged = persisted;
   if (remote.ok) {
-    merged = mergeAppData(remote.data ?? {}, persisted);
+    merged = mergeAppData(remote.data ?? {}, persisted, 'overwrite');
   }
 
   const localData = ensureSuperAdminFromStorage(merged);

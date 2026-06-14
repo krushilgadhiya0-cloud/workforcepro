@@ -19,7 +19,9 @@ export const defaultAppData: AppData = {
   currentCompanyId: null,
 };
 
-function mergeById<T extends { id: string }>(base: T[], incoming: T[]): T[] {
+function mergeById<T extends { id: string }>(base: T[], incoming: T[], syncMode: 'merge' | 'overwrite' = 'merge'): T[] {
+  if (syncMode === 'overwrite') return incoming;
+  
   const map = new Map<string, T>();
   for (const item of base) map.set(item.id, item);
   for (const item of incoming) map.set(item.id, item);
@@ -51,20 +53,20 @@ export function normalizeAppData(raw: Partial<AppData> | null | undefined): AppD
 }
 
 /** Merge remote (base) with local changes (incoming). Incoming wins on id conflicts. */
-export function mergeAppData(base: Partial<AppData>, incoming: Partial<AppData>): AppData {
+export function mergeAppData(base: Partial<AppData>, incoming: Partial<AppData>, syncMode: 'merge' | 'overwrite' = 'merge'): AppData {
   const a = normalizeAppData(base);
   const b = normalizeAppData(incoming);
 
   const merged: AppData = {
-    users: mergeById(a.users, b.users),
-    companies: mergeById(a.companies, b.companies),
-    admins: mergeById(a.admins, b.admins),
-    workers: mergeById(a.workers, b.workers),
-    tasks: mergeById(a.tasks, b.tasks),
-    leaves: mergeById(a.leaves, b.leaves),
-    payments: mergeById(a.payments, b.payments),
-    notifications: mergeById(a.notifications, b.notifications),
-    activities: mergeById(a.activities, b.activities).sort(
+    users: mergeById(a.users, b.users, syncMode),
+    companies: mergeById(a.companies, b.companies, syncMode),
+    admins: mergeById(a.admins, b.admins, syncMode),
+    workers: mergeById(a.workers, b.workers, syncMode),
+    tasks: mergeById(a.tasks, b.tasks, syncMode),
+    leaves: mergeById(a.leaves, b.leaves, syncMode),
+    payments: mergeById(a.payments, b.payments, syncMode),
+    notifications: mergeById(a.notifications, b.notifications, syncMode),
+    activities: mergeById(a.activities, b.activities, 'merge').sort(
       (x, y) => new Date(y.createdAt).getTime() - new Date(x.createdAt).getTime(),
     ),
     settings: { ...a.settings, ...b.settings },
