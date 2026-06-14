@@ -46,13 +46,9 @@ async function loadFromRestRedis(): Promise<AppData | null> {
 
 async function saveToRestRedis(data: AppData): Promise<AppData> {
   const kv = getKvStore();
-  const existing = await kv.get(KV_KEY);
-  const merged = mergeAppData(
-    existing ? normalizeAppData(existing as object) : {},
-    ensureSuperAdminInData(data),
-  );
-  await kv.set(KV_KEY, merged);
-  return merged;
+  const finalData = ensureSuperAdminInData(data);
+  await kv.set(KV_KEY, finalData);
+  return finalData;
 }
 
 async function loadFromTcpRedis(): Promise<AppData | null> {
@@ -62,11 +58,10 @@ async function loadFromTcpRedis(): Promise<AppData | null> {
 }
 
 async function saveToTcpRedis(data: AppData): Promise<AppData> {
-  const { tcpRedisGet, tcpRedisSet } = await import('./redis-tcp.js');
-  const existing = await tcpRedisGet<AppData>(KV_KEY);
-  const merged = mergeAppData(existing ?? {}, ensureSuperAdminInData(data));
-  await tcpRedisSet(KV_KEY, merged);
-  return merged;
+  const { tcpRedisSet } = await import('./redis-tcp.js');
+  const finalData = ensureSuperAdminInData(data);
+  await tcpRedisSet(KV_KEY, finalData);
+  return finalData;
 }
 
 async function loadFromBlob(): Promise<AppData | null> {
