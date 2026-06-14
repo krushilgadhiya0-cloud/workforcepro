@@ -74,6 +74,9 @@ export function Login() {
     }
   };
 
+  const [otp, setOtp] = useState('');
+  const [verifying, setVerifying] = useState(false);
+
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
@@ -81,23 +84,59 @@ export function Login() {
       setError('Passwords do not match');
       return;
     }
-    const emailCheck = await validateEmail(form.email, { checkDeliverability: true });
-    if (!emailCheck.valid) {
-      setError(emailCheck.message);
-      return;
+    setSubmitting(true);
+    try {
+      const emailCheck = await validateEmail(form.email, { checkDeliverability: true });
+      if (!emailCheck.valid) {
+        setError(emailCheck.message);
+        return;
+      }
+      const latest = await refresh();
+      if (latest.users.some((u) => u.email.toLowerCase() === form.email.toLowerCase())) {
+        setError('Email already registered. Please login instead.');
+        return;
+      }
+
+      // Send Real OTP
+      const res = await fetch('/api/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.email }),
+      });
+      
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error || 'Failed to send verification code');
+      }
+
+      setStep('verify');
+      setSuccess(`A 6-digit verification code has been sent to ${form.email}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send code');
+    } finally {
+      setSubmitting(false);
     }
-    const latest = await refresh();
-    if (latest.users.some((u) => u.email.toLowerCase() === form.email.toLowerCase())) {
-      setError('Email already registered. Please login instead.');
-      return;
-    }
-    setStep('verify');
-    setSuccess(`Verification email sent to ${form.email}. For demo, click "Complete Registration" below.`);
   };
 
   const completeRegistration = async () => {
+    if (!otp || otp.length !== 6) {
+      setError('Please enter the 6-digit code');
+      return;
+    }
     setSubmitting(true);
+    setVerifying(true);
+    setError('');
     try {
+      // Verify OTP and Send Welcome Email
+      const res = await fetch('/api/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.email, otp, name: form.name }),
+      });
+
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Invalid verification code');
+
       await register({
         email: form.email,
         password: form.password,
@@ -106,10 +145,10 @@ export function Login() {
       });
       navigate('/dashboard');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
-      setStep('form');
+      setError(err instanceof Error ? err.message : 'Verification failed');
     } finally {
       setSubmitting(false);
+      setVerifying(false);
     }
   };
 
@@ -243,19 +282,34 @@ export function Login() {
                     </div>
                   )}
                   <Button type="submit" disabled={checking || submitting} className="w-full">
-                    {submitting ? 'Syncing…' : checking ? 'Checking email…' : mode === 'login' ? 'Sign In' : 'Register & Verify Email'}
+                    {submitting ? 'Sending Code…' : checking ? 'Checking email…' : mode === 'login' ? 'Sign In' : 'Register & Send OTP'}
                   </Button>
                 </form>
               ) : (
                 <div className="space-y-4">
-                  <div className="text-center p-6">
-                    <Mail size={48} className="mx-auto text-[var(--primary)] mb-3" />
-                    <p className="text-sm text-[var(--text-muted)]">Check your inbox at <strong>{form.email}</strong></p>
+                  <div className="text-center p-6 bg-[var(--primary)]/5 rounded-2xl mb-4">
+                    <Mail size={40} className="mx-auto text-[var(--primary)] mb-3" />
+                    <h3 className="font-bold text-lg mb-1">Check your email</h3>
+                    <p className="text-sm text-[var(--text-muted)]">We sent a verification code to<br/><strong className="text-[var(--text)]">{form.email}</strong></p>
                   </div>
-                  <Button className="w-full" disabled={submitting} onClick={() => void completeRegistration()}>
-                    {submitting ? 'Saving…' : 'Complete Registration (Demo)'}
+                  
+                  <div className="relative">
+                    <Input
+                      label="6-Digit Code"
+                      type="text"
+                      maxLength={6}
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                      className="text-center text-2xl tracking-[0.5em] font-bold"
+                      placeholder="000000"
+                      required
+                    />
+                  </div>
+
+                  <Button className="w-full" disabled={submitting || verifying} onClick={() => void completeRegistration()}>
+                    {verifying ? 'Verifying…' : 'Verify & Create Account'}
                   </Button>
-                  <Button variant="outline" className="w-full" onClick={() => setStep('form')}>Back</Button>
+                  <Button variant="outline" className="w-full" onClick={() => setStep('form')} disabled={submitting}>Back</Button>
                 </div>
               )}
 
