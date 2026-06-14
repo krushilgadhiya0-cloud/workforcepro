@@ -30,7 +30,8 @@ const industries = [
 export function Landing() {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
-  const { register, createCompany, subscribe } = useData();
+  const { register, createCompany, subscribe, currentUserId, users } = useData();
+  const currentUser = users.find(u => u.id === currentUserId);
 
   const [showBusiness, setShowBusiness] = useState(false);
   const [showSubscription, setShowSubscription] = useState(false);
@@ -125,8 +126,16 @@ export function Landing() {
               <Crown size={14} />
               Super Admin
             </Link>
-            <Button variant="outline" size="sm" onClick={() => navigate('/login', { replace: true })}>Login</Button>
-            <Button size="sm" onClick={() => navigate('/login?mode=register')}>Register</Button>
+            {currentUser ? (
+              <Button onClick={() => navigate(currentUser.role === 'worker' ? '/worker' : '/dashboard')}>
+                Dashboard ({currentUser.name})
+              </Button>
+            ) : (
+              <>
+                <Button variant="outline" size="sm" onClick={() => navigate('/login', { replace: true })}>Login</Button>
+                <Button size="sm" onClick={() => navigate('/login?mode=register')}>Register</Button>
+              </>
+            )}
           </div>
         </div>
       </nav>
