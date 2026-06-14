@@ -1,6 +1,8 @@
 import { createRazorpayClient, getRazorpayConfig } from './razorpay.js';
 import { getPlanAmount, isValidPlan, PLAN_LABELS } from './plans.js';
 import { verifyPaymentSignature, verifyWebhookSignature } from './verify.js';
+import { loadStoredAppData, saveStoredAppData } from '../app-store.js';
+import type { SubscriptionPlan } from '../types';
 
 export interface CreateOrderInput {
   plan: unknown;
@@ -108,9 +110,41 @@ export async function handleVerifyPayment(input: VerifyPaymentInput): Promise<Ve
     throw new Error('Order metadata is invalid');
   }
 
+  // ACTIVATE SUBSCRIPTION IN DATABASE IMMEDIATELY
+  try {
+    const data = await loadStoredAppData();
+    if (data) {
+      const company = data.companies.find((c) => c.id === companyId);
+      if (company) {
+        console.log(`Activating ${plan} subscription for ${company.name} [Backend]`);
+        company.subscription = plan as SubscriptionPlan;
+        company.subscriptionDate = new Date().toISOString();
+        
+        // Add activity log
+        data.activities.unshift({
+          id: Math.random().toString(36).substring(2, 11),
+          type: 'subscription_started',
+          userId: company.ownerId,
+          userName: company.ownerName,
+          userRole: 'owner',
+          companyId: company.id,
+          companyName: company.name,
+          message: `${company.name} subscribed to ${plan} plan (Auto-activated via Payment)`,
+          createdAt: new Date().toISOString(),
+        });
+        
+        await saveStoredAppData(data);
+      }
+    }
+  } catch (dbError) {
+    console.error('Failed to auto-activate subscription in DB:', dbError);
+    // We don't throw here because the payment WAS successful, 
+    // the frontend will try to activate it again as a fallback.
+  }
+
   return {
     success: true,
-    plan,
+    plan: plan as SubscriptionPlan,
     companyId,
     paymentId: razorpay_payment_id,
     orderId: razorpay_order_id,
