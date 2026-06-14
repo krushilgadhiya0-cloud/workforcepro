@@ -7,11 +7,13 @@ import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { useData, useCurrentCompany } from '../../contexts/DataContext';
 import { useEmailValidation } from '../../hooks/useEmailValidation';
+import { useSubscriptionGuard } from '../../hooks/useSubscriptionGuard';
 import type { Worker } from '../../types';
 
 export function Workers() {
   const { workers, tasks, payments, addWorker, updateWorker, deleteWorker } = useData();
   const company = useCurrentCompany();
+  const { checkSubscription } = useSubscriptionGuard();
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Worker | null>(null);
   const [search, setSearch] = useState('');
@@ -35,6 +37,7 @@ export function Workers() {
   };
 
   const openAdd = () => {
+    if (!checkSubscription()) return;
     setEditing(null);
     setForm({ name: '', email: '', phone: '', joiningDate: new Date().toISOString().split('T')[0], password: 'worker123' });
     setFormError('');

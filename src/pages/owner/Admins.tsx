@@ -9,6 +9,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 import { useData, useCurrentCompany } from '../../contexts/DataContext';
 import { useEmailValidation } from '../../hooks/useEmailValidation';
+import { useSubscriptionGuard } from '../../hooks/useSubscriptionGuard';
 import type { Admin, AdminRole } from '../../types';
 
 const roleOptions = [
@@ -21,6 +22,7 @@ const roleOptions = [
 export function Admins() {
   const { admins, addAdmin, updateAdmin, deleteAdmin, updateMonthlyRevenue } = useData();
   const company = useCurrentCompany();
+  const { checkSubscription } = useSubscriptionGuard();
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Admin | null>(null);
   const [form, setForm] = useState({ name: '', email: '', phone: '', role: 'manager' as AdminRole, password: 'admin123' });
@@ -37,6 +39,7 @@ export function Admins() {
   }, [company?.id, company?.monthlyRevenue]);
 
   const openAdd = () => {
+    if (!checkSubscription()) return;
     setEditing(null);
     setForm({ name: '', email: '', phone: '', role: 'manager', password: 'admin123' });
     setFormError('');
@@ -83,6 +86,7 @@ export function Admins() {
   };
 
   const handleSaveRevenue = () => {
+    if (!checkSubscription()) return;
     if (!company) return;
     updateMonthlyRevenue(company.id, Number(monthlyRevenue) || 0);
     setRevenueSaved(true);

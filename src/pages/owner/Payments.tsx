@@ -7,13 +7,20 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Badge } from '../../components/ui/Badge';
 import { useData, useCurrentCompany } from '../../contexts/DataContext';
+import { useSubscriptionGuard } from '../../hooks/useSubscriptionGuard';
 import { downloadReceipt } from '../../utils/pdf';
 
 export function Payments() {
   const { payments, workers, addPayment, markPaymentPaid } = useData();
   const company = useCurrentCompany();
+  const { checkSubscription } = useSubscriptionGuard();
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ workerId: '', amount: '', dueDate: '' });
+
+  const openAdd = () => {
+    if (!checkSubscription()) return;
+    setShowModal(true);
+  };
 
   const companyPayments = payments.filter((p) => p.companyId === company?.id);
   const companyWorkers = workers.filter((w) => w.companyId === company?.id);
@@ -42,7 +49,7 @@ export function Payments() {
 
   return (
     <div>
-      <PageHeader title="Worker Payments" subtitle="Manage salary payments" action={<Button onClick={() => setShowModal(true)}><Plus size={18} /> Add Payment</Button>} showBack={false} />
+      <PageHeader title="Worker Payments" subtitle="Manage salary payments" action={<Button onClick={openAdd}><Plus size={18} /> Add Payment</Button>} showBack={false} />
 
       <div className="glass-card rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">

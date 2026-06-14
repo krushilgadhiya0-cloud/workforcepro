@@ -8,6 +8,7 @@ import { Textarea } from '../../components/ui/Textarea';
 import { Select } from '../../components/ui/Select';
 import { Badge } from '../../components/ui/Badge';
 import { useData, useCurrentCompany } from '../../contexts/DataContext';
+import { useSubscriptionGuard } from '../../hooks/useSubscriptionGuard';
 import type { Task, TaskPriority, TaskStatus } from '../../types';
 
 const priorityOptions = [
@@ -25,6 +26,7 @@ const statusOptions = [
 export function Tasks() {
   const { tasks, workers, addTask, updateTask, deleteTask } = useData();
   const company = useCurrentCompany();
+  const { checkSubscription } = useSubscriptionGuard();
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed' | 'overdue'>('all');
@@ -44,6 +46,7 @@ export function Tasks() {
   const getWorkerName = (id: string) => companyWorkers.find((w) => w.id === id)?.name || 'Unknown';
 
   const openAdd = () => {
+    if (!checkSubscription()) return;
     setEditing(null);
     setForm({ title: '', description: '', priority: 'medium', deadline: '', workerId: workerOptions[0]?.value || '', status: 'pending' });
     setShowModal(true);

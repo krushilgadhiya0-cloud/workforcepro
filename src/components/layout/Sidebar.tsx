@@ -72,7 +72,7 @@ export function Sidebar({ role }: SidebarProps) {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate('/login');
   };
 
   return (
@@ -92,14 +92,6 @@ export function Sidebar({ role }: SidebarProps) {
       </div>
 
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-        <button
-          type="button"
-          onClick={() => { logout(); navigate('/'); }}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-[var(--text-muted)] hover:bg-[var(--border)]/30 hover:text-[var(--text)] cursor-pointer"
-        >
-          <Home size={20} />
-          {!collapsed && <span>Home</span>}
-        </button>
         {links.map((link) => (
           <NavLink
             key={link.to}
