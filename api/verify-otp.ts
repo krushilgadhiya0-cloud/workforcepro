@@ -18,11 +18,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const storedOtp = await kv.get(`otp:${email}`);
     
+    console.log(`Verifying OTP for ${email}:`);
+    console.log(`- Provided: "${otp}" (Type: ${typeof otp})`);
+    console.log(`- Stored: "${storedOtp}" (Type: ${typeof storedOtp})`);
+
     if (!storedOtp) {
       return res.status(400).json({ error: 'OTP expired or not found. Please request a new one.' });
     }
 
-    if (storedOtp === otp) {
+    // Convert both to string to be 100% safe
+    if (String(storedOtp).trim() === String(otp).trim()) {
       // Clean up OTP
       await kv.del(`otp:${email}`);
       

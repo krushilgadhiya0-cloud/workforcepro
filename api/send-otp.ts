@@ -18,6 +18,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     // Store OTP in Redis with 10 minute expiry
+    console.log(`Generating OTP for ${email}: ${otp}`);
     await kv.set(`otp:${email}`, otp, { ex: 600 });
     
     // Send email
