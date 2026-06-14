@@ -65,3 +65,36 @@ export async function sendOtpEmail(email: string, otp: string) {
     return { success: false, error };
   }
 }
+
+export async function sendSubscriptionReminderEmail(email: string, name: string, daysLeft: number, plan: string) {
+  try {
+    await transporter.sendMail({
+      from: `"WorkForcePro Support" <${process.env.GMAIL_USER}>`,
+      to: email,
+      subject: `Action Required: Your ${plan} subscription ends in ${daysLeft} days`,
+      html: `
+        <div style="font-family: sans-serif; line-height: 1.5; color: #111;">
+          <h2>Hello ${name},</h2>
+          <p>This is a friendly reminder from WorkForcePro.</p>
+          
+          <p>Your <strong>${plan}</strong> subscription is set to expire in <strong>${daysLeft} days</strong>. To ensure your business operations continue without any interruption, please renew your plan soon.</p>
+          
+          <div style="background-color: #fff8e1; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;">
+            <p style="margin: 0;">Once your subscription expires, "Add" features for Workers, Tasks, and Payments will be locked until a new plan is active.</p>
+          </div>
+
+          <p>You can renew your subscription by visiting the <strong>Owner Payments</strong> section in your dashboard.</p>
+          
+          <p>If you have any questions or need help with the renewal, just reply to this email!</p>
+          
+          <p>Best regards,<br>
+          <strong>The WorkForcePro Team</strong></p>
+        </div>
+      `,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send subscription reminder email:', error);
+    return { success: false, error };
+  }
+}
