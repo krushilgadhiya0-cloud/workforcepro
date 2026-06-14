@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getKvStore } from '../lib/kv-store.js';
-import { sendWelcomeEmail } from '../lib/email/resend.js';
+import { sendWelcomeEmail } from '../lib/email/gmail.js';
 import { setCorsHeaders, handleOptions } from './_cors.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
