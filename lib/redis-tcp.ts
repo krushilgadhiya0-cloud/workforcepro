@@ -1,5 +1,5 @@
 import Redis from 'ioredis';
-import { getTcpRedisUrl } from './redis-tcp-env';
+import { getTcpRedisUrl } from './redis-tcp-env.js';
 
 async function withTcpClient<T>(fn: (client: { get: (key: string) => Promise<string | null>; set: (key: string, value: string) => Promise<unknown> }) => Promise<T>): Promise<T> {
   const url = getTcpRedisUrl();

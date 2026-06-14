@@ -1,8 +1,8 @@
 import type { AppData } from '../src/types';
-import { mergeAppData, normalizeAppData } from './data-sync';
-import { getKvStore, getRedisEnvStatus, isKvConfigured } from './kv-store';
-import { isTcpRedisConfigured } from './redis-tcp-env';
-import { ensureSuperAdminInData } from './super-admin';
+import { mergeAppData, normalizeAppData } from './data-sync.js';
+import { getKvStore, getRedisEnvStatus, isKvConfigured } from './kv-store.js';
+import { isTcpRedisConfigured } from './redis-tcp-env.js';
+import { ensureSuperAdminInData } from './super-admin.js';
 
 const KV_KEY = 'workforce:app-data';
 const BLOB_PATH = 'workforce-app-data.json';
