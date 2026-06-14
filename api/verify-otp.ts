@@ -33,7 +33,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       
       // If name is provided, send welcome email
       if (name) {
-        await sendWelcomeEmail(email, name);
+        console.log(`Sending Welcome Email to ${email} (${name})...`);
+        const result = await sendWelcomeEmail(email, name);
+        console.log(`Welcome Email Result:`, result);
+      } else {
+        console.log(`No name provided, skipping Welcome Email.`);
       }
       
       return res.status(200).json({ ok: true, message: 'OTP verified' });
