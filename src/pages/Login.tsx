@@ -4,6 +4,7 @@ import type { FormEvent } from 'react';
 import { Sparkles, Mail, Lock, User, Building2, Sun, Moon, ArrowLeft, Crown } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { Modal } from '../components/ui/Modal';
 import { useData } from '../contexts/DataContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useEmailValidation } from '../hooks/useEmailValidation';
@@ -13,7 +14,7 @@ import { fireCelebration } from '../utils/confetti';
 export function Login() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { login, logout, register, refresh, syncState, syncError } = useData();
+  const { login, logout, register, refresh, syncState, syncError, forgotPasswordReset } = useData();
   const [submitting, setSubmitting] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { emailError, checking, validateEmail, clearEmailError } = useEmailValidation();
@@ -24,6 +25,14 @@ export function Login() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [step, setStep] = useState<'form' | 'verify'>('form');
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotStep, setForgotStep] = useState<'email' | 'otp' | 'password'>('email');
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotOtp, setForgotOtp] = useState('');
+  const [passwords, setPasswords] = useState({ new: '', confirm: '' });
+  const [forgotError, setForgotError] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   const emptyForm = { name: '', email: '', password: '', confirmPassword: '' };
 
@@ -159,6 +168,89 @@ export function Login() {
     }
   };
 
+  const handleForgotEmail = async (e: FormEvent) => {
+    e.preventDefault();
+    setForgotLoading(true);
+    setForgotError('');
+    try {
+      const emailCheck = await validateEmail(forgotEmail);
+      if (!emailCheck.valid) throw new Error(emailCheck.message);
+      
+      const res = await fetch('/api/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail.toLowerCase().trim() }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error || 'Failed to send OTP');
+      }
+      setForgotStep('otp');
+    } catch (err) {
+      setForgotError(err instanceof Error ? err.message : 'Error sending OTP');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleForgotOtp = async (e: FormEvent) => {
+    e.preventDefault();
+    if (forgotOtp.length !== 6) {
+      setForgotError('Enter 6-digit code');
+      return;
+    }
+    setForgotLoading(true);
+    setForgotError('');
+    try {
+      const res = await fetch('/api/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail.toLowerCase().trim(), otp: forgotOtp }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error || 'Invalid OTP');
+      }
+      setForgotStep('password');
+    } catch (err) {
+      setForgotError(err instanceof Error ? err.message : 'Login check failed');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleForgotReset = async (e: FormEvent) => {
+    e.preventDefault();
+    if (passwords.new.length < 6) {
+      setForgotError('Password must be at least 6 characters');
+      return;
+    }
+    if (passwords.new !== passwords.confirm) {
+      setForgotError('Passwords do not match');
+      return;
+    }
+    setForgotLoading(true);
+    setForgotError('');
+    try {
+      const ok = await forgotPasswordReset(forgotEmail, passwords.new);
+      if (!ok) throw new Error('Could not update password');
+      
+      setForgotSuccess('Password changed successfully! You can now login.');
+      setTimeout(() => {
+        setShowForgotModal(false);
+        setForgotStep('email');
+        setForgotEmail('');
+        setForgotOtp('');
+        setPasswords({ new: '', confirm: '' });
+        setForgotSuccess('');
+      }, 2500);
+    } catch (err) {
+      setForgotError(err instanceof Error ? err.message : 'Reset failed');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[var(--bg)] flex">
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
@@ -281,6 +373,11 @@ export function Login() {
                   <div className="relative">
                     <Lock size={18} className="absolute left-3 top-[38px] text-[var(--text-muted)]" />
                     <Input label="Password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="pl-10" placeholder="••••••••" required />
+                    <div className="flex justify-end">
+                      <button type="button" onClick={() => setShowForgotModal(true)} className="text-xs text-[var(--primary)] hover:underline font-medium cursor-pointer">
+                        Forgot Password?
+                      </button>
+                    </div>
                   </div>
                   {mode === 'register' && (
                     <div className="relative">
@@ -340,6 +437,69 @@ export function Login() {
           </div>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      <Modal isOpen={showForgotModal} onClose={() => { if (!forgotLoading) setShowForgotModal(false); }} title="Reset Password">
+        <div className="p-1">
+          {forgotError && <div className="mb-4 p-3 rounded-xl bg-red-500/10 text-red-500 text-sm font-medium">{forgotError}</div>}
+          {forgotSuccess && <div className="mb-4 p-3 rounded-xl bg-green-500/10 text-green-600 text-sm font-medium">{forgotSuccess}</div>}
+
+          {forgotStep === 'email' && (
+            <form onSubmit={handleForgotEmail} className="space-y-4">
+              <p className="text-sm text-[var(--text-muted)]">Enter your email and we'll send you an OTP to reset your password.</p>
+              <div className="relative">
+                <Mail size={18} className="absolute left-3 top-[38px] text-[var(--text-muted)]" />
+                <Input label="Email Address" type="email" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} className="pl-10" placeholder="you@company.com" required />
+              </div>
+              <Button type="submit" className="w-full" disabled={forgotLoading}>
+                {forgotLoading ? 'Sending...' : 'Send Reset Code'}
+              </Button>
+            </form>
+          )}
+
+          {forgotStep === 'otp' && (
+            <form onSubmit={handleForgotOtp} className="space-y-4 text-center">
+              <div className="p-4 bg-[var(--primary)]/5 rounded-2xl mb-2">
+                <Mail size={32} className="mx-auto text-[var(--primary)] mb-2" />
+                <p className="text-sm text-[var(--text-muted)]">Verify code sent to<br/><strong className="text-[var(--text)]">{forgotEmail}</strong></p>
+              </div>
+              <Input
+                label="6-Digit OTP"
+                type="text"
+                maxLength={6}
+                value={forgotOtp}
+                onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, ''))}
+                className="text-center text-2xl tracking-[0.5em] font-bold"
+                placeholder="000000"
+                required
+              />
+              <div className="flex gap-3">
+                <Button type="submit" className="flex-1" disabled={forgotLoading}>
+                  {forgotLoading ? 'Verifying...' : 'Next'}
+                </Button>
+                <Button type="button" variant="outline" className="flex-1" onClick={() => setForgotStep('email')} disabled={forgotLoading}>Back</Button>
+              </div>
+            </form>
+          )}
+
+          {forgotStep === 'password' && (
+            <form onSubmit={handleForgotReset} className="space-y-4">
+              <p className="text-sm text-[var(--text-muted)]">Strong passwords include numbers and symbols.</p>
+              <div className="relative">
+                <Lock size={18} className="absolute left-3 top-[38px] text-[var(--text-muted)]" />
+                <Input label="New Password" type="password" value={passwords.new} onChange={(e) => setPasswords({ ...passwords, new: e.target.value })} className="pl-10" placeholder="••••••••" required />
+              </div>
+              <div className="relative">
+                <Lock size={18} className="absolute left-3 top-[38px] text-[var(--text-muted)]" />
+                <Input label="Confirm New Password" type="password" value={passwords.confirm} onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })} className="pl-10" placeholder="••••••••" required />
+              </div>
+              <Button type="submit" className="w-full" disabled={forgotLoading}>
+                {forgotLoading ? 'Updating Password...' : 'Reset Password'}
+              </Button>
+            </form>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

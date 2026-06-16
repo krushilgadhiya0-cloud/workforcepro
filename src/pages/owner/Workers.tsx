@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, Search, CheckCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, CheckCircle, Eye, EyeOff, ShieldCheck, Key } from 'lucide-react';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
@@ -11,7 +11,7 @@ import { useSubscriptionGuard } from '../../hooks/useSubscriptionGuard';
 import type { Worker } from '../../types';
 
 export function Workers() {
-  const { workers, tasks, payments, addWorker, updateWorker, deleteWorker } = useData();
+  const { users, workers, tasks, payments, addWorker, updateWorker, deleteWorker, verifyHostPassword } = useData();
   const company = useCurrentCompany();
   const { checkSubscription } = useSubscriptionGuard();
   const [showModal, setShowModal] = useState(false);
@@ -20,6 +20,11 @@ export function Workers() {
   const [form, setForm] = useState({ name: '', email: '', phone: '', joiningDate: '', password: 'worker123' });
   const [credentials, setCredentials] = useState<{ email: string; password: string; name: string } | null>(null);
   const [formError, setFormError] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<Worker | null>(null);
+  const [revealed, setRevealed] = useState(false);
+  const [showHostPassModal, setShowHostPassModal] = useState(false);
+  const [hostPass, setHostPass] = useState('');
+  const [hostPassError, setHostPassError] = useState('');
   const { emailError, checking, validateEmail, clearEmailError } = useEmailValidation();
 
   const companyWorkers = workers.filter((w) => w.companyId === company?.id);
@@ -105,9 +110,45 @@ export function Workers() {
     }
   };
 
+  const handleReveal = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (verifyHostPassword(hostPass)) {
+      setRevealed(true);
+      setShowHostPassModal(false);
+      setHostPass('');
+      setHostPassError('');
+    } else {
+      setHostPassError('Invalid Host Password');
+    }
+  };
+
+  const handleDelete = () => {
+    if (deleteTarget) {
+      deleteWorker(deleteTarget.id);
+      setDeleteTarget(null);
+    }
+  };
+
   return (
     <div>
-      <PageHeader title="Worker Management" subtitle={`${companyWorkers.length} workers — accounts auto-registered on add`} action={<Button onClick={openAdd}><Plus size={18} /> Add Worker</Button>} showBack={false} />
+      <PageHeader
+        title="Worker Management"
+        subtitle={`${companyWorkers.length} workers — accounts auto-registered on add`}
+        action={
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => revealed ? setRevealed(false) : setShowHostPassModal(true)}
+              className="gap-2"
+            >
+              {revealed ? <EyeOff size={18} /> : <Eye size={18} />}
+              {revealed ? 'Hide Passwords' : 'Reveal Passwords'}
+            </Button>
+            <Button onClick={openAdd}><Plus size={18} /> Add Worker</Button>
+          </div>
+        }
+        showBack={false}
+      />
 
       {!company && (
         <div className="mb-4 p-3 rounded-xl bg-red-500/10 text-red-600 text-sm">
@@ -131,6 +172,7 @@ export function Workers() {
               <tr className="border-b border-[var(--border)] bg-[var(--border)]/20">
                 <th className="text-left p-4 font-medium text-[var(--text-muted)]">Name</th>
                 <th className="text-left p-4 font-medium text-[var(--text-muted)]">Email</th>
+                {revealed && <th className="text-left p-4 font-medium text-[var(--text-muted)]">Password</th>}
                 <th className="text-left p-4 font-medium text-[var(--text-muted)]">Phone</th>
                 <th className="text-left p-4 font-medium text-[var(--text-muted)]">Tasks</th>
                 <th className="text-left p-4 font-medium text-[var(--text-muted)]">Payment</th>
@@ -143,6 +185,7 @@ export function Workers() {
                 <tr key={worker.id} className="border-b border-[var(--border)] hover:bg-[var(--border)]/10">
                   <td className="p-4 font-medium">{worker.name}</td>
                   <td className="p-4 text-[var(--text-muted)]">{worker.email}</td>
+                  {revealed && <td className="p-4"><code className="bg-[var(--border)]/30 px-2 py-1 rounded text-xs">{users.find(u => u.id === worker.userId)?.password || '—'}</code></td>}
                   <td className="p-4 text-[var(--text-muted)]">{worker.phone}</td>
                   <td className="p-4">{getTaskCount(worker.id)}</td>
                   <td className="p-4"><Badge status={getPaymentStatus(worker.id)} /></td>
@@ -150,7 +193,7 @@ export function Workers() {
                   <td className="p-4 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button onClick={() => openEdit(worker)} className="p-1.5 rounded-lg hover:bg-[var(--border)]/50 cursor-pointer"><Pencil size={16} /></button>
-                      <button onClick={() => deleteWorker(worker.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-500 cursor-pointer"><Trash2 size={16} /></button>
+                      <button onClick={() => setDeleteTarget(worker)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-500 cursor-pointer" title="Remove Worker"><Trash2 size={16} /></button>
                     </div>
                   </td>
                 </tr>
@@ -204,6 +247,50 @@ export function Workers() {
           <p className="text-xs text-[var(--text-muted)]">Workers cannot register themselves. Share these credentials so they can access their dashboard.</p>
           <Button className="w-full" onClick={() => setCredentials(null)}>Done</Button>
         </div>
+      </Modal>
+
+      <Modal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Remove Worker">
+        <div className="p-4 text-center">
+          <Trash2 size={48} className="mx-auto text-red-500 mb-4" />
+          <p className="font-bold text-lg mb-2">Remove {deleteTarget?.name}?</p>
+          <p className="text-sm text-[var(--text-muted)] mb-6">
+            This will permanently remove the worker account for <strong>{deleteTarget?.email}</strong>. 
+            All associated task history and records will also be deleted. This cannot be undone.
+          </p>
+          <div className="flex gap-3">
+            <Button variant="danger" className="flex-1" onClick={handleDelete}>Remove Worker</Button>
+            <Button variant="outline" className="flex-1" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={showHostPassModal} onClose={() => { setShowHostPassModal(false); setHostPass(''); setHostPassError(''); }} title="Verify Host Access">
+        <form onSubmit={handleReveal} className="space-y-4">
+          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex gap-3 mb-2">
+            <ShieldCheck className="text-amber-500 shrink-0" size={20} />
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              Viewing worker passwords requires the <strong>Host Security Password</strong> (Super Admin Password).
+            </p>
+          </div>
+          <div className="relative">
+            <Key size={18} className="absolute left-3 top-[38px] text-[var(--text-muted)]" />
+            <Input
+              label="Host Password"
+              type="password"
+              value={hostPass}
+              onChange={(e) => { setHostPass(e.target.value); setHostPassError(''); }}
+              placeholder="Enter host password..."
+              className="pl-10"
+              autoFocus
+              required
+            />
+          </div>
+          {hostPassError && <p className="text-xs text-red-500 font-medium">{hostPassError}</p>}
+          <div className="flex gap-3">
+            <Button type="submit" className="flex-1">Verify & Reveal</Button>
+            <Button type="button" variant="outline" className="flex-1" onClick={() => setShowHostPassModal(false)}>Cancel</Button>
+          </div>
+        </form>
       </Modal>
     </div>
   );

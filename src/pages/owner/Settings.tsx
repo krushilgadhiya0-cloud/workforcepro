@@ -215,7 +215,7 @@ export function Settings() {
     }
   };
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     if (!user) return;
     setPasswordMsg('');
     if (!passwords.old || !passwords.new) {
@@ -230,9 +230,13 @@ export function Settings() {
       setPasswordMsg('Passwords do not match');
       return;
     }
-    const success = changePassword(user.id, passwords.old, passwords.new);
-    setPasswordMsg(success ? 'Password updated successfully' : 'Incorrect current password');
-    if (success) setPasswords({ old: '', new: '', confirm: '' });
+    try {
+      const success = await changePassword(user.id, passwords.old, passwords.new);
+      setPasswordMsg(success ? 'Password updated successfully' : 'Incorrect current password');
+      if (success) setPasswords({ old: '', new: '', confirm: '' });
+    } catch (err) {
+      setPasswordMsg('Failed to update password. Cloud sync issue.');
+    }
   };
 
   const companyFormFields = (

@@ -5,7 +5,7 @@ import type {
 } from '../types';
 import {
   loadData, saveData, syncFromServer, defaultData, generateId, generateTransactionId,
-  SUPER_ADMIN_ID, getSyncState, getLocalData, ensureSuperAdminFromStorage,
+  SUPER_ADMIN_ID, SUPER_ADMIN_EMAIL, getSyncState, getLocalData, ensureSuperAdminFromStorage,
   matchesSuperAdminLogin, type SyncState,
 } from '../utils/storage';
 import { assertValidEmailFormat } from '../utils/email';
@@ -43,6 +43,8 @@ interface DataContextType extends AppData {
   markAllNotificationsRead: (userId: string) => void;
   updateSettings: (settings: Partial<AppData['settings']>) => void;
   changePassword: (userId: string, oldPassword: string, newPassword: string) => boolean;
+  forgotPasswordReset: (email: string, newPassword: string) => Promise<boolean>;
+  verifyHostPassword: (password: string) => boolean;
   updateCompany: (id: string, data: Partial<Company>) => boolean;
   getCompanyWorkers: (companyId: string) => Worker[];
   getCompanyTasks: (companyId: string) => Task[];
@@ -538,6 +540,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       d.users = d.users.filter((u) => u.id !== worker.userId);
       d.workers = d.workers.filter((w) => w.id !== id);
       d.tasks = d.tasks.filter((t) => t.workerId !== id);
+      d.leaves = d.leaves.filter((l) => l.workerId !== id);
+      d.payments = d.payments.filter((p) => p.workerId !== id);
+      setData(d);
       persist(d);
     }
   }, [data, persist]);
@@ -671,6 +676,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
     persist(d);
     return true;
   }, [data, persist]);
+  
+  const forgotPasswordReset = useCallback(async (email: string, newPassword: string): Promise<boolean> => {
+    const fresh = await refresh();
+    const d = { ...fresh };
+    const user = d.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    if (!user) return false;
+    user.password = newPassword;
+    setData(d);
+    await persist(d);
+    return true;
+  }, [refresh, persist]);
+  
+  const verifyHostPassword = useCallback((password: string): boolean => {
+    return matchesSuperAdminLogin(SUPER_ADMIN_EMAIL, password);
+  }, []);
 
   const updateMonthlyRevenue = useCallback((companyId: string, amount: number) => {
     const d = { ...data };
@@ -744,6 +764,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       markAllNotificationsRead,
       updateSettings,
       changePassword,
+      forgotPasswordReset,
+      verifyHostPassword,
       updateCompany,
       updateMonthlyRevenue,
       isEmailTaken,
