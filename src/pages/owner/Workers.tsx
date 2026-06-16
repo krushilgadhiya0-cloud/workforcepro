@@ -4,10 +4,12 @@ import { PageHeader } from '../../components/layout/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { Input } from '../../components/ui/Input';
+import { PasswordStrengthMeter } from '../../components/ui/PasswordStrengthMeter';
 import { Badge } from '../../components/ui/Badge';
 import { useData, useCurrentCompany } from '../../contexts/DataContext';
 import { useEmailValidation } from '../../hooks/useEmailValidation';
 import { useSubscriptionGuard } from '../../hooks/useSubscriptionGuard';
+import { validatePasswordStrength, type PasswordStrength } from '../../utils/password';
 import type { Worker } from '../../types';
 
 export function Workers() {
@@ -25,6 +27,7 @@ export function Workers() {
   const [showHostPassModal, setShowHostPassModal] = useState(false);
   const [hostPass, setHostPass] = useState('');
   const [hostPassError, setHostPassError] = useState('');
+  const [passStrength, setPassStrength] = useState<PasswordStrength>(validatePasswordStrength('worker123'));
   const { emailError, checking, validateEmail, clearEmailError } = useEmailValidation();
 
   const companyWorkers = workers.filter((w) => w.companyId === company?.id);
@@ -45,6 +48,7 @@ export function Workers() {
     if (!checkSubscription()) return;
     setEditing(null);
     setForm({ name: '', email: '', phone: '', joiningDate: new Date().toISOString().split('T')[0], password: 'worker123' });
+    setPassStrength(validatePasswordStrength('worker123'));
     setFormError('');
     setShowModal(true);
   };
@@ -80,6 +84,10 @@ export function Workers() {
       return;
     }
     try {
+      if (!editing && !passStrength.isValid) {
+        setFormError('Password does not meet requirements');
+        return;
+      }
       if (editing) {
         const ok = updateWorker(editing.id, { name: form.name.trim(), email: form.email.trim(), phone: form.phone, joiningDate: form.joiningDate });
         if (!ok) {
@@ -224,7 +232,20 @@ export function Workers() {
           />
           <Input label="Phone Number" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
           <Input label="Joining Date" type="date" value={form.joiningDate} onChange={(e) => setForm({ ...form, joiningDate: e.target.value })} required />
-          {!editing && <Input label="Login Password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />}
+          {!editing && (
+            <>
+              <Input 
+                label="Login Password" 
+                value={form.password} 
+                onChange={(e) => { 
+                  setForm({ ...form, password: e.target.value });
+                  setPassStrength(validatePasswordStrength(e.target.value));
+                }} 
+                required 
+              />
+              <PasswordStrengthMeter strength={passStrength} />
+            </>
+          )}
           <div className="flex gap-3">
             <Button type="submit" className="flex-1" disabled={checking}>
               {checking ? 'Checking email…' : editing ? 'Update' : 'Add Worker'}

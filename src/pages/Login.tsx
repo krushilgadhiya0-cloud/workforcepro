@@ -5,9 +5,11 @@ import { Sparkles, Mail, Lock, User, Building2, Sun, Moon, ArrowLeft, Crown } fr
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
+import { PasswordStrengthMeter } from '../components/ui/PasswordStrengthMeter';
 import { useData } from '../contexts/DataContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useEmailValidation } from '../hooks/useEmailValidation';
+import { validatePasswordStrength, type PasswordStrength } from '../utils/password';
 
 import { fireCelebration } from '../utils/confetti';
 
@@ -33,6 +35,25 @@ export function Login() {
   const [forgotError, setForgotError] = useState('');
   const [forgotSuccess, setForgotSuccess] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
+
+  const [regStrength, setRegStrength] = useState<PasswordStrength>(validatePasswordStrength(''));
+  const [forgotStrength, setForgotStrength] = useState<PasswordStrength>(validatePasswordStrength(''));
+
+  const updateField = (field: string, value: string) => {
+    const d = { ...form, [field]: value };
+    setForm(d);
+    if (field === 'password' && mode === 'register') {
+      setRegStrength(validatePasswordStrength(value));
+    }
+  };
+
+  const handleForgotPassChange = (field: 'new' | 'confirm', value: string) => {
+    const d = { ...passwords, [field]: value };
+    setPasswords(d);
+    if (field === 'new') {
+      setForgotStrength(validatePasswordStrength(value));
+    }
+  };
 
   const emptyForm = { name: '', email: '', password: '', confirmPassword: '' };
 
@@ -370,14 +391,21 @@ export function Login() {
                       required
                     />
                   </div>
-                  <div className="relative">
-                    <Lock size={18} className="absolute left-3 top-[38px] text-[var(--text-muted)]" />
-                    <Input label="Password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="pl-10" placeholder="••••••••" required />
-                    <div className="flex justify-end">
-                      <button type="button" onClick={() => setShowForgotModal(true)} className="text-xs text-[var(--primary)] hover:underline font-medium cursor-pointer">
-                        Forgot Password?
-                      </button>
+                  <div className="space-y-1">
+                    <div className="relative">
+                      <Lock size={18} className="absolute left-3 top-[38px] text-[var(--text-muted)]" />
+                      <Input label="Password" type="password" value={form.password} onChange={(e) => updateField('password', e.target.value)} className="pl-10" placeholder="••••••••" required />
+                      {mode === 'login' && (
+                        <div className="flex justify-end mt-1">
+                          <button type="button" onClick={() => setShowForgotModal(true)} className="text-xs text-[var(--primary)] hover:underline font-medium cursor-pointer">
+                            Forgot Password?
+                          </button>
+                        </div>
+                      )}
                     </div>
+                    {mode === 'register' && form.password && (
+                      <PasswordStrengthMeter strength={regStrength} />
+                    )}
                   </div>
                   {mode === 'register' && (
                     <div className="relative">
@@ -385,7 +413,7 @@ export function Login() {
                       <Input label="Confirm Password" type="password" value={form.confirmPassword} onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} className="pl-10" placeholder="••••••••" required />
                     </div>
                   )}
-                  <Button type="submit" disabled={checking || submitting} className="w-full">
+                  <Button type="submit" disabled={checking || submitting || (mode === 'register' && !regStrength.isValid)} className="w-full">
                     {submitting ? 'Sending Code…' : checking ? 'Checking email…' : mode === 'login' ? 'Sign In' : 'Register & Send OTP'}
                   </Button>
                 </form>
@@ -487,13 +515,14 @@ export function Login() {
               <p className="text-sm text-[var(--text-muted)]">Strong passwords include numbers and symbols.</p>
               <div className="relative">
                 <Lock size={18} className="absolute left-3 top-[38px] text-[var(--text-muted)]" />
-                <Input label="New Password" type="password" value={passwords.new} onChange={(e) => setPasswords({ ...passwords, new: e.target.value })} className="pl-10" placeholder="••••••••" required />
+                <Input label="New Password" type="password" value={passwords.new} onChange={(e) => handleForgotPassChange('new', e.target.value)} className="pl-10" placeholder="••••••••" required />
               </div>
+              {passwords.new && <PasswordStrengthMeter strength={forgotStrength} />}
               <div className="relative">
                 <Lock size={18} className="absolute left-3 top-[38px] text-[var(--text-muted)]" />
-                <Input label="Confirm New Password" type="password" value={passwords.confirm} onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })} className="pl-10" placeholder="••••••••" required />
+                <Input label="Confirm New Password" type="password" value={passwords.confirm} onChange={(e) => handleForgotPassChange('confirm', e.target.value)} className="pl-10" placeholder="••••••••" required />
               </div>
-              <Button type="submit" className="w-full" disabled={forgotLoading}>
+              <Button type="submit" className="w-full" disabled={forgotLoading || !forgotStrength.isValid}>
                 {forgotLoading ? 'Updating Password...' : 'Reset Password'}
               </Button>
             </form>

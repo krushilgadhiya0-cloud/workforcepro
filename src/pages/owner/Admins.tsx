@@ -5,11 +5,13 @@ import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
+import { PasswordStrengthMeter } from '../../components/ui/PasswordStrengthMeter';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 import { useData, useCurrentCompany } from '../../contexts/DataContext';
 import { useEmailValidation } from '../../hooks/useEmailValidation';
 import { useSubscriptionGuard } from '../../hooks/useSubscriptionGuard';
+import { validatePasswordStrength, type PasswordStrength } from '../../utils/password';
 import type { Admin, AdminRole } from '../../types';
 
 const roleOptions = [
@@ -29,6 +31,7 @@ export function Admins() {
   const [credentials, setCredentials] = useState<{ email: string; password: string; name: string } | null>(null);
   const [formError, setFormError] = useState('');
   const { emailError, checking, validateEmail, clearEmailError } = useEmailValidation();
+  const [passStrength, setPassStrength] = useState<PasswordStrength>(validatePasswordStrength('admin123'));
   const [monthlyRevenue, setMonthlyRevenue] = useState(String(company?.monthlyRevenue || ''));
   const [revenueSaved, setRevenueSaved] = useState(false);
 
@@ -42,6 +45,7 @@ export function Admins() {
     if (!checkSubscription()) return;
     setEditing(null);
     setForm({ name: '', email: '', phone: '', role: 'manager', password: 'admin123' });
+    setPassStrength(validatePasswordStrength('admin123'));
     setFormError('');
     setShowModal(true);
   };
@@ -72,6 +76,10 @@ export function Admins() {
           return;
         }
       } else {
+        if (!passStrength.isValid) {
+          setFormError('Password does not meet requirements');
+          return;
+        }
         const admin = addAdmin({ ...form, companyId: company.id });
         if (!admin) {
           setFormError('Email already registered. This admin may already have an account.');
@@ -190,7 +198,20 @@ export function Admins() {
           />
           <Input label="Phone Number" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
           <Select label="Role" options={roleOptions} value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as AdminRole })} />
-          {!editing && <Input label="Login Password" type="text" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />}
+          {!editing && (
+            <>
+              <Input 
+                label="Login Password" 
+                type="text" 
+                value={form.password} 
+                onChange={(e) => { 
+                  setForm({ ...form, password: e.target.value });
+                  setPassStrength(validatePasswordStrength(e.target.value));
+                }} 
+              />
+              <PasswordStrengthMeter strength={passStrength} />
+            </>
+          )}
           <div className="flex gap-3">
             <Button className="flex-1" onClick={() => void handleSubmit()} disabled={checking}>
               {checking ? 'Checking email…' : editing ? 'Update' : 'Add Admin'}

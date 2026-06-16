@@ -10,6 +10,8 @@ import { Badge } from '../../components/ui/Badge';
 import { useData, useCurrentCompany, useCurrentUser } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useEmailValidation } from '../../hooks/useEmailValidation';
+import { PasswordStrengthMeter } from '../../components/ui/PasswordStrengthMeter';
+import { validatePasswordStrength, type PasswordStrength } from '../../utils/password';
 import type { Company } from '../../types';
 
 const industries = [
@@ -50,6 +52,8 @@ export function Settings() {
   const [companyForm, setCompanyForm] = useState(emptyForm);
   const [companyFormError, setCompanyFormError] = useState('');
   const [companyFormMsg, setCompanyFormMsg] = useState('');
+  const [passStrength, setPassStrength] = useState<PasswordStrength>(validatePasswordStrength(''));
+  const [companyStrength, setCompanyStrength] = useState<PasswordStrength>(validatePasswordStrength(''));
   const { emailError, checking, validateEmail, clearEmailError } = useEmailValidation();
 
   useEffect(() => {
@@ -102,6 +106,10 @@ export function Settings() {
     }
     if (!companyForm.ownerPassword.trim()) {
       setCompanyFormError('Set an owner password for this business (used to remove it later)');
+      return;
+    }
+    if (!companyStrength.isValid) {
+      setCompanyFormError('Owner password does not meet requirements');
       return;
     }
     const emailCheck = await validateEmail(companyForm.email, { checkDeliverability: true });
@@ -222,8 +230,8 @@ export function Settings() {
       setPasswordMsg('Please fill in all password fields');
       return;
     }
-    if (passwords.new.length < 6) {
-      setPasswordMsg('New password must be at least 6 characters');
+    if (!passStrength.isValid) {
+      setPasswordMsg('New password does not meet requirements');
       return;
     }
     if (passwords.new !== passwords.confirm) {
@@ -257,7 +265,20 @@ export function Settings() {
       <Input label="Business Address" value={companyForm.address} onChange={(e) => setCompanyForm({ ...companyForm, address: e.target.value })} />
       <Select label="Industry Type" options={industries} value={companyForm.industry} onChange={(e) => setCompanyForm({ ...companyForm, industry: e.target.value })} />
       {!showEditModal && (
-        <Input label="Owner Password" type="password" hint="Required to remove this business later. Not your login password." value={companyForm.ownerPassword} onChange={(e) => setCompanyForm({ ...companyForm, ownerPassword: e.target.value })} required />
+        <>
+          <Input 
+            label="Owner Password" 
+            type="password" 
+            hint="Required to remove this business later. Not your login password." 
+            value={companyForm.ownerPassword} 
+            onChange={(e) => {
+              setCompanyForm({ ...companyForm, ownerPassword: e.target.value });
+              setCompanyStrength(validatePasswordStrength(e.target.value));
+            }} 
+            required 
+          />
+          <PasswordStrengthMeter strength={companyStrength} />
+        </>
       )}
       {companyFormError && <div className="p-3 rounded-xl bg-red-500/10 text-red-500 text-sm">{companyFormError}</div>}
       {companyFormMsg && <div className="p-3 rounded-xl bg-green-500/10 text-green-600 text-sm">{companyFormMsg}</div>}
@@ -365,10 +386,21 @@ export function Settings() {
           <p className="text-xs text-[var(--text-muted)] mb-4">Update your login password. Does not change worker or admin passwords.</p>
           <div className="space-y-4">
             <Input label="Current Password" type="password" value={passwords.old} onChange={(e) => setPasswords({ ...passwords, old: e.target.value })} />
-            <Input label="New Password" type="password" hint="Minimum 6 characters" value={passwords.new} onChange={(e) => setPasswords({ ...passwords, new: e.target.value })} />
+            <div className="space-y-1">
+              <Input 
+                label="New Password" 
+                type="password" 
+                value={passwords.new} 
+                onChange={(e) => {
+                  setPasswords({ ...passwords, new: e.target.value });
+                  setPassStrength(validatePasswordStrength(e.target.value));
+                }} 
+              />
+              {passwords.new && <PasswordStrengthMeter strength={passStrength} />}
+            </div>
             <Input label="Confirm Password" type="password" value={passwords.confirm} onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })} />
             {passwordMsg && <p className={`text-sm ${passwordMsg.includes('success') ? 'text-green-600' : 'text-red-500'}`}>{passwordMsg}</p>}
-            <Button onClick={handleChangePassword}>Update Password</Button>
+            <Button onClick={handleChangePassword} disabled={passwords.new.length > 0 && !passStrength.isValid}>Update Password</Button>
           </div>
         </Card>
 
