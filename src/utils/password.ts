@@ -14,11 +14,11 @@ export interface PasswordStrength {
 
 export function validatePasswordStrength(password: string): PasswordStrength {
   const requirements: PasswordRequirement[] = [
-    { id: 'length', label: 'At least 8 characters', met: password.length >= 8 },
-    { id: 'uppercase', label: 'One uppercase letter', met: /[A-Z]/.test(password) },
+    { id: 'length', label: 'More than 8 characters (Min 9)', met: password.length >= 9 },
+    { id: 'uppercase', label: 'At least one capital letter', met: /[A-Z]/.test(password) },
     { id: 'lowercase', label: 'One lowercase letter', met: /[a-z]/.test(password) },
     { id: 'number', label: 'One number', met: /[0-9]/.test(password) },
-    { id: 'symbol', label: 'One special character', met: /[^A-Za-z0-9]/.test(password) },
+    { id: 'symbol', label: 'At least one special character (@#$!)', met: /[^A-Za-z0-9]/.test(password) },
   ];
 
   const metCount = requirements.filter(r => r.met).length;
