@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { MapPin, Phone, Mail, Send, CheckCircle, Clock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { MapPin, Phone, Mail, Send, CheckCircle, Clock, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useTheme } from '../contexts/ThemeContext';
 
 export function Contact() {
   const { theme } = useTheme();
+  const navigate = useNavigate();
   const [form, setForm] = useState({ name: '', email: '', date: '', message: '' });
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -37,7 +39,16 @@ export function Contact() {
 
   return (
     <div className={`min-h-screen pt-24 pb-12 transition-colors duration-500 ${theme === 'dark' ? 'bg-[#0a0a0a] text-white' : 'bg-gray-50 text-gray-900'}`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        {/* Back Button */}
+        <button 
+          onClick={() => navigate(-1)} 
+          className="absolute -top-12 left-4 sm:left-8 flex items-center gap-2 px-4 py-2 rounded-full glass-card border border-white/10 hover:bg-white/10 transition-all group z-10 cursor-pointer"
+        >
+          <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
+          <span className="text-sm font-bold uppercase tracking-wider">Back</span>
+        </button>
+
         {/* Header */}
         <div className="text-center mb-16 space-y-4">
           <h1 className="text-4xl md:text-6xl font-black tracking-tighter uppercase">
