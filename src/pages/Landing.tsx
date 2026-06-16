@@ -115,6 +115,9 @@ export function Landing() {
             </div>
             <span className="text-lg font-bold gradient-text">WorkForce Pro</span>
           </Link>
+          <div className="hidden md:flex items-center gap-6">
+            <Link to="/contact" className="text-sm font-medium text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors">Contact Us</Link>
+          </div>
           <div className="flex items-center gap-3">
             <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-[var(--border)]/50 transition-colors cursor-pointer">
               {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
@@ -203,7 +206,8 @@ export function Landing() {
       </section>
 
       <footer className="border-t border-[var(--border)] py-8 px-6 text-center text-sm text-[var(--text-muted)]">
-        © 2026 WorkForce Pro. All rights reserved.
+        <p className="mb-2">© 2026 WorkForce Pro. All rights reserved.</p>
+        <Link to="/contact" className="hover:text-[var(--primary)] transition-colors">Contact Support</Link>
       </footer>
 
       <Modal isOpen={showBusiness} onClose={() => { setShowBusiness(false); setBusinessError(''); }} title="Create Business">

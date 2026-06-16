@@ -4,6 +4,7 @@ import { DataProvider } from './contexts/DataContext';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Landing } from './pages/Landing';
+import { Contact } from './pages/Contact';
 import { Login } from './pages/Login';
 import { OwnerDashboard } from './pages/owner/Dashboard';
 import { Companies } from './pages/owner/Companies';
@@ -39,6 +40,7 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Landing />} />
+            <Route path="/contact" element={<Contact />} />
             <Route path="/login" element={<Login />} />
             <Route path="/superadmin/login" element={<SuperAdminLogin />} />
 

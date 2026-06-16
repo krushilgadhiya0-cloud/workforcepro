@@ -149,3 +149,46 @@ export async function sendPaymentReceiptEmail(email: string, name: string, detai
     return { success: false, error };
   }
 }
+
+export async function sendContactEmail(details: { name: string, email: string, date?: string, message: string }) {
+  try {
+    await transporter.sendMail({
+      from: `"WorkForcePro Contact" <${process.env.GMAIL_USER}>`,
+      to: 'krushilgadhiya0@gmail.com',
+      replyTo: details.email,
+      subject: `New Inquiry from ${details.name}`,
+      html: `
+        <div style="font-family: sans-serif; line-height: 1.5; color: #111; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 30px; border-radius: 12px;">
+          <h2 style="color: #2563eb; margin-top: 0;">New Contact Form Submission</h2>
+          <div style="background-color: #f8fafc; border-radius: 8px; padding: 20px; margin: 25px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 5px 0; color: #64748b; width: 120px;">Name:</td>
+                <td style="padding: 5px 0; font-weight: bold;">${details.name}</td>
+              </tr>
+              <tr>
+                <td style="padding: 5px 0; color: #64748b;">Email:</td>
+                <td style="padding: 5px 0; font-weight: bold;">${details.email}</td>
+              </tr>
+              ${details.date ? `
+              <tr>
+                <td style="padding: 5px 0; color: #64748b;">Preferred Date:</td>
+                <td style="padding: 5px 0; font-weight: bold;">${details.date}</td>
+              </tr>
+              ` : ''}
+            </table>
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+              <p style="color: #64748b; margin-bottom: 8px; font-size: 14px;">Message:</p>
+              <p style="white-space: pre-wrap; margin-top: 0;">${details.message}</p>
+            </div>
+          </div>
+          <p style="font-size: 12px; color: #94a3b8; text-align: center;">This was sent via the WorkForcePro contact form.</p>
+        </div>
+      `,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send contact email:', error);
+    return { success: false, error };
+  }
+}
