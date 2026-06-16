@@ -180,7 +180,7 @@ export async function saveData(data: AppData): Promise<AppData> {
         : `Cloud save failed (${res.status})`;
       setSyncState('offline', message);
       console.error('Failed to save to cloud:', message);
-      return finalData;
+      return { ...finalData, currentUserId: data.currentUserId, currentCompanyId: data.currentCompanyId };
     }
 
     if (result?.data) {
@@ -200,7 +200,8 @@ export async function saveData(data: AppData): Promise<AppData> {
     console.error('Failed to save to cloud:', error);
   }
 
-  return finalData;
+  const resultWithSession = { ...finalData, currentUserId: data.currentUserId, currentCompanyId: data.currentCompanyId };
+  return resultWithSession;
 }
 
 export function generateId(): string {

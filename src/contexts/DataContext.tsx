@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import type {
   AppData, User, Company, Admin, Worker, Task, LeaveRequest, Payment, Notification,
   SubscriptionPlan, AdminRole, LeaveStatus, ActivityLog,
@@ -60,12 +60,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [syncState, setSyncState] = useState<SyncState>('idle');
   const [syncError, setSyncError] = useState('');
+  const sessionRef = useRef({ currentUserId: null as string | null, currentCompanyId: null as string | null });
 
   const updateSyncStatus = useCallback(() => {
     const { state, error } = getSyncState();
     setSyncState(state);
     setSyncError(error);
   }, []);
+
+  useEffect(() => {
+    sessionRef.current = {
+      currentUserId: data.currentUserId,
+      currentCompanyId: data.currentCompanyId,
+    };
+  }, [data.currentUserId, data.currentCompanyId]);
 
   useEffect(() => {
     const fallbackTimer = setTimeout(() => setLoading(false), 8000);
@@ -93,12 +101,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [updateSyncStatus]);
 
   const refresh = useCallback(async (): Promise<AppData> => {
-    let session = { currentUserId: null as string | null, currentCompanyId: null as string | null };
-    setData((prev) => {
-      session = { currentUserId: prev.currentUserId, currentCompanyId: prev.currentCompanyId };
-      return prev;
-    });
-    const synced = await syncFromServer(session);
+    const synced = await syncFromServer(sessionRef.current);
     updateSyncStatus();
     setData(synced);
     return synced;
