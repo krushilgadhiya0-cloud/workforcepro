@@ -309,6 +309,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (company) {
       company.subscription = plan;
       company.subscriptionDate = new Date().toISOString();
+      company.subscriptionPrice = plan === 'trial' ? 1 : plan === 'monthly' ? 799 : 4999;
+      if (plan === 'trial') company.hasUsedTrial = true;
+      
       const owner = d.users.find((u) => u.id === company.ownerId);
       appendActivity(d, {
         type: 'subscription_started',
@@ -652,8 +655,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const addPayment = useCallback((paymentData: Omit<Payment, 'id' | 'createdAt' | 'status'>) => {
     const payment: Payment = { ...paymentData, id: generateId(), status: 'due', createdAt: new Date().toISOString() };
-    const d = { ...data };
-    d.payments.push(payment);
+    const d = { ...data, payments: [...data.payments, payment] };
     persist(d);
     return payment;
   }, [data, persist]);
@@ -773,19 +775,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
       createdAt: new Date().toISOString(),
     };
 
-    const d = { ...data };
-    d.messages.push(newMessage);
+    const d = { ...data, messages: [...data.messages, newMessage] };
     
-    // Notify relevant parties
+    // Notify relevant parties in the company
     if (user.role === 'worker') {
-      // Notify admins and owner
       const admins = d.admins.filter(a => a.companyId === companyId);
       const company = d.companies.find(c => c.id === companyId);
-      admins.forEach(a => appendNotification(d, { userId: a.userId, title: 'New Message from Worker', message: `${user.name}: ${content.substring(0, 50)}...`, type: 'general' }));
-      if (company) {
-        const owner = d.users.find(u => u.id === company.ownerId);
-        if (owner) appendNotification(d, { userId: owner.id, title: 'New Message from Worker', message: `${user.name}: ${content.substring(0, 50)}...`, type: 'general' });
+      admins.forEach(a => appendNotification(d, { userId: a.userId, title: 'New Message', message: `${user.name}: ${content.substring(0, 50)}`, type: 'general' }));
+      if (company && company.ownerId !== user.id) {
+        appendNotification(d, { userId: company.ownerId, title: 'New Message', message: `${user.name}: ${content.substring(0, 50)}`, type: 'general' });
       }
+    } else {
+      // If owner/admin sends, notify workers? Usually yes.
+      const workers = d.workers.filter(w => w.companyId === companyId);
+      workers.forEach(w => appendNotification(d, { userId: w.userId, title: 'New Company Update', message: `${user.name}: ${content.substring(0, 50)}`, type: 'general' }));
     }
 
     persist(d);
@@ -802,6 +805,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         subscription: 'trial',
         subscriptionDate: new Date().toISOString(),
         trialEndDate: trialEndDate.toISOString(),
+        subscriptionPrice: 1, // Trial price is ₹1
+        hasUsedTrial: true,
       };
       persist(d);
     }

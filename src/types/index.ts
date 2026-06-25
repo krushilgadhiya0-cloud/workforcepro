@@ -30,6 +30,8 @@ export interface Company {
   ownerPassword: string;
   subscription: SubscriptionPlan | null;
   subscriptionDate: string | null;
+  subscriptionPrice?: number;
+  hasUsedTrial?: boolean;
   trialEndDate?: string;
   monthlyRevenue: number;
   monthlyRevenueUpdatedAt: string | null;

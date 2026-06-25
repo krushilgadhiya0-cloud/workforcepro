@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Bell, CheckCheck } from 'lucide-react';
 import { PageHeader } from '../layout/PageHeader';
 import { Button } from '../ui/Button';
@@ -26,6 +27,13 @@ export function NotificationsView({ title = 'Notifications' }: NotificationsView
   const user = useCurrentUser();
   const notifications = user ? getUserNotifications(user.id) : [];
   const unread = notifications.filter((n) => !n.read).length;
+
+  // Mark all as read when page is viewed
+  useEffect(() => {
+    if (user && unread > 0) {
+      markAllNotificationsRead(user.id);
+    }
+  }, [user, unread, markAllNotificationsRead]);
 
   return (
     <div>

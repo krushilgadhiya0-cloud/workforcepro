@@ -28,11 +28,30 @@ export function Payments() {
 
   const getWorkerName = (id: string) => companyWorkers.find((w) => w.id === id)?.name || 'Unknown';
 
+  const [formError, setFormError] = useState('');
+
   const handleAdd = () => {
-    if (!company || !form.workerId || !form.amount) return;
+    if (!company) {
+      setFormError('No business found.');
+      return;
+    }
+    if (!form.workerId) {
+      setFormError('Please select a worker.');
+      return;
+    }
+    if (!form.amount || Number(form.amount) <= 0) {
+      setFormError('Please enter a valid salary amount.');
+      return;
+    }
+    if (!form.dueDate) {
+      setFormError('Please select a due date.');
+      return;
+    }
+    
     addPayment({ companyId: company.id, workerId: form.workerId, amount: Number(form.amount), dueDate: form.dueDate });
     setShowModal(false);
     setForm({ workerId: '', amount: '', dueDate: '' });
+    setFormError('');
   };
 
   const handleReceipt = (paymentId: string) => {
@@ -88,8 +107,9 @@ export function Payments() {
         </div>
       </div>
 
-      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Add Payment">
+      <Modal isOpen={showModal} onClose={() => { setShowModal(false); setFormError(''); }} title="Add Payment">
         <div className="space-y-4">
+          {formError && <div className="p-3 rounded-xl bg-red-500/10 text-red-500 text-sm">{formError}</div>}
           <Select label="Worker" options={workerOptions.length ? workerOptions : [{ value: '', label: 'No workers' }]} value={form.workerId} onChange={(e) => setForm({ ...form, workerId: e.target.value })} />
           <Input label="Salary Amount (₹)" type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
           <Input label="Due Date" type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} />

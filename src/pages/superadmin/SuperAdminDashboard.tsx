@@ -14,9 +14,8 @@ export function SuperAdminDashboard() {
   const owners = users.filter((u) => u.role === 'owner');
   const subscriptionRevenue = companies.reduce((sum, c) => {
     if (!c.subscription) return sum;
-    return sum + (c.subscription === 'monthly' ? 799 : 4999);
+    return sum + (c.subscriptionPrice ?? (c.subscription === 'monthly' ? 799 : 4999));
   }, 0);
-  const workerPaymentsTotal = payments.reduce((sum, p) => sum + (p.status === 'paid' ? p.amount : 0), 0);
   const duePayments = payments.filter((p) => p.status === 'due').length;
 
   const chartData = months.map((month, i) => ({
@@ -40,7 +39,6 @@ export function SuperAdminDashboard() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
         <StatCard title="Subscription Revenue" value={`₹${subscriptionRevenue.toLocaleString('en-IN')}`} icon={<IndianRupee size={22} className="text-[var(--primary)]" />} trend="From all company plans" />
-        <StatCard title="Worker Payments (Paid)" value={`₹${workerPaymentsTotal.toLocaleString('en-IN')}`} icon={<IndianRupee size={22} className="text-[var(--accent)]" />} trend="Across all companies" />
       </div>
 
       <div className="glass-card rounded-2xl p-6 mb-8">
