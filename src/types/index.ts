@@ -30,8 +30,19 @@ export interface Company {
   ownerPassword: string;
   subscription: SubscriptionPlan | null;
   subscriptionDate: string | null;
+  trialEndDate?: string;
   monthlyRevenue: number;
   monthlyRevenueUpdatedAt: string | null;
+  createdAt: string;
+}
+
+export interface CommunicationMessage {
+  id: string;
+  companyId: string;
+  senderId: string;
+  senderName: string;
+  senderRole: UserRole;
+  content: string;
   createdAt: string;
 }
 
@@ -142,6 +153,7 @@ export interface AppData {
   payments: Payment[];
   notifications: Notification[];
   activities: ActivityLog[];
+  messages: CommunicationMessage[];
   settings: AppSettings;
   currentUserId: string | null;
   currentCompanyId: string | null;

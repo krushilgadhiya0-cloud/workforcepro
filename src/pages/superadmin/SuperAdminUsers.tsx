@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Trash2, Eye, EyeOff, ShieldCheck, Key } from 'lucide-react';
+import { Search, Trash2, Eye, EyeOff, ShieldCheck, Key, CreditCard } from 'lucide-react';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -9,9 +9,10 @@ import { useData } from '../../contexts/DataContext';
 import type { User } from '../../types';
 
 export function SuperAdminUsers() {
-  const { users, companies, removeUserAsSuperAdmin, verifyHostPassword } = useData();
+  const { users, companies, workers, payments, removeUserAsSuperAdmin, verifyHostPassword } = useData();
   const [search, setSearch] = useState('');
   const [removeTarget, setRemoveTarget] = useState<User | null>(null);
+  const [paymentTarget, setPaymentTarget] = useState<User | null>(null);
   const [statusMsg, setStatusMsg] = useState('');
   const [revealed, setRevealed] = useState(false);
   const [showHostPassModal, setShowHostPassModal] = useState(false);
@@ -124,6 +125,14 @@ export function SuperAdminUsers() {
                   <td className="p-4 text-right">
                     <button
                       type="button"
+                      onClick={() => setPaymentTarget(user)}
+                      className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-500 cursor-pointer mr-1"
+                      title="View payments"
+                    >
+                      <CreditCard size={16} />
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setRemoveTarget(user)}
                       className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-500 cursor-pointer"
                       title="Remove user"
@@ -146,6 +155,41 @@ export function SuperAdminUsers() {
         <div className="flex gap-3">
           <Button variant="danger" className="flex-1" onClick={handleRemove}>Remove User</Button>
           <Button variant="outline" className="flex-1" onClick={() => setRemoveTarget(null)}>Cancel</Button>
+        </div>
+      </Modal>
+
+      <Modal isOpen={!!paymentTarget} onClose={() => setPaymentTarget(null)} title={`Payments — ${paymentTarget?.name}`} size="lg">
+        <div className="space-y-4">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[var(--border)] text-[var(--text-muted)] text-left">
+                  <th className="p-3 font-medium">Date</th>
+                  <th className="p-3 font-medium">Amount</th>
+                  <th className="p-3 font-medium">Status</th>
+                  <th className="p-3 font-medium">Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                {payments
+                  .filter(p => p.workerId === workers.find(w => w.userId === paymentTarget?.id)?.id || (paymentTarget?.role === 'owner' && p.companyId === paymentTarget.companyId))
+                  .map(p => (
+                    <tr key={p.id} className="border-b border-[var(--border)] last:border-0">
+                      <td className="p-3">{new Date(p.createdAt).toLocaleDateString()}</td>
+                      <td className="p-3 font-medium text-[var(--text)]">₹{p.amount.toLocaleString()}</td>
+                      <td className="p-3"><Badge status={p.status} label={p.status} /></td>
+                      <td className="p-3 text-xs text-[var(--text-muted)]">{p.transactionId || 'Manual/Pending'}</td>
+                    </tr>
+                  ))}
+                {payments.filter(p => p.workerId === workers.find(w => w.userId === paymentTarget?.id)?.id || (paymentTarget?.role === 'owner' && p.companyId === paymentTarget.companyId)).length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="p-8 text-center text-[var(--text-muted)]">No payments found for this user.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <Button variant="outline" className="w-full" onClick={() => setPaymentTarget(null)}>Close</Button>
         </div>
       </Modal>
 

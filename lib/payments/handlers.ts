@@ -17,7 +17,7 @@ export interface CreateOrderResult {
   amount: number;
   currency: 'INR';
   keyId: string;
-  plan: 'monthly' | 'yearly';
+  plan: SubscriptionPlan;
   companyId: string;
   description: string;
 }
@@ -30,7 +30,7 @@ export interface VerifyPaymentInput {
 
 export interface VerifyPaymentResult {
   success: true;
-  plan: 'monthly' | 'yearly';
+  plan: SubscriptionPlan;
   companyId: string;
   paymentId: string;
   orderId: string;

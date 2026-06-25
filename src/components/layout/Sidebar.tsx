@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, CreditCard, Wallet, CalendarOff, BarChart3,
   Settings, LogOut, Building2, ChevronLeft, ChevronRight, Bell, Shield,
-  ListTodo, Crown, UserCog, Activity,
+  ListTodo, Crown, UserCog, Activity, MessageSquare, BookOpen,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useData, useCurrentUser } from '../../contexts/DataContext';
@@ -30,6 +30,8 @@ const ownerLinks: NavItem[] = [
   { to: '/dashboard/tasks', icon: ListTodo, label: 'Tasks' },
   { to: '/dashboard/leaves', icon: CalendarOff, label: 'Leave Requests' },
   { to: '/dashboard/reports', icon: BarChart3, label: 'Reports' },
+  { to: '/dashboard/learn', icon: BookOpen, label: 'Learn at Home' },
+  { to: '/dashboard/communication', icon: MessageSquare, label: 'Communication' },
   { to: '/dashboard/notifications', icon: Bell, label: 'Notifications', badge: true },
   { to: '/dashboard/settings', icon: Settings, label: 'Settings' },
 ];
@@ -41,6 +43,7 @@ const superAdminLinks: NavItem[] = [
   { to: '/superadmin/workers', icon: Users, label: 'All Workers' },
   { to: '/superadmin/users', icon: UserCog, label: 'All Users' },
   { to: '/superadmin/activity', icon: Activity, label: 'User Activity' },
+  { to: '/superadmin/communication', icon: MessageSquare, label: 'Communications' },
   { to: '/superadmin/notifications', icon: Bell, label: 'Notifications', badge: true },
   { to: '/superadmin/settings', icon: Settings, label: 'Settings' },
 ];
@@ -50,6 +53,7 @@ const workerLinks: NavItem[] = [
   { to: '/worker/tasks', icon: ListTodo, label: 'My Tasks' },
   { to: '/worker/leaves', icon: CalendarOff, label: 'Leave' },
   { to: '/worker/payments', icon: CreditCard, label: 'Payments' },
+  { to: '/worker/communication', icon: MessageSquare, label: 'Communication' },
   { to: '/worker/notifications', icon: Bell, label: 'Notifications', badge: true },
   { to: '/worker/settings', icon: Settings, label: 'Settings' },
 ];

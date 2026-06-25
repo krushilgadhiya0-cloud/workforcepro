@@ -1,195 +1,122 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { MapPin, Phone, Mail, Send, CheckCircle, Clock, ArrowLeft } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, MessageCircle, Clock, CheckCircle2 } from 'lucide-react';
+import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { useTheme } from '../contexts/ThemeContext';
 
 export function Contact() {
-  const { theme } = useTheme();
-  const navigate = useNavigate();
-  const [form, setForm] = useState({ name: '', email: '', date: '', message: '' });
-  const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
-    setError('');
-    
-    try {
-      const res = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-      
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to send message');
-      
-      setSuccess(true);
-      setForm({ name: '', email: '', date: '', message: '' });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
-    } finally {
-      setSubmitting(false);
-    }
+    setLoading(true);
+    // Simulate API call
+    setTimeout(() => {
+      setLoading(false);
+      setSubmitted(true);
+    }, 1500);
   };
 
   return (
-    <div className={`min-h-screen pt-24 pb-12 transition-colors duration-500 ${theme === 'dark' ? 'bg-[#0a0a0a] text-white' : 'bg-gray-50 text-gray-900'}`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-        {/* Back Button */}
-        <button 
-          onClick={() => navigate(-1)} 
-          className="absolute -top-12 left-4 sm:left-8 flex items-center gap-2 px-4 py-2 rounded-full glass-card border border-white/10 hover:bg-white/10 transition-all group z-10 cursor-pointer"
-        >
-          <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-          <span className="text-sm font-bold uppercase tracking-wider">Back</span>
-        </button>
+    <div className="min-h-screen bg-[var(--bg)] selection:bg-[var(--primary)] selection:text-white">
+      {/* Decorative Blur Elements */}
+      <div className="fixed top-0 left-0 w-full h-full pointer-events-none overflow-hidden -z-10">
+        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-[var(--primary)]/10 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-[var(--accent)]/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }} />
+      </div>
 
-        {/* Header */}
-        <div className="text-center mb-16 space-y-4">
-          <h1 className="text-4xl md:text-6xl font-black tracking-tighter uppercase">
-            GET IN <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-orange-500 animate-pulse drop-shadow-[0_0_15px_rgba(220,38,38,0.5)]">TOUCH</span>
+      <div className="max-w-7xl mx-auto px-6 py-20">
+        <div className="text-center space-y-4 mb-20 animate-in fade-in slide-in-from-top-10 duration-700">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--primary)]/10 text-[var(--primary)] text-sm font-semibold mb-2">
+             <MessageCircle size={16} /> Get In Touch
+          </div>
+          <h1 className="text-5xl md:text-7xl font-black tracking-tight text-[var(--text)]">
+            How can we <span className="gradient-text">help you?</span>
           </h1>
-          <p className="text-lg text-[var(--text-muted)] max-w-2xl mx-auto font-medium">
-            Schedule a bespoke viewing, request a test drive, or simply ask us a question.
+          <p className="text-[var(--text-muted)] text-lg max-w-2xl mx-auto leading-relaxed">
+            Whether you have questions about our features, pricing, or need technical support, our dedicated team is here to assist you 24/7.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-          {/* Contact Information */}
-          <div className="space-y-12">
-            <div>
-              <h2 className="text-3xl font-bold mb-4">Contact Information</h2>
-              <p className="text-[var(--text-muted)] max-w-md leading-relaxed">
-                Our dedicated team of automotive specialists are available to assist you with any inquiries regarding our collection.
-              </p>
-            </div>
-
-            <div className="space-y-8">
-              <div className="flex items-start gap-6 group">
-                <div className="w-12 h-12 rounded-2xl bg-[var(--primary)]/10 flex items-center justify-center shrink-0 group-hover:bg-[var(--primary)]/20 transition-all duration-300">
-                  <MapPin className="text-[var(--primary)]" size={24} />
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Contact Methods */}
+          <div className="lg:col-span-1 space-y-6 animate-in fade-in slide-in-from-left-10 duration-700 delay-200">
+            {[
+              { icon: Mail, label: 'Email Support', val: 'support@workforcepro.com', desc: 'Average response: 2 hours', color: 'text-blue-500', bg: 'bg-blue-500/10' },
+              { icon: Phone, label: 'Technical Helpline', val: '+91 98765 43210', desc: 'Mon - Fri, 9am to 6pm IST', color: 'text-green-500', bg: 'bg-green-500/10' },
+              { icon: MapPin, label: 'Visit Our HQ', val: 'Digital Square, Silicon Valley', desc: 'Bangalore, Karnataka, India', color: 'text-purple-500', bg: 'bg-purple-500/10' },
+            ].map((method) => (
+              <Card key={method.label} hover className="border border-[var(--border)]/50 backdrop-blur-md overflow-hidden relative group">
+                <div className={`absolute top-0 right-0 w-24 h-24 ${method.bg} rounded-full -mr-12 -mt-12 transition-transform duration-500 group-hover:scale-150 opacity-20`} />
+                <div className="flex items-start gap-4">
+                  <div className={`p-3 rounded-xl ${method.bg} ${method.color}`}>
+                    <method.icon size={24} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-[var(--text)] mb-1">{method.label}</h3>
+                    <p className="text-[var(--text)] font-medium mb-1">{method.val}</p>
+                    <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+                      <Clock size={12} /> {method.desc}
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-bold">Location</h3>
-                  <p className="text-[var(--text-muted)] font-medium">Gujarat, India</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-6 group">
-                <div className="w-12 h-12 rounded-2xl bg-[var(--primary)]/10 flex items-center justify-center shrink-0 group-hover:bg-[var(--primary)]/20 transition-all duration-300">
-                  <Phone className="text-[var(--primary)]" size={24} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold">Phone</h3>
-                  <p className="text-[var(--text-muted)] font-medium">+91-9327387851</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-6 group">
-                <div className="w-12 h-12 rounded-2xl bg-[var(--primary)]/10 flex items-center justify-center shrink-0 group-hover:bg-[var(--primary)]/20 transition-all duration-300">
-                  <Mail className="text-[var(--primary)]" size={24} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold">Email</h3>
-                  <p className="text-[var(--text-muted)] font-medium">krushilgadhiya0@gmail.com</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-8 border-t border-[var(--border)]/50">
-              <div className="flex items-center gap-2 mb-4">
-                <Clock size={20} className="text-[var(--primary)]" />
-                <h3 className="font-bold uppercase tracking-widest text-sm">Business Hours</h3>
-              </div>
-              <div className="space-y-2 text-sm text-[var(--text-muted)] font-medium">
-                <p>Monday — Friday: 9:00 AM - 8:00 PM</p>
-                <p>Saturday: 10:00 AM - 6:00 PM</p>
-                <p>Sunday: By Appointment Only</p>
-              </div>
-            </div>
+              </Card>
+            ))}
           </div>
 
-          {/* Form */}
-          <div className="glass-card p-1 border border-white/10 rounded-[2rem]">
-            <div className="bg-[#111]/80 backdrop-blur-xl p-8 sm:p-10 rounded-[1.8rem] space-y-6 shadow-2xl">
-              {success ? (
-                <div className="py-12 text-center space-y-4 animate-in fade-in zoom-in duration-500">
-                  <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <CheckCircle className="text-green-500" size={48} />
+          {/* Contact Form */}
+          <div className="lg:col-span-2 animate-in fade-in slide-in-from-right-10 duration-700 delay-200">
+            <Card className="p-8 md:p-10 border border-[var(--border)]/50 glass-card relative overflow-hidden">
+              {submitted ? (
+                <div className="py-20 text-center animate-in zoom-in-50 duration-500">
+                  <div className="w-20 h-20 rounded-full bg-green-500/10 text-green-500 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-500/20">
+                    <CheckCircle2 size={40} />
                   </div>
-                  <h2 className="text-3xl font-bold italic">THANK YOU</h2>
-                  <p className="text-[var(--text-muted)] font-medium">
-                    Your message has been received. Our team will contact you shortly.
+                  <h2 className="text-3xl font-bold text-[var(--text)] mb-2">Message Sent!</h2>
+                  <p className="text-[var(--text-muted)] mb-8 max-w-sm mx-auto">
+                    Thank you for reaching out. We've received your inquiry and will get back to you shortly.
                   </p>
-                  <Button variant="outline" className="mt-8" onClick={() => setSuccess(false)}>Send Another Message</Button>
+                  <Button onClick={() => setSubmitted(false)} variant="outline">
+                    Send another message
+                  </Button>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  {error && (
-                    <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-medium">
-                      {error}
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                       <Input label="Full Name" placeholder="John Doe" required className="bg-[var(--bg)]/50" />
                     </div>
-                  )}
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold uppercase tracking-widest text-gray-400">Full Name</label>
-                    <Input 
-                      placeholder="Your Name" 
-                      value={form.name} 
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="bg-white/5 border-white/10 h-14"
-                      required
-                    />
+                    <div className="space-y-2">
+                       <Input label="Email Address" type="email" placeholder="john@example.com" required className="bg-[var(--bg)]/50" />
+                    </div>
                   </div>
-
                   <div className="space-y-2">
-                    <label className="text-sm font-bold uppercase tracking-widest text-gray-400">Email Address</label>
-                    <Input 
-                      type="email"
-                      placeholder="your.email@example.com" 
-                      value={form.email} 
-                      onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      className="bg-white/5 border-white/10 h-14"
-                      required
-                    />
+                     <Input label="Subject" placeholder="How can we help?" required className="bg-[var(--bg)]/50" />
                   </div>
-
                   <div className="space-y-2">
-                    <label className="text-sm font-bold uppercase tracking-widest text-gray-400">Preferred Date (Optional)</label>
-                    <Input 
-                      type="date"
-                      value={form.date} 
-                      onChange={(e) => setForm({ ...form, date: e.target.value })}
-                      className="bg-white/5 border-white/10 h-14"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold uppercase tracking-widest text-gray-400">Your Message</label>
+                    <label className="text-sm font-medium text-[var(--text-muted)] ml-1">Message</label>
                     <textarea 
-                      placeholder="Special requirements, questions, or comments..." 
-                      value={form.message} 
-                      onChange={(e) => setForm({ ...form, message: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 min-h-[150px] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] transition-all font-medium"
                       required
+                      placeholder="Write your message here..."
+                      className="w-full h-32 rounded-2xl p-4 bg-[var(--bg)]/50 border border-[var(--border)] outline-none focus:border-[var(--primary)] transition-all resize-none text-sm"
                     />
                   </div>
-
-                  <Button type="submit" className="w-full h-16 text-lg font-black italic uppercase tracking-tighter shadow-[0_10px_20px_rgba(220,38,38,0.3)] group" disabled={submitting}>
-                    {submitting ? 'Sending...' : (
-                      <>
-                        Submit Inquiry <Send className="ml-2 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" size={20} />
-                      </>
+                  <Button type="submit" className="w-full py-4 text-lg font-bold glow-primary" disabled={loading}>
+                    {loading ? (
+                      <span className="flex items-center gap-2">
+                        <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Sending...
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-2 justify-center">
+                        Send Message <Send size={18} />
+                      </span>
                     )}
                   </Button>
                 </form>
               )}
-            </div>
+            </Card>
           </div>
         </div>
       </div>

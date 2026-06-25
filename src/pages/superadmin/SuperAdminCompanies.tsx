@@ -28,6 +28,14 @@ export function SuperAdminCompanies() {
     due: payments.filter((p) => p.companyId === companyId && p.status === 'due').length,
   });
 
+  const getTrialDaysLeft = (trialEndDate?: string) => {
+    if (!trialEndDate) return 0;
+    const end = new Date(trialEndDate).getTime();
+    const now = new Date().getTime();
+    const dif = Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)));
+    return dif;
+  };
+
   return (
     <div>
       <PageHeader title="All Companies" subtitle={`${filtered.length} companies matched`} showBack={false} />
@@ -57,7 +65,11 @@ export function SuperAdminCompanies() {
                     <p className="text-sm text-[var(--text-muted)]">{c.industry}</p>
                   </div>
                 </div>
-                {c.subscription ? <Badge status="paid" label={`${c.subscription} plan`} /> : <Badge status="due" label="No subscription" />}
+                {c.subscription === 'trial' ? (
+                  <Badge status="pending" label={`${getTrialDaysLeft(c.trialEndDate)} Days Trial Left`} />
+                ) : (
+                  c.subscription ? <Badge status="paid" label={`${c.subscription} plan`} /> : <Badge status="due" label="No subscription" />
+                )}
               </div>
 
               <div className="space-y-2 mb-4 text-sm text-[var(--text-muted)]">
@@ -108,6 +120,9 @@ export function SuperAdminCompanies() {
               <div><span className="text-[var(--text-muted)]">Phone:</span> <strong>{company.phone}</strong></div>
               <div className="sm:col-span-2"><span className="text-[var(--text-muted)]">Address:</span> <strong>{company.address || '—'}</strong></div>
               <div><span className="text-[var(--text-muted)]">Subscription:</span> <strong>{company.subscription || 'None'}</strong></div>
+              {company.subscription === 'trial' && (
+                <div><span className="text-[var(--text-muted)]">Trial Ends:</span> <strong>{company.trialEndDate ? new Date(company.trialEndDate).toLocaleDateString() : '—'}</strong></div>
+              )}
               <div><span className="text-[var(--text-muted)]">Joined:</span> <strong>{new Date(company.createdAt).toLocaleDateString()}</strong></div>
             </div>
             <div className="p-4 rounded-xl bg-[var(--border)]/20">

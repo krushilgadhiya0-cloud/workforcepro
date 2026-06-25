@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { useCurrentUser } from '../../contexts/DataContext';
+import { TrialPromoModal } from '../TrialPromoModal';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -20,6 +21,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <TopBar />
         {children}
       </main>
+      <TrialPromoModal />
     </div>
   );
 }

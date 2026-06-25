@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import type {
   AppData, User, Company, Admin, Worker, Task, LeaveRequest, Payment, Notification,
-  SubscriptionPlan, AdminRole, LeaveStatus, ActivityLog,
+  SubscriptionPlan, AdminRole, LeaveStatus, ActivityLog, CommunicationMessage,
 } from '../types';
 import {
   loadData, saveData, syncFromServer, defaultData, generateId, generateTransactionId,
@@ -50,7 +50,11 @@ interface DataContextType extends AppData {
   getCompanyTasks: (companyId: string) => Task[];
   getCompanyPayments: (companyId: string) => Payment[];
   getCompanyLeaves: (companyId: string) => LeaveRequest[];
+  getCompanyMessages: (companyId: string) => CommunicationMessage[];
   getUserNotifications: (userId: string) => Notification[];
+  sendMessage: (content: string) => void;
+  startTrial: (companyId: string) => void;
+  confirmPhone: (userId: string) => void;
 }
 
 const DataContext = createContext<DataContextType | null>(null);
@@ -748,10 +752,69 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [data, persist]);
 
   const getCompanyWorkers = useCallback((companyId: string) => data.workers.filter((w) => w.companyId === companyId), [data.workers]);
-  const getCompanyTasks = useCallback((companyId: string) => data.tasks.filter((t) => t.companyId === companyId), [data.tasks]);
+  const getCompanyTasks = useCallback((companyId: string) => data.tasks.filter((t) => t.workerId && data.workers.find(w => w.id === t.workerId)?.companyId === companyId), [data.tasks, data.workers]);
   const getCompanyPayments = useCallback((companyId: string) => data.payments.filter((p) => p.companyId === companyId), [data.payments]);
   const getCompanyLeaves = useCallback((companyId: string) => data.leaves.filter((l) => l.companyId === companyId), [data.leaves]);
+  const getCompanyMessages = useCallback((companyId: string) => data.messages.filter((m) => m.companyId === companyId), [data.messages]);
   const getUserNotifications = useCallback((userId: string) => data.notifications.filter((n) => n.userId === userId).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), [data.notifications]);
+
+  const sendMessage = useCallback((content: string) => {
+    const user = data.users.find((u) => u.id === data.currentUserId);
+    const companyId = data.currentCompanyId || user?.companyId;
+    if (!user || !companyId) return;
+
+    const newMessage: CommunicationMessage = {
+      id: generateId(),
+      companyId,
+      senderId: user.id,
+      senderName: user.name,
+      senderRole: user.role,
+      content,
+      createdAt: new Date().toISOString(),
+    };
+
+    const d = { ...data };
+    d.messages.push(newMessage);
+    
+    // Notify relevant parties
+    if (user.role === 'worker') {
+      // Notify admins and owner
+      const admins = d.admins.filter(a => a.companyId === companyId);
+      const company = d.companies.find(c => c.id === companyId);
+      admins.forEach(a => appendNotification(d, { userId: a.userId, title: 'New Message from Worker', message: `${user.name}: ${content.substring(0, 50)}...`, type: 'general' }));
+      if (company) {
+        const owner = d.users.find(u => u.id === company.ownerId);
+        if (owner) appendNotification(d, { userId: owner.id, title: 'New Message from Worker', message: `${user.name}: ${content.substring(0, 50)}...`, type: 'general' });
+      }
+    }
+
+    persist(d);
+  }, [data, persist]);
+
+  const startTrial = useCallback((companyId: string) => {
+    const d = { ...data };
+    const idx = d.companies.findIndex(c => c.id === companyId);
+    if (idx >= 0) {
+      const trialEndDate = new Date();
+      trialEndDate.setMonth(trialEndDate.getMonth() + 1);
+      d.companies[idx] = {
+        ...d.companies[idx],
+        subscription: 'trial',
+        subscriptionDate: new Date().toISOString(),
+        trialEndDate: trialEndDate.toISOString(),
+      };
+      persist(d);
+    }
+  }, [data, persist]);
+
+  const confirmPhone = useCallback((userId: string) => {
+    const d = { ...data };
+    const idx = d.users.findIndex(u => u.id === userId);
+    if (idx >= 0) {
+      d.users[idx] = { ...d.users[idx], phoneVerified: true };
+      persist(d);
+    }
+  }, [data, persist]);
 
   return (
     <DataContext.Provider value={{
@@ -795,7 +858,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       getCompanyTasks,
       getCompanyPayments,
       getCompanyLeaves,
+      getCompanyMessages,
       getUserNotifications,
+      sendMessage,
+      startTrial,
+      confirmPhone,
     }}>
       {!loading && children}
       {loading && (
