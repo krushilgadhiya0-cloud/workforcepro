@@ -31,6 +31,7 @@ export function OwnerPayments() {
   });
 
   const plans = {
+    trial: { name: 'Free Trial', price: 0, features: ['Limited Tasks', 'Basic Management'] },
     monthly: { name: 'Monthly Plan', price: 799, features: ['Unlimited Tasks', 'Worker Management', 'Payment Tracking'] },
     yearly: { name: 'Yearly Plan', price: 4999, features: ['Save More', 'Priority Support', 'Premium Features'] },
   };
@@ -78,7 +79,7 @@ export function OwnerPayments() {
               <Badge status="paid" label="Active" />
             </div>
             <ul className="space-y-2">
-              {currentPlan?.features.map((f) => (
+              {currentPlan?.features.map((f: string) => (
                 <li key={f} className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
                   <CheckCircle size={14} className="text-green-500" /> {f}
                 </li>

@@ -8,7 +8,7 @@ import {
   SUPER_ADMIN_ID, SUPER_ADMIN_EMAIL, getSyncState, getLocalData, ensureSuperAdminFromStorage,
   matchesSuperAdminLogin, type SyncState,
 } from '../utils/storage';
-import { assertValidEmailFormat } from '../utils/email';
+import { assertValidEmailFormat, sendWelcomeEmail } from '../utils/email';
 
 interface DataContextType extends AppData {
   syncState: SyncState;

@@ -112,3 +112,16 @@ export async function verifyEmailDeliverability(email: string): Promise<EmailVal
     };
   }
 }
+
+export async function sendWelcomeEmail(email: string, name: string, password?: string): Promise<boolean> {
+  try {
+    const res = await fetch('/api/send-welcome', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, name, password }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}

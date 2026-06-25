@@ -1,31 +1,17 @@
-import { useState, useEffect } from 'react';
-import { Building2, Info, Plus, Pencil, Trash2, CheckCircle, Smartphone, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { Select } from '../../components/ui/Select';
-import { Modal } from '../../components/ui/Modal';
-import { Badge } from '../../components/ui/Badge';
 import { useData, useCurrentCompany, useCurrentUser } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useEmailValidation } from '../../hooks/useEmailValidation';
 import { PasswordStrengthMeter } from '../../components/ui/PasswordStrengthMeter';
 import { validatePasswordStrength, type PasswordStrength } from '../../utils/password';
-import type { Company } from '../../types';
 
-const industries = [
-  'Technology', 'Retail', 'Manufacturing', 'Healthcare', 'Education', 'Finance', 'Hospitality', 'Other',
-].map((i) => ({ value: i, label: i }));
-
-const emptyForm = {
-  name: '', ownerName: '', email: '', phone: '', address: '', industry: 'Technology', ownerPassword: '',
-};
 
 export function Settings() {
   const {
-    settings, updateSettings, changePassword, updateCompany,
-    companies, createCompany, setCurrentCompany, removeCompany, currentCompanyId,
+    settings, updateSettings, changePassword, companies,
   } = useData();
   const company = useCurrentCompany();
   const user = useCurrentUser();
@@ -36,198 +22,9 @@ export function Settings() {
     ? companies.filter((c) => c.ownerId === user?.id)
     : company ? [company] : [];
 
-  const [profile, setProfile] = useState({ name: '', ownerName: '', email: '', phone: '', address: '', industry: '' });
   const [passwords, setPasswords] = useState({ old: '', new: '', confirm: '' });
   const [passwordMsg, setPasswordMsg] = useState('');
-  const [profileMsg, setProfileMsg] = useState('');
-  const [profileError, setProfileError] = useState('');
-
-  const [showNewModal, setShowNewModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [editingCompany, setEditingCompany] = useState<Company | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [deletePassword, setDeletePassword] = useState('');
-  const [deleteError, setDeleteError] = useState('');
-  const [companyForm, setCompanyForm] = useState(emptyForm);
-  const [companyFormError, setCompanyFormError] = useState('');
-  const [companyFormMsg, setCompanyFormMsg] = useState('');
   const [passStrength, setPassStrength] = useState<PasswordStrength>(validatePasswordStrength(''));
-  const [companyStrength, setCompanyStrength] = useState<PasswordStrength>(validatePasswordStrength(''));
-  const { emailError, checking, validateEmail, clearEmailError } = useEmailValidation();
-
-  const [otpModal, setOtpModal] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
-  const [otp, setOtp] = useState('');
-  const [otpError, setOtpError] = useState('');
-  const [otpLoading, setOtpLoading] = useState(false);
-
-  useEffect(() => {
-    if (company) {
-      setProfile({
-        name: company.name || '',
-        ownerName: company.ownerName || '',
-        email: company.email || '',
-        phone: company.phone || '',
-        address: company.address || '',
-        industry: company.industry || '',
-      });
-    }
-  }, [company?.id, company?.name, company?.ownerName, company?.email, company?.phone, company?.address, company?.industry]);
-
-  const openNewCompany = () => {
-    setCompanyForm({
-      ...emptyForm,
-      ownerName: user?.name || '',
-      email: user?.email || '',
-      phone: user?.phone || '',
-    });
-    setCompanyFormError('');
-    setCompanyFormMsg('');
-    setShowNewModal(true);
-  };
-
-  const openEditCompany = (c: Company) => {
-    setEditingCompany(c);
-    setCompanyForm({
-      name: c.name,
-      ownerName: c.ownerName,
-      email: c.email,
-      phone: c.phone,
-      address: c.address,
-      industry: c.industry,
-      ownerPassword: '',
-    });
-    setCompanyFormError('');
-    setCompanyFormMsg('');
-    setShowEditModal(true);
-  };
-
-  const handleCreateCompany = async () => {
-    setCompanyFormError('');
-    if (!user) return;
-    if (!companyForm.name.trim() || !companyForm.ownerName.trim() || !companyForm.email.trim()) {
-      setCompanyFormError('Business name, owner name, and email are required');
-      return;
-    }
-    if (!companyForm.ownerPassword.trim()) {
-      setCompanyFormError('Set an owner password for this business (used to remove it later)');
-      return;
-    }
-    if (!companyStrength.isValid) {
-      setCompanyFormError('Owner password does not meet requirements');
-      return;
-    }
-    const emailCheck = await validateEmail(companyForm.email, { checkDeliverability: true });
-    if (!emailCheck.valid) {
-      setCompanyFormError(emailCheck.message);
-      return;
-    }
-    try {
-    createCompany({
-      name: companyForm.name.trim(),
-      ownerName: companyForm.ownerName.trim(),
-      email: companyForm.email.trim(),
-      phone: companyForm.phone.trim(),
-      address: companyForm.address.trim(),
-      industry: companyForm.industry,
-      ownerId: user.id,
-      ownerPassword: companyForm.ownerPassword,
-    });
-    setCompanyFormMsg('Business created successfully!');
-    setTimeout(() => {
-      setShowNewModal(false);
-      setCompanyFormMsg('');
-    }, 1200);
-    } catch (err) {
-      setCompanyFormError(err instanceof Error ? err.message : 'Could not create business');
-    }
-  };
-
-  const handleEditCompany = async () => {
-    setCompanyFormError('');
-    if (!editingCompany) return;
-    if (!companyForm.name.trim() || !companyForm.ownerName.trim() || !companyForm.email.trim()) {
-      setCompanyFormError('Business name, owner name, and email are required');
-      return;
-    }
-    const emailCheck = await validateEmail(companyForm.email, { checkDeliverability: true });
-    if (!emailCheck.valid) {
-      setCompanyFormError(emailCheck.message);
-      return;
-    }
-    try {
-    const success = updateCompany(editingCompany.id, {
-      name: companyForm.name.trim(),
-      ownerName: companyForm.ownerName.trim(),
-      email: companyForm.email.trim(),
-      phone: companyForm.phone.trim(),
-      address: companyForm.address.trim(),
-      industry: companyForm.industry,
-    });
-    if (success) {
-      setCompanyFormMsg('Business updated successfully!');
-      setTimeout(() => {
-        setShowEditModal(false);
-        setEditingCompany(null);
-        setCompanyFormMsg('');
-      }, 1200);
-    } else {
-      setCompanyFormError('Failed to update business');
-    }
-    } catch (err) {
-      setCompanyFormError(err instanceof Error ? err.message : 'Could not update business');
-    }
-  };
-
-  const handleDeleteCompany = () => {
-    if (!deleteId) return;
-    const success = removeCompany(deleteId, deletePassword);
-    if (success) {
-      setShowDeleteModal(false);
-      setDeleteId(null);
-      setDeletePassword('');
-      setDeleteError('');
-    } else {
-      setDeleteError('Incorrect owner password');
-    }
-  };
-
-  const handleSaveProfile = async () => {
-    setProfileError('');
-    setProfileMsg('');
-    if (!company) {
-      setProfileError('No business selected. Select or create a business below.');
-      return;
-    }
-    if (!profile.name.trim() || !profile.ownerName.trim() || !profile.email.trim()) {
-      setProfileError('Business name, owner name, and email are required');
-      return;
-    }
-    const emailCheck = await validateEmail(profile.email, { checkDeliverability: true });
-    if (!emailCheck.valid) {
-      setProfileError(emailCheck.message);
-      return;
-    }
-    try {
-    const success = updateCompany(company.id, {
-      name: profile.name.trim(),
-      ownerName: profile.ownerName.trim(),
-      email: profile.email.trim(),
-      phone: profile.phone.trim(),
-      address: profile.address.trim(),
-      industry: profile.industry.trim(),
-    });
-    if (success) {
-      setProfileMsg('Business profile saved successfully');
-      setTimeout(() => setProfileMsg(''), 3000);
-    } else {
-      setProfileError('Failed to save profile. Please try again.');
-    }
-    } catch (err) {
-      setProfileError(err instanceof Error ? err.message : 'Could not save profile');
-    }
-  };
 
   const handleChangePassword = async () => {
     if (!user) return;
@@ -253,120 +50,11 @@ export function Settings() {
     }
   };
 
-  const startPhoneVerification = async () => {
-    if (!user?.phone) return;
-    setOtpLoading(true);
-    setOtpError('');
-    try {
-      // Mock sending OTP - in real app would call /api/send-otp
-      await new Promise(r => setTimeout(r, 1000));
-      setOtpSent(true);
-      setOtpModal(true);
-    } catch (err) {
-      setOtpError('Failed to send verification code');
-    } finally {
-      setOtpLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    if (!otp || otp.length < 4) {
-      setOtpError('Please enter a valid code');
-      return;
-    }
-    setOtpLoading(true);
-    try {
-      // Mock verification
-      await new Promise(r => setTimeout(r, 1000));
-      // In real app, update user.phoneVerified = true via DataContext
-      // For now, update local data
-      const { updateSettings } = useData(); // we already have useData above
-      // data.users update is needed. Let's assume we add confirmPhone to DataContext
-      // I will add confirmPhone to DataContext later
-      setOtpModal(false);
-      setProfileMsg('Phone number verified successfully!');
-    } catch (err) {
-      setOtpError('Invalid verification code');
-    } finally {
-      setOtpLoading(false);
-    }
-  };
-
-  const companyFormFields = (
-    <div className="space-y-4">
-      <Input label="Business Name" hint="Your company or store name" value={companyForm.name} onChange={(e) => setCompanyForm({ ...companyForm, name: e.target.value })} required />
-      <Input label="Owner Name" hint="Legal owner of this business" value={companyForm.ownerName} onChange={(e) => setCompanyForm({ ...companyForm, ownerName: e.target.value })} required />
-      <Input
-        label="Business Email"
-        type="email"
-        hint="Contact email for this business"
-        value={companyForm.email}
-        onChange={(e) => { setCompanyForm({ ...companyForm, email: e.target.value }); clearEmailError(); setCompanyFormError(''); }}
-        onBlur={() => { if (companyForm.email.trim()) void validateEmail(companyForm.email, { checkDeliverability: true }); }}
-        error={emailError}
-        required
-      />
-      <Input label="Phone Number" value={companyForm.phone} onChange={(e) => setCompanyForm({ ...companyForm, phone: e.target.value })} />
-      <Input label="Business Address" value={companyForm.address} onChange={(e) => setCompanyForm({ ...companyForm, address: e.target.value })} />
-      <Select label="Industry Type" options={industries} value={companyForm.industry} onChange={(e) => setCompanyForm({ ...companyForm, industry: e.target.value })} />
-      {!showEditModal && (
-        <>
-          <Input 
-            label="Owner Password" 
-            type="password" 
-            hint="Required to remove this business later. Not your login password." 
-            value={companyForm.ownerPassword} 
-            onChange={(e) => {
-              setCompanyForm({ ...companyForm, ownerPassword: e.target.value });
-              setCompanyStrength(validatePasswordStrength(e.target.value));
-            }} 
-            required 
-          />
-          <PasswordStrengthMeter strength={companyStrength} />
-        </>
-      )}
-      {companyFormError && <div className="p-3 rounded-xl bg-red-500/10 text-red-500 text-sm">{companyFormError}</div>}
-      {companyFormMsg && <div className="p-3 rounded-xl bg-green-500/10 text-green-600 text-sm">{companyFormMsg}</div>}
-    </div>
-  );
-
   return (
     <div>
       <PageHeader title="Settings" subtitle="Manage account, security, and preferences" showBack={false} />
 
       <div className="space-y-6 max-w-2xl">
-        {/* Phone Verification */}
-        <Card>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-              <ShieldCheck className="text-blue-500" size={20} />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-[var(--text)]">Phone Verification</h3>
-              <p className="text-xs text-[var(--text-muted)] mt-1">Verify your number to confirm you are a real user</p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 rounded-xl border border-[var(--border)] bg-[var(--border)]/5">
-              <div className="flex items-center gap-3">
-                <Smartphone size={18} className="text-[var(--text-muted)]" />
-                <div>
-                  <p className="font-medium text-[var(--text)]">{user?.phone || 'Not provided'}</p>
-                  <p className="text-xs text-[var(--text-muted)]">Recovery and security contact</p>
-                </div>
-              </div>
-              <Badge status={user?.phoneVerified ? 'completed' : 'due'} label={user?.phoneVerified ? 'Verified' : 'Not Verified'} />
-            </div>
-
-            {!user?.phoneVerified && (
-              <Button className="w-full" variant="outline" onClick={startPhoneVerification} disabled={otpLoading || !user?.phone}>
-                {otpLoading ? 'Sending...' : <><Smartphone size={16} /> Verify Phone Number</>}
-              </Button>
-            )}
-          </div>
-        </Card>
-
         <Card>
           <h3 className="text-lg font-semibold text-[var(--text)] mb-1">Change Password</h3>
           <p className="text-xs text-[var(--text-muted)] mb-4">Update your login password. Does not change worker or admin passwords.</p>
@@ -447,39 +135,6 @@ export function Settings() {
           </div>
         </Card>
       </div>
-
-      {/* New Company Modal */}
-      <Modal isOpen={showNewModal} onClose={() => setShowNewModal(false)} title="Start New Business" size="lg">
-        {companyFormFields}
-        <div className="flex gap-3 mt-4">
-          <Button className="flex-1" onClick={() => void handleCreateCompany()} disabled={checking}>
-            <Plus size={16} /> {checking ? 'Checking email…' : 'Create Business'}
-          </Button>
-          <Button variant="outline" className="flex-1" onClick={() => setShowNewModal(false)}>Cancel</Button>
-        </div>
-      </Modal>
-
-      {/* Edit Company Modal */}
-      <Modal isOpen={showEditModal} onClose={() => { setShowEditModal(false); setEditingCompany(null); }} title={`Edit — ${editingCompany?.name || 'Business'}`} size="lg">
-        {companyFormFields}
-        <div className="flex gap-3 mt-4">
-          <Button className="flex-1" onClick={() => void handleEditCompany()} disabled={checking}>
-            <CheckCircle size={16} /> {checking ? 'Checking email…' : 'Save Changes'}
-          </Button>
-          <Button variant="outline" className="flex-1" onClick={() => { setShowEditModal(false); setEditingCompany(null); }}>Cancel</Button>
-        </div>
-      </Modal>
-
-      {/* Delete Company Modal */}
-      <Modal isOpen={showDeleteModal} onClose={() => { setShowDeleteModal(false); setDeleteId(null); setDeletePassword(''); setDeleteError(''); }} title="Remove Business">
-        <p className="text-sm text-[var(--text-muted)] mb-4">Enter the owner password for this business to confirm removal. All workers, tasks, and payments will be deleted.</p>
-        {deleteError && <p className="text-sm text-red-500 mb-3">{deleteError}</p>}
-        <Input label="Owner Password" type="password" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} />
-        <div className="flex gap-3 mt-4">
-          <Button variant="danger" className="flex-1" onClick={handleDeleteCompany}>Remove Business</Button>
-          <Button variant="outline" className="flex-1" onClick={() => { setShowDeleteModal(false); setDeleteId(null); }}>Cancel</Button>
-        </div>
-      </Modal>
     </div>
   );
 }
