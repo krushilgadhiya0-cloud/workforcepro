@@ -13,6 +13,9 @@ import { mergeAppData, normalizeAppData } from '../lib/data-sync.js';
 const app = express();
 const PORT = Number(process.env.API_PORT || 3001);
 
+// Local OTP Store for development
+const localOtpStore = new Map<string, string>();
+
 app.use('/api/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 
@@ -80,6 +83,28 @@ app.post('/api/verify-email', async (req, res) => {
     return res.status(result.valid ? 200 : 400).json(result);
   } catch {
     return res.status(500).json({ valid: false, message: 'Could not verify email right now. Try again.' });
+  }
+});
+
+app.post('/api/send-otp', async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email is required' });
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  localOtpStore.set(email.toLowerCase().trim(), otp);
+  console.log(`[DEV-API] OTP for ${email}: ${otp}`);
+  // In dev mode, we just log it. If GMAIL is configured, we could send it.
+  res.json({ ok: true, message: 'OTP logged to console' });
+});
+
+app.post('/api/verify-otp', async (req, res) => {
+  const { email, otp } = req.body;
+  if (!email || !otp) return res.status(400).json({ error: 'Missing information' });
+  const stored = localOtpStore.get(email.toLowerCase().trim());
+  if (stored === otp) {
+    localOtpStore.delete(email.toLowerCase().trim());
+    res.json({ ok: true, message: 'OTP verified' });
+  } else {
+    res.status(400).json({ error: 'Invalid OTP' });
   }
 });
 

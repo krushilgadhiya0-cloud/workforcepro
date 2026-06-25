@@ -22,7 +22,7 @@ interface NavItem {
 
 const ownerLinks: NavItem[] = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/dashboard/companies', icon: Building2, label: 'All Businesses' },
+  { to: '/dashboard/profile', icon: Building2, label: 'Business Profile' },
   { to: '/dashboard/admins', icon: Shield, label: 'Admins' },
   { to: '/dashboard/workers', icon: Users, label: 'Workers' },
   { to: '/dashboard/owner-payments', icon: Wallet, label: 'Owner Payments' },

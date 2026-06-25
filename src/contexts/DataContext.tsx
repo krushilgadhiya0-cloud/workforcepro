@@ -203,6 +203,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (fresh.users.some((u) => u.email.toLowerCase() === email)) {
       throw new Error('Email already registered');
     }
+    if (userData.phone && fresh.users.some((u) => u.phone === userData.phone)) {
+      throw new Error('Phone number already registered to another account');
+    }
     const user: User = { ...userData, email, id: generateId(), createdAt: new Date().toISOString() };
     const d = { ...fresh };
     d.users.push(user);
@@ -336,6 +339,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     d.companies = d.companies.filter((c) => c.id !== companyId);
     d.admins = d.admins.filter((a) => a.companyId !== companyId);
     d.workers = d.workers.filter((w) => w.companyId !== companyId);
+    d.users = d.users.filter((u) => u.companyId !== companyId);
     d.tasks = d.tasks.filter((t) => t.companyId !== companyId);
     d.leaves = d.leaves.filter((l) => l.companyId !== companyId);
     d.payments = d.payments.filter((p) => p.companyId !== companyId);
@@ -369,6 +373,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         d.tasks = d.tasks.filter((t) => t.companyId !== companyId);
         d.leaves = d.leaves.filter((l) => l.companyId !== companyId);
         d.payments = d.payments.filter((p) => p.companyId !== companyId);
+        d.users = d.users.filter((u) => u.companyId !== companyId); // Remove all users of this company
         if (d.currentCompanyId === companyId) d.currentCompanyId = null;
       });
     }
@@ -388,6 +393,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addAdmin = useCallback((adminData: Omit<Admin, 'id' | 'createdAt' | 'userId'> & { password: string }): Admin | null => {
     const email = assertValidEmailFormat(adminData.email);
     if (data.users.some((u) => u.email.toLowerCase() === email)) {
+      return null;
+    }
+    if (adminData.phone && data.users.some((u) => u.phone === adminData.phone)) {
       return null;
     }
     const user: User = {
@@ -430,6 +438,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       message: `Admin ${admin.name} was added to ${company?.name ?? 'a company'}`,
     });
     persist(d);
+    
+    // SEND WELCOME EMAIL WITH PASSWORD
+    void sendWelcomeEmail(adminData.email, adminData.name, adminData.password);
+    
     return admin;
   }, [data, persist]);
 
@@ -467,6 +479,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addWorker = useCallback((workerData: Omit<Worker, 'id' | 'createdAt' | 'userId' | 'attendanceStatus'> & { password: string }): Worker | null => {
     const email = assertValidEmailFormat(workerData.email);
     if (data.users.some((u) => u.email.toLowerCase() === email)) {
+      return null;
+    }
+    if (workerData.phone && data.users.some((u) => u.phone === workerData.phone)) {
       return null;
     }
     const user: User = {
@@ -512,6 +527,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       message: `Worker ${worker.name} was added to ${company?.name ?? 'a company'}`,
     });
     persist(d);
+    
+    // SEND WELCOME EMAIL WITH PASSWORD
+    void sendWelcomeEmail(workerData.email, workerData.name, workerData.password);
+
     return worker;
   }, [data, persist]);
 

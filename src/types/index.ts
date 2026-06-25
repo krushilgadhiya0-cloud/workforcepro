@@ -3,7 +3,7 @@ export type TaskStatus = 'pending' | 'in_progress' | 'completed';
 export type TaskPriority = 'low' | 'medium' | 'high';
 export type LeaveStatus = 'pending' | 'approved' | 'rejected';
 export type PaymentStatus = 'paid' | 'due' | 'pending';
-export type SubscriptionPlan = 'monthly' | 'yearly';
+export type SubscriptionPlan = 'trial' | 'monthly' | 'yearly';
 export type AdminRole = 'manager' | 'hr' | 'supervisor' | 'finance';
 
 export interface User {
@@ -14,6 +14,7 @@ export interface User {
   role: UserRole;
   companyId?: string;
   phone?: string;
+  phoneVerified?: boolean;
   createdAt: string;
 }
 

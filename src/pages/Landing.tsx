@@ -35,7 +35,7 @@ export function Landing() {
 
   const [showBusiness, setShowBusiness] = useState(false);
   const [showSubscription, setShowSubscription] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('monthly');
+  const [selectedPlan, setSelectedPlan] = useState<'trial' | 'monthly' | 'yearly'>('trial');
   const [createdCompany, setCreatedCompany] = useState<{ id: string; name: string; email: string; ownerName: string; phone: string } | null>(null);
   const [businessForm, setBusinessForm] = useState({
     name: '', ownerName: '', email: '', phone: '', address: '', industry: 'Technology', ownerPassword: '',
@@ -238,8 +238,9 @@ export function Landing() {
       </Modal>
 
       <Modal isOpen={showSubscription} onClose={() => setShowSubscription(false)} title="Choose Your Plan" size="lg">
-        <div className="grid md:grid-cols-2 gap-4 mb-6">
+        <div className="grid md:grid-cols-3 gap-4 mb-6">
           {[
+            { plan: 'trial' as const, price: '₹1', period: '/first mo', features: ['Full Access', 'OTP Verification', '30 Day Trial'], trial: true },
             { plan: 'monthly' as const, price: '₹799', period: '/month', features: ['Unlimited Tasks', 'Worker Management', 'Payment Tracking'] },
             { plan: 'yearly' as const, price: '₹4,999', period: '/year', features: ['Save More', 'Priority Support', 'Premium Features'], popular: true },
           ].map((p) => (

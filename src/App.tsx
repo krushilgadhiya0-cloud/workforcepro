@@ -7,7 +7,7 @@ import { Landing } from './pages/Landing';
 import { Contact } from './pages/Contact';
 import { Login } from './pages/Login';
 import { OwnerDashboard } from './pages/owner/Dashboard';
-import { Companies } from './pages/owner/Companies';
+import { BusinessProfile } from './pages/owner/BusinessProfile';
 import { Admins } from './pages/owner/Admins';
 import { Workers } from './pages/owner/Workers';
 import { Tasks } from './pages/owner/Tasks';
@@ -54,7 +54,7 @@ function App() {
             <Route path="/superadmin/notifications" element={<ProtectedRoute roles={['superadmin']}><DashboardLayout><SuperAdminNotifications /></DashboardLayout></ProtectedRoute>} />
 
             <Route path="/dashboard" element={<ProtectedRoute roles={['owner', 'admin']}><DashboardLayout><OwnerDashboard /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/dashboard/companies" element={<ProtectedRoute roles={['owner', 'admin']}><DashboardLayout><Companies /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/dashboard/profile" element={<ProtectedRoute roles={['owner', 'admin']}><DashboardLayout><BusinessProfile /></DashboardLayout></ProtectedRoute>} />
             <Route path="/dashboard/admins" element={<ProtectedRoute roles={['owner', 'admin']}><DashboardLayout><Admins /></DashboardLayout></ProtectedRoute>} />
             <Route path="/dashboard/workers" element={<ProtectedRoute roles={['owner', 'admin']}><DashboardLayout><Workers /></DashboardLayout></ProtectedRoute>} />
             <Route path="/dashboard/tasks" element={<ProtectedRoute roles={['owner', 'admin']}><DashboardLayout><Tasks /></DashboardLayout></ProtectedRoute>} />

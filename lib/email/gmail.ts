@@ -8,7 +8,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export async function sendWelcomeEmail(email: string, name: string) {
+export async function sendWelcomeEmail(email: string, name: string, password?: string) {
   try {
     await transporter.sendMail({
       from: `"Krushil from WorkForcePro" <${process.env.GMAIL_USER}>`,
@@ -18,6 +18,12 @@ export async function sendWelcomeEmail(email: string, name: string) {
         <div style="font-family: sans-serif; line-height: 1.5; color: #111;">
           <h2>Hello ${name},</h2>
           <p>Welcome to WorkForcePro! We're glad to have you with us.</p>
+          
+          <p><strong>Your login credentials:</strong></p>
+          <ul>
+            <li>Email: ${email}</li>
+            ${password ? `<li>Password: <code style="background: #f4f4f4; padding: 2px 5px; border-radius: 4px;">${password}</code></li>` : '<li>Password: Use the one shared by your administrator.</li>'}
+          </ul>
           
           <p>You can now start managing your tasks, workers, and payments directly from your dashboard.</p>
           
@@ -62,6 +68,34 @@ export async function sendOtpEmail(email: string, otp: string) {
     return { success: true };
   } catch (error) {
     console.error('Failed to send OTP email:', error);
+    return { success: false, error };
+  }
+}
+
+export async function sendPasswordResetEmail(email: string, name: string, newPassword: string) {
+  try {
+    await transporter.sendMail({
+      from: `"WorkForcePro Security" <${process.env.GMAIL_USER}>`,
+      to: email,
+      subject: 'Your password has been reset',
+      html: `
+        <div style="font-family: sans-serif; line-height: 1.6; color: #333; max-width: 500px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; padding: 30px;">
+          <h2 style="margin-top: 0; color: #2563eb;">Password Reset Successful</h2>
+          <p>Hello ${name},</p>
+          <p>Your password for WorkForcePro has been successfully reset.</p>
+          <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e2e8f0;">
+            <p style="margin: 0; color: #64748b; font-size: 14px;">Your new temporary password:</p>
+            <p style="margin: 10px 0 0; font-size: 24px; font-weight: bold; color: #000; font-family: monospace;">${newPassword}</p>
+          </div>
+          <p style="font-size: 14px; color: #666;">For your security, please login and change this password immediately in your account settings.</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+          <p style="font-size: 12px; color: #999;">If you did not request this, please contact support immediately.</p>
+        </div>
+      `,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send password reset email:', error);
     return { success: false, error };
   }
 }

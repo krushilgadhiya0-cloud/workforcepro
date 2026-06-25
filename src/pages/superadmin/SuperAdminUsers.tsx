@@ -12,6 +12,7 @@ export function SuperAdminUsers() {
   const { users, companies, removeUserAsSuperAdmin, verifyHostPassword } = useData();
   const [search, setSearch] = useState('');
   const [removeTarget, setRemoveTarget] = useState<User | null>(null);
+  const [statusMsg, setStatusMsg] = useState('');
   const [revealed, setRevealed] = useState(false);
   const [showHostPassModal, setShowHostPassModal] = useState(false);
   const [hostPass, setHostPass] = useState('');
@@ -36,15 +37,19 @@ export function SuperAdminUsers() {
     if (user.role === 'owner') {
       const owned = companies.filter((c) => c.ownerId === user.id);
       if (owned.length > 0) {
-        return `This will permanently remove ${user.name} and delete their company data (${owned.map((c) => c.name).join(', ')}). This cannot be undone.`;
+        return `This will permanently remove ${user.name}, delete their company data (${owned.map((c) => c.name).join(', ')}), and REMOVE ALL company staff. This cannot be undone.`;
       }
     }
-    return `This will permanently remove ${user.name} (${user.email}) and their associated records. This cannot be undone.`;
+    return `This will permanently remove ${user.name} (${user.email}) and their records. This cannot be undone.`;
   };
 
   const handleRemove = () => {
     if (!removeTarget) return;
-    removeUserAsSuperAdmin(removeTarget.id);
+    const ok = removeUserAsSuperAdmin(removeTarget.id);
+    if (ok) {
+      setStatusMsg(`User ${removeTarget.name} removed successfully`);
+      setTimeout(() => setStatusMsg(''), 3000);
+    }
     setRemoveTarget(null);
   };
 
@@ -79,6 +84,11 @@ export function SuperAdminUsers() {
       />
 
       <div className="relative mb-6">
+        {statusMsg && (
+          <div className="mb-4 p-3 rounded-xl bg-green-500/10 text-green-600 text-sm animate-in fade-in slide-in-from-top-4">
+            {statusMsg}
+          </div>
+        )}
         <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
         <input
           value={search}
