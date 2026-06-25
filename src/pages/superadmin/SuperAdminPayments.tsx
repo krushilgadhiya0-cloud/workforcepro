@@ -1,18 +1,13 @@
 import { useState } from 'react';
-import { FileText, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Badge } from '../../components/ui/Badge';
-import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { useData } from '../../contexts/DataContext';
-import { downloadReceipt } from '../../utils/pdf';
 
 export function SuperAdminPayments() {
-  const { payments, workers, companies, markPaymentPaid } = useData();
+  const { companies } = useData();
   const [search, setSearch] = useState('');
-
-  const getWorkerName = (workerId: string) => workers.find((w) => w.id === workerId)?.name || 'Unknown';
-  const getCompanyName = (companyId: string) => companies.find((c) => c.id === companyId)?.name || 'Unknown';
 
   const subscriptionPayments = companies
     .filter((c) => c.subscription && c.name.toLowerCase().includes(search.toLowerCase()))

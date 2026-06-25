@@ -51,16 +51,6 @@ export function OwnerPayments() {
 
   const remainingDays = calculateRemainingDays();
 
-  const { pay, loading: paying, error: paymentError, clearError } = useSubscriptionPayment((plan, companyId) => {
-    subscribe(companyId, plan);
-    setIsSuccess(true);
-    fireCelebration();
-    setTimeout(() => {
-      setShowUpgrade(false);
-      setIsSuccess(false);
-    }, 3000);
-  });
-
   const handleUpgrade = async () => {
     if (!company || !user) return;
     clearError();

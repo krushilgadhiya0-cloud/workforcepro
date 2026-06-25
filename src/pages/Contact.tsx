@@ -51,7 +51,7 @@ export function Contact() {
               { icon: Mail, label: 'Email Support', val: 'support@workforcepro.com', desc: 'Avg response: 2 hrs', color: 'text-blue-500', bg: 'bg-blue-500/10' },
               { icon: Phone, label: 'Technical Helpline', val: '+91 98765 43210', desc: 'Mon - Fri, 9am - 6pm', color: 'text-green-500', bg: 'bg-green-500/10' },
               { icon: MapPin, label: 'Global Headquarters', val: 'Silicon Square, Block 7', desc: 'Bangalore, KA, India', color: 'text-purple-500', bg: 'bg-purple-500/10' },
-            ].map((method, i) => (
+            ].map((method) => (
               <div 
                 key={method.label}
                 className="group relative transition-all duration-500" 
