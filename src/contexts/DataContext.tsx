@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import type {
   AppData, User, Company, Admin, Worker, Task, LeaveRequest, Payment, Notification,
-  SubscriptionPlan, AdminRole, LeaveStatus, ActivityLog, CommunicationMessage,
+  SubscriptionPlan, AdminRole, LeaveStatus, ActivityLog, CommunicationMessage, PrivateMessage,
 } from '../types';
 import {
   loadData, saveData, syncFromServer, defaultData, generateId, generateTransactionId,
@@ -53,6 +53,10 @@ interface DataContextType extends AppData {
   getCompanyMessages: (companyId: string) => CommunicationMessage[];
   getUserNotifications: (userId: string) => Notification[];
   sendMessage: (content: string) => void;
+  sendPrivateMessage: (receiverId: string, content: string) => void;
+  getPrivateMessages: (userId: string, contactId: string) => PrivateMessage[];
+  getPrivateContacts: (userId: string) => User[];
+  markPrivateMessageRead: (messageId: string) => void;
   startTrial: (companyId: string) => void;
   confirmPhone: (userId: string) => void;
 }
@@ -762,8 +766,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const sendMessage = useCallback((content: string) => {
     const user = data.users.find((u) => u.id === data.currentUserId);
-    const companyId = data.currentCompanyId || user?.companyId;
-    if (!user || !companyId) return;
+    if (!user) return;
+    
+    // Support owners who might not have companyId on their user object
+    const companyId = data.currentCompanyId || user.companyId || (user.role === 'owner' ? data.companies.find(c => c.ownerId === user.id)?.id : null);
+    
+    if (!companyId) return;
 
     const newMessage: CommunicationMessage = {
       id: generateId(),
@@ -792,6 +800,68 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
 
     persist(d);
+  }, [data, persist]);
+
+  const sendPrivateMessage = useCallback((receiverId: string, content: string) => {
+    if (!data.currentUserId) return;
+    const newMessage: PrivateMessage = {
+      id: generateId(),
+      senderId: data.currentUserId,
+      receiverId,
+      content,
+      createdAt: new Date().toISOString(),
+      read: false,
+    };
+    const d = { ...data, privateMessages: [...data.privateMessages, newMessage] };
+    
+    const sender = d.users.find(u => u.id === data.currentUserId);
+    appendNotification(d, { 
+      userId: receiverId, 
+      title: 'New Private Message', 
+      message: `${sender?.name || 'Someone'} sent you a message`, 
+      type: 'general' 
+    });
+    
+    persist(d);
+  }, [data, persist]);
+
+  const getPrivateMessages = useCallback((userId: string, contactId: string) => {
+    return data.privateMessages.filter(m => 
+      (m.senderId === userId && m.receiverId === contactId) || 
+      (m.senderId === contactId && m.receiverId === userId)
+    ).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  }, [data.privateMessages]);
+
+  const getPrivateContacts = useCallback((userId: string) => {
+    const user = data.users.find(u => u.id === userId);
+    if (!user) return [];
+    
+    const companyId = user.companyId || (user.role === 'owner' ? data.companies.find(c => c.ownerId === user.id)?.id : null);
+    if (!companyId) return [];
+
+    if (user.role === 'worker') {
+      const company = data.companies.find(c => c.id === companyId);
+      const companyAdmins = data.admins.filter(a => a.companyId === companyId).map(a => a.userId);
+      const ownerId = company?.ownerId;
+      return data.users.filter(u => (companyAdmins.includes(u.id) || u.id === ownerId) && u.id !== userId);
+    } else {
+      const companyAdmins = data.admins.filter(a => a.companyId === companyId).map(a => a.userId);
+      const companyWorkers = data.workers.filter(w => w.companyId === companyId).map(w => w.userId);
+      const company = data.companies.find(c => c.id === companyId);
+      return data.users.filter(u => 
+        (companyAdmins.includes(u.id) || companyWorkers.includes(u.id) || u.id === company?.ownerId) && 
+        u.id !== userId
+      );
+    }
+  }, [data.users, data.admins, data.workers, data.companies]);
+
+  const markPrivateMessageRead = useCallback((messageId: string) => {
+    const d = { ...data };
+    const idx = d.privateMessages.findIndex(m => m.id === messageId);
+    if (idx >= 0) {
+      d.privateMessages[idx] = { ...d.privateMessages[idx], read: true };
+      persist(d);
+    }
   }, [data, persist]);
 
   const startTrial = useCallback((companyId: string) => {
@@ -866,6 +936,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       getCompanyMessages,
       getUserNotifications,
       sendMessage,
+      sendPrivateMessage,
+      getPrivateMessages,
+      getPrivateContacts,
+      markPrivateMessageRead,
       startTrial,
       confirmPhone,
     }}>

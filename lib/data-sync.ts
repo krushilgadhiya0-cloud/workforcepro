@@ -11,6 +11,7 @@ export const defaultAppData: AppData = {
   notifications: [],
   activities: [],
   messages: [],
+  privateMessages: [],
   settings: {
     theme: 'light',
     emailNotifications: true,
@@ -48,6 +49,7 @@ export function normalizeAppData(raw: Partial<AppData> | null | undefined): AppD
     notifications: raw.notifications ?? [],
     activities: raw.activities ?? [],
     messages: raw.messages ?? [],
+    privateMessages: raw.privateMessages ?? [],
     settings: { ...defaultAppData.settings, ...raw.settings },
     currentUserId: raw.currentUserId ?? null,
     currentCompanyId: raw.currentCompanyId ?? null,
@@ -73,6 +75,9 @@ export function mergeAppData(base: Partial<AppData>, incoming: Partial<AppData>,
     ),
     messages: mergeById(a.messages, b.messages, syncMode).sort(
       (x, y) => new Date(x.createdAt).getTime() - new Date(y.createdAt).getTime(),
+    ),
+    privateMessages: mergeById(a.privateMessages, b.privateMessages, syncMode).sort(
+      (x, y) => new Date(x.createdAt).getTime() - new Date(y.createdAt).getTime()
     ),
     settings: { ...a.settings, ...b.settings },
     currentUserId: b.currentUserId === undefined ? a.currentUserId : b.currentUserId,

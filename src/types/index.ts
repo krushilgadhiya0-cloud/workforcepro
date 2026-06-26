@@ -145,6 +145,15 @@ export interface ActivityLog {
   createdAt: string;
 }
 
+export interface PrivateMessage {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  content: string;
+  createdAt: string;
+  read: boolean;
+}
+
 export interface AppData {
   users: User[];
   companies: Company[];
@@ -156,6 +165,7 @@ export interface AppData {
   notifications: Notification[];
   activities: ActivityLog[];
   messages: CommunicationMessage[];
+  privateMessages: PrivateMessage[];
   settings: AppSettings;
   currentUserId: string | null;
   currentCompanyId: string | null;
