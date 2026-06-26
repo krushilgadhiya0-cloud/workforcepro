@@ -7,7 +7,7 @@ import { useData, useCurrentUser } from '../contexts/DataContext';
 import type { User } from '../types';
 
 export function PrivateMessages() {
-  const { getPrivateMessages, sendPrivateMessage, getPrivateContacts, markPrivateMessageRead } = useData();
+  const { data, getPrivateMessages, sendPrivateMessage, getPrivateContacts, markPrivateMessageRead } = useData();
   const user = useCurrentUser();
   const [selectedContact, setSelectedContact] = useState<User | null>(null);
   const [content, setContent] = useState('');
@@ -72,27 +72,37 @@ export function PrivateMessages() {
             />
           </div>
           <div className="flex-1 overflow-y-auto space-y-1 custom-scrollbar">
-            {filteredContacts.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => setSelectedContact(c)}
-                className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${
-                  selectedContact?.id === c.id 
-                    ? 'bg-[var(--primary)] text-white shadow-lg' 
-                    : 'hover:bg-[var(--border)]/30 text-[var(--text)]'
-                }`}
-              >
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                  selectedContact?.id === c.id ? 'bg-white/20' : 'bg-[var(--border)]'
-                }`}>
-                  <UserIcon size={20} />
-                </div>
-                <div className="text-left min-w-0">
-                  <p className="font-semibold text-sm truncate">{c.name}</p>
-                  <p className={`text-[10px] uppercase tracking-wider font-bold opacity-70`}>{c.role}</p>
-                </div>
-              </button>
-            ))}
+            {filteredContacts.map((c) => {
+              const unread = data.privateMessages.filter(m => m.senderId === c.id && m.receiverId === user?.id && !m.read).length;
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => setSelectedContact(c)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${
+                    selectedContact?.id === c.id 
+                      ? 'bg-[var(--primary)] text-white shadow-lg' 
+                      : 'hover:bg-[var(--border)]/30 text-[var(--text)]'
+                  }`}
+                >
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                    selectedContact?.id === c.id ? 'bg-white/20' : 'bg-[var(--border)]'
+                  }`}>
+                    <UserIcon size={20} />
+                  </div>
+                  <div className="text-left flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-semibold text-sm truncate">{c.name}</p>
+                      {unread > 0 && (
+                        <span className="bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full animate-pulse">
+                          {unread}
+                        </span>
+                      )}
+                    </div>
+                    <p className={`text-[10px] uppercase tracking-wider font-bold opacity-70`}>{c.role}</p>
+                  </div>
+                </button>
+              );
+            })}
             {filteredContacts.length === 0 && (
               <p className="text-center py-10 text-[var(--text-muted)] text-xs italic">No contacts found</p>
             )}

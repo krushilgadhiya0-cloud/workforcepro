@@ -12,7 +12,7 @@ interface CommunicationProps {
 }
 
 export function Communication({ companyId, isSuperAdmin = false }: CommunicationProps) {
-  const { getCompanyMessages, sendMessage, companies } = useData();
+  const { getCompanyMessages, sendMessage, companies, markAllCommunicationRead } = useData();
   const user = useCurrentUser();
   const [content, setContent] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -26,7 +26,11 @@ export function Communication({ companyId, isSuperAdmin = false }: Communication
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [companyMessages]);
+    // Mark as read
+    if (user && targetCompanyId && !isSuperAdmin) {
+      markAllCommunicationRead(user.id);
+    }
+  }, [companyMessages, user, targetCompanyId, markAllCommunicationRead, isSuperAdmin]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,6 +80,9 @@ export function Communication({ companyId, isSuperAdmin = false }: Communication
                   <div className={`max-w-[80%] flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                     <div className="flex items-center gap-2 mb-1 px-1">
                       {!isMe && <span className="text-xs font-semibold text-[var(--text)]">{m.senderName}</span>}
+                      {user?.lastCommunicationReadAt && new Date(m.createdAt) > new Date(user.lastCommunicationReadAt) && !isMe && (
+                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" title="New Message" />
+                      )}
                       <span className={`text-[10px] flex items-center gap-1 px-1.5 py-0.5 rounded-full border ${
                         m.senderRole === 'owner' ? 'bg-amber-500/10 border-amber-500/30 text-amber-600' :
                         m.senderRole === 'admin' ? 'bg-blue-500/10 border-blue-500/30 text-blue-600' :

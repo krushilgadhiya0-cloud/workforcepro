@@ -15,6 +15,7 @@ export interface User {
   companyId?: string;
   phone?: string;
   phoneVerified?: boolean;
+  lastCommunicationReadAt?: string;
   createdAt: string;
 }
 
@@ -35,6 +36,8 @@ export interface Company {
   trialEndDate?: string;
   monthlyRevenue: number;
   monthlyRevenueUpdatedAt: string | null;
+  workerLabel?: string;
+  adminLabel?: string;
   createdAt: string;
 }
 

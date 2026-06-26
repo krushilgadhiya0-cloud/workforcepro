@@ -37,6 +37,11 @@ export function Admins() {
 
   const companyAdmins = admins.filter((a) => a.companyId === company?.id);
 
+  const getLabel = (singular = false) => {
+    if (singular) return company?.adminLabel || 'Admin';
+    return company?.adminLabel ? `${company.adminLabel}s` : 'Admins';
+  };
+
   useEffect(() => {
     setMonthlyRevenue(String(company?.monthlyRevenue || ''));
   }, [company?.id, company?.monthlyRevenue]);
@@ -103,7 +108,12 @@ export function Admins() {
 
   return (
     <div>
-      <PageHeader title="Admin Management" subtitle="Manage admins, monthly revenue, and auto-registered accounts" action={<Button onClick={openAdd}><Plus size={18} /> Add Admin</Button>} showBack={false} />
+      <PageHeader 
+        title={`${getLabel(true)} Management`} 
+        subtitle={`Manage ${getLabel().toLowerCase()}, monthly revenue, and auto-registered accounts`} 
+        action={<Button onClick={openAdd}><Plus size={18} /> Add {getLabel(true)}</Button>} 
+        showBack={false} 
+      />
 
       <Card className="mb-6">
         <div className="flex flex-col sm:flex-row sm:items-end gap-4">

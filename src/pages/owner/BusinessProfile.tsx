@@ -33,7 +33,7 @@ export function BusinessProfile() {
     ? companies.filter((c) => c.ownerId === user?.id)
     : company ? [company] : [];
 
-  const [profile, setProfile] = useState({ name: '', ownerName: '', email: '', phone: '', address: '', industry: '' });
+  const [profile, setProfile] = useState({ name: '', ownerName: '', email: '', phone: '', address: '', industry: '', workerLabel: '', adminLabel: '' });
   const [profileMsg, setProfileMsg] = useState('');
   const [profileError, setProfileError] = useState('');
 
@@ -44,7 +44,7 @@ export function BusinessProfile() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteError, setDeleteError] = useState('');
-  const [companyForm, setCompanyForm] = useState(emptyForm);
+  const [companyForm, setCompanyForm] = useState({ ...emptyForm, workerLabel: '', adminLabel: '' });
   const [companyFormError, setCompanyFormError] = useState('');
   const [companyFormMsg, setCompanyFormMsg] = useState('');
   const [companyStrength, setCompanyStrength] = useState<PasswordStrength>(validatePasswordStrength(''));
@@ -59,9 +59,11 @@ export function BusinessProfile() {
         phone: company.phone || '',
         address: company.address || '',
         industry: company.industry || '',
+        workerLabel: company.workerLabel || '',
+        adminLabel: company.adminLabel || '',
       });
     }
-  }, [company?.id, company?.name, company?.ownerName, company?.email, company?.phone, company?.address, company?.industry]);
+  }, [company?.id, company?.name, company?.ownerName, company?.email, company?.phone, company?.address, company?.industry, company?.workerLabel, company?.adminLabel]);
 
   const openNewCompany = () => {
     setCompanyForm({
@@ -205,6 +207,8 @@ export function BusinessProfile() {
         phone: profile.phone.trim(),
         address: profile.address.trim(),
         industry: profile.industry.trim(),
+        workerLabel: profile.workerLabel.trim(),
+        adminLabel: profile.adminLabel.trim(),
       });
       if (success) {
         setProfileMsg('Business profile saved successfully');
@@ -234,6 +238,10 @@ export function BusinessProfile() {
       <Input label="Phone Number" value={companyForm.phone} onChange={(e) => setCompanyForm({ ...companyForm, phone: e.target.value })} />
       <Input label="Business Address" value={companyForm.address} onChange={(e) => setCompanyForm({ ...companyForm, address: e.target.value })} />
       <Select label="Industry Type" options={industries} value={companyForm.industry} onChange={(e) => setCompanyForm({ ...companyForm, industry: e.target.value })} />
+      <div className="grid grid-cols-2 gap-4">
+        <Input label="Worker Role Label" hint="e.g. Employee, Staff" value={companyForm.workerLabel} onChange={(e) => setCompanyForm({ ...companyForm, workerLabel: e.target.value })} />
+        <Input label="Admin Role Label" hint="e.g. Manager, Lead" value={companyForm.adminLabel} onChange={(e) => setCompanyForm({ ...companyForm, adminLabel: e.target.value })} />
+      </div>
       {!showEditModal && (
         <>
           <Input 
@@ -333,6 +341,10 @@ export function BusinessProfile() {
               <Input label="Phone Number" value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} disabled={!isOwner} />
               <Input label="Business Address" value={profile.address} onChange={(e) => setProfile({ ...profile, address: e.target.value })} disabled={!isOwner} />
               <Input label="Industry Type" value={profile.industry} onChange={(e) => setProfile({ ...profile, industry: e.target.value })} disabled={!isOwner} />
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="Worker Role Label" hint="e.g. Employee, Staff" value={profile.workerLabel} onChange={(e) => setProfile({ ...profile, workerLabel: e.target.value })} disabled={!isOwner} />
+                <Input label="Admin Role Label" hint="e.g. Manager, Lead" value={profile.adminLabel} onChange={(e) => setProfile({ ...profile, adminLabel: e.target.value })} disabled={!isOwner} />
+              </div>
 
               {profileError && <div className="p-3 rounded-xl bg-red-500/10 text-red-500 text-sm">{profileError}</div>}
               {profileMsg && <div className="p-3 rounded-xl bg-green-500/10 text-green-600 text-sm">{profileMsg}</div>}

@@ -44,6 +44,11 @@ export function Workers() {
     return 'paid';
   };
 
+  const getLabel = (singular = false) => {
+    if (singular) return company?.workerLabel || 'Worker';
+    return company?.workerLabel ? `${company.workerLabel}s` : 'Workers';
+  };
+
   const openAdd = () => {
     if (!checkSubscription()) return;
     setEditing(null);
@@ -140,8 +145,8 @@ export function Workers() {
   return (
     <div>
       <PageHeader
-        title="Worker Management"
-        subtitle={`${companyWorkers.length} workers — accounts auto-registered on add`}
+        title={`${getLabel(true)} Management`}
+        subtitle={`${companyWorkers.length} ${getLabel().toLowerCase()} — accounts auto-registered on add`}
         action={
           <div className="flex gap-2">
             <Button
@@ -152,7 +157,7 @@ export function Workers() {
               {revealed ? <EyeOff size={18} /> : <Eye size={18} />}
               {revealed ? 'Hide Passwords' : 'Reveal Passwords'}
             </Button>
-            <Button onClick={openAdd}><Plus size={18} /> Add Worker</Button>
+            <Button onClick={openAdd}><Plus size={18} /> Add {getLabel(true)}</Button>
           </div>
         }
         showBack={false}

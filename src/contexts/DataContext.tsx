@@ -59,6 +59,9 @@ interface DataContextType extends AppData {
   markPrivateMessageRead: (messageId: string) => void;
   addDailyRevenue: (amount: number, date: string, notes?: string) => void;
   getDailyRevenue: (companyId: string) => DailyRevenue[];
+  getUnreadPrivateCount: (userId: string) => number;
+  getUnreadCommunicationCount: (userId: string) => number;
+  markAllCommunicationRead: (userId: string) => void;
   startTrial: (companyId: string) => void;
   confirmPhone: (userId: string) => void;
 }
@@ -119,7 +122,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       } catch (e) {
         console.warn('Background sync failed', e);
       }
-    }, 10000); // Sync every 10 seconds
+    }, 3000); // Sync every 3 seconds for faster updates
 
     return () => clearInterval(interval);
   }, [updateSyncStatus]);
@@ -807,21 +810,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
 
     const d = { ...data, messages: [...data.messages, newMessage] };
-    
-    // Notify relevant parties in the company
-    if (user.role === 'worker') {
-      const admins = d.admins.filter(a => a.companyId === companyId);
-      const company = d.companies.find(c => c.id === companyId);
-      admins.forEach(a => appendNotification(d, { userId: a.userId, title: 'New Message', message: `${user.name}: ${content.substring(0, 50)}`, type: 'general' }));
-      if (company && company.ownerId !== user.id) {
-        appendNotification(d, { userId: company.ownerId, title: 'New Message', message: `${user.name}: ${content.substring(0, 50)}`, type: 'general' });
-      }
-    } else {
-      // If owner/admin sends, notify workers? Usually yes.
-      const workers = d.workers.filter(w => w.companyId === companyId);
-      workers.forEach(w => appendNotification(d, { userId: w.userId, title: 'New Company Update', message: `${user.name}: ${content.substring(0, 50)}`, type: 'general' }));
-    }
-
     persist(d);
   }, [data, persist]);
 
@@ -836,15 +824,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       read: false,
     };
     const d = { ...data, privateMessages: [...data.privateMessages, newMessage] };
-    
-    const sender = d.users.find(u => u.id === data.currentUserId);
-    appendNotification(d, { 
-      userId: receiverId, 
-      title: 'New Private Message', 
-      message: `${sender?.name || 'Someone'} sent you a message`, 
-      type: 'general' 
-    });
-    
     persist(d);
   }, [data, persist]);
 
@@ -907,6 +886,31 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const getDailyRevenue = useCallback((companyId: string) => {
     return data.dailyRevenue.filter(r => r.companyId === companyId);
   }, [data.dailyRevenue]);
+
+  const getUnreadPrivateCount = useCallback((userId: string) => {
+    return data.privateMessages.filter(m => m.receiverId === userId && !m.read).length;
+  }, [data.privateMessages]);
+
+  const getUnreadCommunicationCount = useCallback((userId: string) => {
+    const user = data.users.find(u => u.id === userId);
+    if (!user) return 0;
+    const companyId = user.companyId || (user.role === 'owner' ? data.companies.find(c => c.ownerId === user.id)?.id : null);
+    if (!companyId) return 0;
+    
+    const companyMessages = data.messages.filter(m => m.companyId === companyId);
+    if (!user.lastCommunicationReadAt) return companyMessages.length;
+    
+    return companyMessages.filter(m => new Date(m.createdAt) > new Date(user.lastCommunicationReadAt!)).length;
+  }, [data.messages, data.users, data.companies]);
+
+  const markAllCommunicationRead = useCallback((userId: string) => {
+    const d = { ...data };
+    const idx = d.users.findIndex(u => u.id === userId);
+    if (idx >= 0) {
+      d.users[idx] = { ...d.users[idx], lastCommunicationReadAt: new Date().toISOString() };
+      persist(d);
+    }
+  }, [data, persist]);
 
   const startTrial = useCallback((companyId: string) => {
     const d = { ...data };
@@ -986,6 +990,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       markPrivateMessageRead,
       addDailyRevenue,
       getDailyRevenue,
+      getUnreadPrivateCount,
+      getUnreadCommunicationCount,
+      markAllCommunicationRead,
       startTrial,
       confirmPhone,
     }}>
