@@ -95,14 +95,24 @@ async function saveToBlob(data: AppData): Promise<AppData> {
 }
 
 async function loadFromSupabase(): Promise<AppData | null> {
-  const { data, error } = await supabaseAdmin
-    .from(SUPABASE_TABLE)
-    .select('data')
-    .eq('key', KV_KEY)
-    .single();
+  try {
+    const { data, error } = await supabaseAdmin
+      .from(SUPABASE_TABLE)
+      .select('data')
+      .eq('key', KV_KEY)
+      .single();
 
-  if (error || !data) return ensureSuperAdminInData(normalizeAppData(null));
-  return ensureSuperAdminInData(normalizeAppData(data.data as object));
+    if (error) {
+      if (error.code === 'PGRST116') return ensureSuperAdminInData(normalizeAppData(null));
+      console.error('Supabase load error:', error);
+      return null; // Return null so the caller knows it failed to connect (don't wipe local data)
+    }
+    
+    return ensureSuperAdminInData(normalizeAppData(data.data as object));
+  } catch (err) {
+    console.error('Supabase load exception:', err);
+    return null;
+  }
 }
 
 async function saveToSupabase(data: AppData): Promise<AppData> {
@@ -111,7 +121,10 @@ async function saveToSupabase(data: AppData): Promise<AppData> {
     .from(SUPABASE_TABLE)
     .upsert({ key: KV_KEY, data: finalData, updated_at: new Date().toISOString() });
 
-  if (error) throw new Error(`Supabase save failed: ${error.message}`);
+  if (error) {
+    console.error('Supabase save failed:', error);
+    throw new Error(`Cloud storage update failed. Please check your connection.`);
+  }
   return finalData;
 }
 

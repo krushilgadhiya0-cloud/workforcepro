@@ -92,8 +92,14 @@ export function Payments() {
                   <td className="p-4 text-right">
                     <div className="flex items-center justify-end gap-2">
                       {payment.status !== 'paid' && (
-                        <Button size="sm" onClick={() => markPaymentPaid(payment.id)}>Mark as Paid</Button>
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={() => markPaymentPaid(payment.id)}>Mark as Paid</Button>
+                          <Button size="sm" variant="outline" className="text-blue-500 border-blue-500/30 hover:bg-blue-50" onClick={() => alert("Online bank transfer feature is being activated for your account. Please use 'Mark as Paid' for now.")}>
+                            Pay Online
+                          </Button>
+                        </div>
                       )}
+
                       {payment.status === 'paid' && (
                         <Button size="sm" variant="outline" onClick={() => handleReceipt(payment.id)}><FileText size={14} /> Receipt</Button>
                       )}

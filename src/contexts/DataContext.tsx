@@ -98,95 +98,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const fallbackTimer = setTimeout(() => setLoading(false), 8000);
     loadData()
       .then((loaded) => {
-        // One-time cleanup for specific users
-        const allowedEmails = [
-          SUPER_ADMIN_EMAIL.toLowerCase(),
-          'gadhiyakrushil138@gmail.com'.toLowerCase(),
-          'raj@gmail.com'.toLowerCase(),
-          'gadhiyakrushil15@gmail.com'.toLowerCase()
-        ];
-        
-        let cleaned = { ...loaded };
-
-        // Ensure the specific new user exists
-        const newEmail = 'gadhiyakrushil15@gmail.com'.toLowerCase();
-        if (!cleaned.users.find(u => u.email.toLowerCase() === newEmail)) {
-          const ownerId = generateId();
-          const companyId = generateId();
-          
-          // Create User
-          cleaned.users.push({
-            id: ownerId,
-            email: newEmail,
-            password: 'Krushil@2007',
-            name: 'Krushil Gadhiya',
-            role: 'owner',
-            companyId,
-            createdAt: new Date().toISOString(),
-          });
-
-          // Create Company with 20 days left trial
-          const trialEndDate = new Date();
-          trialEndDate.setDate(trialEndDate.getDate() + 20);
-          
-          cleaned.companies.push({
-            id: companyId,
-            name: 'Gadhiya Enterprises',
-            ownerName: 'Krushil Gadhiya',
-            email: newEmail,
-            phone: '0000000000',
-            address: 'Custom Office',
-            industry: 'Technology',
-            ownerId,
-            ownerPassword: 'Krushil@2007',
-            subscription: 'trial',
-            subscriptionDate: new Date().toISOString(),
-            trialEndDate: trialEndDate.toISOString(),
-            monthlyRevenue: 0,
-            monthlyRevenueUpdatedAt: null,
-            createdAt: new Date().toISOString(),
-          });
-        }
-        
-        // ... same cleanup logic ...
-        const originalUserCount = loaded.users.length;
-        const originalCompanyCount = loaded.companies.length;
-        
-        // Purge unwanted users
-        cleaned.users = cleaned.users.filter(u => 
-          u.role === 'superadmin' || allowedEmails.includes(u.email.toLowerCase())
-        );
-
-        // Purge data that doesn't belong to allowed users/companies
-        const allowedOwnerIds = cleaned.users.filter(u => u.role === 'owner').map(u => u.id);
-        cleaned.companies = cleaned.companies.filter(c => allowedOwnerIds.includes(c.ownerId));
-        
-        const allowedCompanyIds = cleaned.companies.map(c => c.id);
-        cleaned.admins = cleaned.admins.filter(a => allowedCompanyIds.includes(a.companyId));
-        cleaned.workers = cleaned.workers.filter(w => allowedCompanyIds.includes(w.companyId));
-        cleaned.tasks = cleaned.tasks.filter(t => allowedCompanyIds.includes(t.companyId));
-        cleaned.leaves = cleaned.leaves.filter(l => allowedCompanyIds.includes(l.companyId));
-        cleaned.payments = cleaned.payments.filter(p => allowedCompanyIds.includes(p.companyId));
-        cleaned.messages = cleaned.messages.filter(m => allowedCompanyIds.includes(m.companyId));
-        cleaned.dailyRevenue = cleaned.dailyRevenue.filter(r => allowedCompanyIds.includes(r.companyId));
-        
-        const allowedUserIds = cleaned.users.map(u => u.id);
-        cleaned.privateMessages = cleaned.privateMessages.filter(m => 
-          allowedUserIds.includes(m.senderId) && allowedUserIds.includes(m.receiverId)
-        );
-
-        // If ANYTHING changed, save the new state immediately
-        const hasChanges = cleaned.users.length !== originalUserCount || 
-                           cleaned.companies.length !== originalCompanyCount ||
-                           originalUserCount === 0;
-
-        if (hasChanges) {
-          saveData(cleaned).then(setData);
-        } else {
-          setData(loaded);
-        }
+        setData(loaded);
         updateSyncStatus();
       })
+
       .catch(() => {
         const local = ensureSuperAdminFromStorage(getLocalData());
         setData(local);
@@ -946,6 +861,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const currentUserName = currentData.users.find(u => u.id === currentData.currentUserId)?.name;
     const company = currentData.companies.find(c => c.id === companyId);
     
+    if (q.includes('payment') || q.includes('salary') || q.includes('payroll')) {
+      const totalPayments = currentData.payments.filter(p => p.companyId === companyId).reduce((sum, p) => sum + p.amount, 0);
+      const paidPayments = currentData.payments.filter(p => p.companyId === companyId && p.status === 'paid').reduce((sum, p) => sum + p.amount, 0);
+      const duePayments = currentData.payments.filter(p => p.companyId === companyId && p.status === 'due').reduce((sum, p) => sum + p.amount, 0);
+      
+      return `📊 FINANCIAL REPORT for @${currentUserName}:\n\n• Total Payroll: ₹${totalPayments.toLocaleString()}\n• Salaries Paid: ₹${paidPayments.toLocaleString()}\n• Outstanding Dues: ₹${duePayments.toLocaleString()}\n\nWhat else would you like to know?`;
+    }
+
     if (q.includes('revenue') || q.includes('money') || q.includes('profit')) {
       const revenue = currentData.dailyRevenue.filter(r => r.companyId === companyId);
       const total = revenue.reduce((sum, r) => sum + r.amount, 0);
@@ -965,6 +888,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     return `Hello! I am your WorkForce AI. I am now a participant in this group chat. Tag me with @ai or @chatgpt whenever you need data insights or help with ${company?.name || 'the company'}.`;
   };
+
 
 
 
