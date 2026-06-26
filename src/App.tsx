@@ -16,6 +16,7 @@ import { Payments } from './pages/owner/Payments';
 import { OwnerPayments } from './pages/owner/OwnerPayments';
 import { Reports } from './pages/owner/Reports';
 import { Revenue } from './pages/owner/Revenue';
+import { AI } from './pages/AI';
 import { Settings } from './pages/owner/Settings';
 import { Notifications } from './pages/owner/Notifications';
 import { WorkerDashboard } from './pages/worker/WorkerDashboard';
@@ -70,6 +71,7 @@ function App() {
             <Route path="/dashboard/owner-payments" element={<ProtectedRoute roles={['owner']}><DashboardLayout><OwnerPayments /></DashboardLayout></ProtectedRoute>} />
             <Route path="/dashboard/reports" element={<ProtectedRoute roles={['owner', 'admin']}><DashboardLayout><Reports /></DashboardLayout></ProtectedRoute>} />
             <Route path="/dashboard/revenue" element={<ProtectedRoute roles={['owner', 'admin']}><DashboardLayout><Revenue /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/dashboard/ai" element={<ProtectedRoute roles={['owner', 'admin']}><DashboardLayout><AI /></DashboardLayout></ProtectedRoute>} />
             <Route path="/dashboard/settings" element={<ProtectedRoute roles={['owner', 'admin']}><DashboardLayout><Settings /></DashboardLayout></ProtectedRoute>} />
             <Route path="/dashboard/notifications" element={<ProtectedRoute roles={['owner', 'admin']}><DashboardLayout><Notifications /></DashboardLayout></ProtectedRoute>} />
             <Route path="/dashboard/communication" element={<ProtectedRoute roles={['owner', 'admin']}><DashboardLayout><Communication /></DashboardLayout></ProtectedRoute>} />
@@ -81,6 +83,7 @@ function App() {
             <Route path="/worker/payments" element={<ProtectedRoute roles={['worker']}><DashboardLayout><WorkerPayments /></DashboardLayout></ProtectedRoute>} />
             <Route path="/worker/notifications" element={<ProtectedRoute roles={['worker']}><DashboardLayout><WorkerNotifications /></DashboardLayout></ProtectedRoute>} />
             <Route path="/worker/settings" element={<ProtectedRoute roles={['worker']}><DashboardLayout><WorkerSettings /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/worker/ai" element={<ProtectedRoute roles={['worker']}><DashboardLayout><AI /></DashboardLayout></ProtectedRoute>} />
             <Route path="/worker/communication" element={<ProtectedRoute roles={['worker']}><DashboardLayout><Communication /></DashboardLayout></ProtectedRoute>} />
             <Route path="/worker/private-messages" element={<ProtectedRoute roles={['worker']}><DashboardLayout><PrivateMessages /></DashboardLayout></ProtectedRoute>} />
           </Routes>
