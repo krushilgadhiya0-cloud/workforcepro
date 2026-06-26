@@ -154,6 +154,15 @@ export interface PrivateMessage {
   read: boolean;
 }
 
+export interface DailyRevenue {
+  id: string;
+  companyId: string;
+  amount: number;
+  date: string;
+  notes?: string;
+  createdAt: string;
+}
+
 export interface AppData {
   users: User[];
   companies: Company[];
@@ -166,6 +175,7 @@ export interface AppData {
   activities: ActivityLog[];
   messages: CommunicationMessage[];
   privateMessages: PrivateMessage[];
+  dailyRevenue: DailyRevenue[];
   settings: AppSettings;
   currentUserId: string | null;
   currentCompanyId: string | null;

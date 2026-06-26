@@ -15,6 +15,7 @@ import { Leaves } from './pages/owner/Leaves';
 import { Payments } from './pages/owner/Payments';
 import { OwnerPayments } from './pages/owner/OwnerPayments';
 import { Reports } from './pages/owner/Reports';
+import { Revenue } from './pages/owner/Revenue';
 import { Settings } from './pages/owner/Settings';
 import { Notifications } from './pages/owner/Notifications';
 import { WorkerDashboard } from './pages/worker/WorkerDashboard';
@@ -68,6 +69,7 @@ function App() {
             <Route path="/dashboard/payments" element={<ProtectedRoute roles={['owner', 'admin']}><DashboardLayout><Payments /></DashboardLayout></ProtectedRoute>} />
             <Route path="/dashboard/owner-payments" element={<ProtectedRoute roles={['owner']}><DashboardLayout><OwnerPayments /></DashboardLayout></ProtectedRoute>} />
             <Route path="/dashboard/reports" element={<ProtectedRoute roles={['owner', 'admin']}><DashboardLayout><Reports /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/dashboard/revenue" element={<ProtectedRoute roles={['owner', 'admin']}><DashboardLayout><Revenue /></DashboardLayout></ProtectedRoute>} />
             <Route path="/dashboard/settings" element={<ProtectedRoute roles={['owner', 'admin']}><DashboardLayout><Settings /></DashboardLayout></ProtectedRoute>} />
             <Route path="/dashboard/notifications" element={<ProtectedRoute roles={['owner', 'admin']}><DashboardLayout><Notifications /></DashboardLayout></ProtectedRoute>} />
             <Route path="/dashboard/communication" element={<ProtectedRoute roles={['owner', 'admin']}><DashboardLayout><Communication /></DashboardLayout></ProtectedRoute>} />

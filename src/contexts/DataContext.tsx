@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import type {
   AppData, User, Company, Admin, Worker, Task, LeaveRequest, Payment, Notification,
-  SubscriptionPlan, AdminRole, LeaveStatus, ActivityLog, CommunicationMessage, PrivateMessage,
+  SubscriptionPlan, AdminRole, LeaveStatus, ActivityLog, CommunicationMessage, PrivateMessage, DailyRevenue,
 } from '../types';
 import {
   loadData, saveData, syncFromServer, defaultData, generateId, generateTransactionId,
@@ -57,6 +57,8 @@ interface DataContextType extends AppData {
   getPrivateMessages: (userId: string, contactId: string) => PrivateMessage[];
   getPrivateContacts: (userId: string) => User[];
   markPrivateMessageRead: (messageId: string) => void;
+  addDailyRevenue: (amount: number, date: string, notes?: string) => void;
+  getDailyRevenue: (companyId: string) => DailyRevenue[];
   startTrial: (companyId: string) => void;
   confirmPhone: (userId: string) => void;
 }
@@ -99,6 +101,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
         clearTimeout(fallbackTimer);
         setLoading(false);
       });
+  }, [updateSyncStatus]);
+
+  // Background Sync for real-time updates
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const refreshed = await loadData();
+        // Only trigger update if something actually changed to avoid re-renders
+        // For simplicity in this demo, we'll just set it. 
+        // In a real app we'd compare hashes or timestamps.
+        setData(current => {
+          // Keep current local session
+          return { ...refreshed, currentUserId: current.currentUserId, currentCompanyId: current.currentCompanyId };
+        });
+        updateSyncStatus();
+      } catch (e) {
+        console.warn('Background sync failed', e);
+      }
+    }, 10000); // Sync every 10 seconds
+
+    return () => clearInterval(interval);
   }, [updateSyncStatus]);
 
   const persist = useCallback(async (newData: AppData) => {
@@ -864,6 +887,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [data, persist]);
 
+  const addDailyRevenue = useCallback((amount: number, date: string, notes?: string) => {
+    const user = data.users.find(u => u.id === data.currentUserId);
+    const companyId = data.currentCompanyId || user?.companyId || (user?.role === 'owner' ? data.companies.find(c => c.ownerId === user?.id)?.id : null);
+    if (!companyId) return;
+
+    const newRev: DailyRevenue = {
+      id: generateId(),
+      companyId,
+      amount,
+      date,
+      notes,
+      createdAt: new Date().toISOString(),
+    };
+    const d = { ...data, dailyRevenue: [...data.dailyRevenue, newRev] };
+    persist(d);
+  }, [data, persist]);
+
+  const getDailyRevenue = useCallback((companyId: string) => {
+    return data.dailyRevenue.filter(r => r.companyId === companyId);
+  }, [data.dailyRevenue]);
+
   const startTrial = useCallback((companyId: string) => {
     const d = { ...data };
     const idx = d.companies.findIndex(c => c.id === companyId);
@@ -940,6 +984,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       getPrivateMessages,
       getPrivateContacts,
       markPrivateMessageRead,
+      addDailyRevenue,
+      getDailyRevenue,
       startTrial,
       confirmPhone,
     }}>

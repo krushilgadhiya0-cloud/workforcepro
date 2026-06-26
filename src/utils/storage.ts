@@ -129,9 +129,11 @@ export async function loadData(): Promise<AppData> {
 
   let data: AppData;
   if (remote.ok) {
+    // Preserve local session when loading from remote
+    const session = { currentUserId: local.currentUserId, currentCompanyId: local.currentCompanyId };
     data = remote.data
-      ? mergeAppData(local, remote.data)
-      : mergeAppData({}, local);
+      ? { ...mergeAppData(local, remote.data), ...session }
+      : { ...mergeAppData({}, local), ...session };
     setSyncState('synced');
   } else {
     data = local;
@@ -161,10 +163,13 @@ export async function saveData(data: AppData): Promise<AppData> {
     merged = mergeAppData(remote.data ?? {}, persisted, 'overwrite');
   }
 
-  const localData = ensureSuperAdminFromStorage(merged);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(localData));
+  // We ensure localData kept in localStorage HAS the session
+  const session = { currentUserId: data.currentUserId, currentCompanyId: data.currentCompanyId };
+  const localDataWithSession = ensureSuperAdminFromStorage({ ...merged, ...session });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(localDataWithSession));
 
-  const finalData = stripSession(localData);
+  // The finalData sent to cloud is stripped
+  const finalData = stripSession(localDataWithSession);
 
   try {
     const res = await fetchWithTimeout(API_URL, {
