@@ -4,10 +4,10 @@ import { PageHeader } from '../components/layout/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useData, useCurrentUser } from '../contexts/DataContext';
-import type { User } from '../types';
+import type { User, PrivateMessage } from '../types';
 
 export function PrivateMessages() {
-  const { data, getPrivateMessages, sendPrivateMessage, getPrivateContacts, markPrivateMessageRead } = useData();
+  const { privateMessages, getPrivateMessages, sendPrivateMessage, getPrivateContacts, markPrivateMessageRead } = useData();
   const user = useCurrentUser();
   const [selectedContact, setSelectedContact] = useState<User | null>(null);
   const [content, setContent] = useState('');
@@ -28,7 +28,7 @@ export function PrivateMessages() {
     }
     // Mark unread as read
     if (user && selectedContact) {
-      messages.forEach(m => {
+      messages.forEach((m: PrivateMessage) => {
         if (!m.read && m.receiverId === user.id) {
           markPrivateMessageRead(m.id);
         }
@@ -73,7 +73,7 @@ export function PrivateMessages() {
           </div>
           <div className="flex-1 overflow-y-auto space-y-1 custom-scrollbar">
             {filteredContacts.map((c) => {
-              const unread = data.privateMessages.filter(m => m.senderId === c.id && m.receiverId === user?.id && !m.read).length;
+              const unread = privateMessages.filter(m => m.senderId === c.id && m.receiverId === user?.id && !m.read).length;
               return (
                 <button
                   key={c.id}
@@ -138,7 +138,7 @@ export function PrivateMessages() {
                     <p>No messages yet. Send a private message!</p>
                   </div>
                 ) : (
-                  messages.map((m) => {
+                  messages.map((m: PrivateMessage) => {
                     const isMe = m.senderId === user?.id;
                     return (
                       <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>

@@ -19,6 +19,7 @@ const industries = [
 
 const emptyForm = {
   name: '', ownerName: '', email: '', phone: '', address: '', industry: 'Technology', ownerPassword: '',
+  workerLabel: '', adminLabel: '',
 };
 
 export function BusinessProfile() {
@@ -44,7 +45,7 @@ export function BusinessProfile() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteError, setDeleteError] = useState('');
-  const [companyForm, setCompanyForm] = useState({ ...emptyForm, workerLabel: '', adminLabel: '' });
+  const [companyForm, setCompanyForm] = useState(emptyForm);
   const [companyFormError, setCompanyFormError] = useState('');
   const [companyFormMsg, setCompanyFormMsg] = useState('');
   const [companyStrength, setCompanyStrength] = useState<PasswordStrength>(validatePasswordStrength(''));
@@ -87,6 +88,8 @@ export function BusinessProfile() {
       address: c.address,
       industry: c.industry,
       ownerPassword: '',
+      workerLabel: c.workerLabel || '',
+      adminLabel: c.adminLabel || '',
     });
     setCompanyFormError('');
     setCompanyFormMsg('');
