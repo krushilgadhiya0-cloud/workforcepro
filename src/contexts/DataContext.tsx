@@ -213,7 +213,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       } catch (e) {
         console.warn('Background sync failed', e);
       }
-    }, 3000); // Sync every 3 seconds for faster updates
+    }, 1000); // Sync every 1 second for ultra-fast updates
 
     return () => clearInterval(interval);
   }, [updateSyncStatus]);

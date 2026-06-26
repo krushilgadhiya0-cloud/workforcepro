@@ -111,8 +111,8 @@ export function Sidebar({ role }: SidebarProps) {
       <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
         {!collapsed && (
           <div className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${role === 'superadmin' ? 'bg-amber-500' : 'gradient-bg'}`}>
-              {role === 'superadmin' ? <Crown size={16} className="text-white" /> : <Building2 size={16} className="text-white" />}
+            <div className={`w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center ${role === 'superadmin' ? 'bg-amber-500' : 'bg-white shadow-sm'}`}>
+              {role === 'superadmin' ? <Crown size={16} className="text-white" /> : <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />}
             </div>
             <span className="font-bold text-sm gradient-text">{role === 'superadmin' ? 'Super Admin' : 'WorkForce Pro'}</span>
           </div>

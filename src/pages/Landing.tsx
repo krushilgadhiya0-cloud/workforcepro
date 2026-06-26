@@ -110,10 +110,10 @@ export function Landing() {
       <nav className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-[var(--border)]">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
-            <div className="w-9 h-9 rounded-xl gradient-bg flex items-center justify-center">
-              <Sparkles size={18} className="text-white" />
+            <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-white shadow-sm border border-[var(--border)]">
+              <img src="/logo.png" alt="WorkForce Pro Logo" className="w-full h-full object-cover" />
             </div>
-            <span className="text-lg font-bold gradient-text">WorkForce Pro</span>
+            <span className="text-xl font-bold gradient-text">WorkForce Pro</span>
           </Link>
           <div className="hidden md:flex items-center gap-6">
             <Link to="/contact" className="text-sm font-medium text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors">Contact Us</Link>

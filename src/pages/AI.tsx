@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bot, Send, Sparkles, Brain, TrendingUp, Users, CheckCircle2 } from 'lucide-react';
+import { Send, Sparkles, Brain, TrendingUp, Users, CheckCircle2 } from 'lucide-react';
 import { PageHeader } from '../components/layout/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -113,16 +113,16 @@ export function AI() {
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
                 <div className={`max-w-[85%] sm:max-w-[75%] flex gap-3 ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                  <div className={`w-8 h-8 md:w-10 md:h-10 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0 shadow-lg ${
-                    m.role === 'user' ? 'bg-[var(--primary)] text-white' : 'bg-white dark:bg-slate-800 text-[var(--primary)] border border-[var(--primary)]/20'
+                  <div className={`w-8 h-8 md:w-10 md:h-10 rounded-xl md:rounded-2xl overflow-hidden flex items-center justify-center shrink-0 shadow-lg ${
+                    m.role === 'user' ? 'bg-[var(--primary)] text-white' : 'bg-white border border-[var(--primary)]/20'
                   }`}>
-                    {m.role === 'user' ? <Users size={18} /> : <Bot size={20} className="animate-float" />}
+                    {m.role === 'user' ? <Users size={18} /> : <img src="/logo.png" alt="AI" className="w-full h-full object-cover" />}
                   </div>
                   <div className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'} min-w-0`}>
-                    <div className={`p-3 md:p-4 rounded-xl md:rounded-2xl text-xs md:text-sm leading-relaxed shadow-sm break-words w-full ${
+                    <div className={`p-4 md:p-5 rounded-2xl md:rounded-3xl text-sm md:text-base font-bold leading-relaxed shadow-md break-words w-full selection:bg-white/30 ${
                       m.role === 'user' 
                         ? 'bg-[var(--primary)] text-white rounded-tr-none' 
-                        : 'bg-white dark:bg-slate-800 text-[var(--text)] rounded-tl-none border border-[var(--border)]'
+                        : 'bg-white dark:bg-slate-100 text-[#0f172a] rounded-tl-none border border-[var(--border)] ring-1 ring-black/5'
                     }`}>
                       {m.content.split('\n').map((line, si) => (
                         <p key={si} className={si > 0 ? 'mt-2' : ''}>{line}</p>
@@ -138,8 +138,8 @@ export function AI() {
             {isTyping && (
               <div className="flex justify-start animate-fade-in">
                 <div className="flex gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-white dark:bg-slate-800 text-[var(--primary)] border border-[var(--primary)]/20 flex items-center justify-center shadow-lg">
-                    <Bot size={22} className="animate-pulse" />
+                  <div className="w-10 h-10 rounded-2xl overflow-hidden bg-white border border-[var(--primary)]/20 flex items-center justify-center shadow-lg">
+                    <img src="/logo.png" alt="AI" className="w-full h-full object-cover" />
                   </div>
                   <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl rounded-tl-none border border-[var(--border)] flex gap-1 items-center h-10">
                     <span className="w-1.5 h-1.5 bg-[var(--primary)] rounded-full animate-bounce [animation-delay:-0.3s]"></span>
