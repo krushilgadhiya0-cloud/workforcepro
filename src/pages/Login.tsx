@@ -16,7 +16,7 @@ import { fireCelebration } from '../utils/confetti';
 export function Login() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { login, logout, register, refresh, syncState, syncError, forgotPasswordReset } = useData();
+  const { login, logout, register, refresh, syncState, syncError, forgotPasswordReset, isEmailTaken } = useData();
   const [submitting, setSubmitting] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { emailError, checking, validateEmail, clearEmailError } = useEmailValidation();
@@ -91,7 +91,12 @@ export function Login() {
       }
       const user = await login(form.email, form.password);
       if (!user) {
-        setError('Invalid email or password. Please check your credentials.');
+        if (!isEmailTaken(form.email)) {
+          alert("Account not found. Please register first or check your email address.");
+          setError('Account not found.');
+        } else {
+          setError('Invalid email or password. Please check your credentials.');
+        }
         return;
       }
       if (user.role === 'superadmin') {
@@ -197,6 +202,11 @@ export function Login() {
       const emailCheck = await validateEmail(forgotEmail);
       if (!emailCheck.valid) throw new Error(emailCheck.message);
       
+      if (!isEmailTaken(forgotEmail)) {
+        alert("Account not found with this email. Please check and try again.");
+        throw new Error('Account not found.');
+      }
+
       const res = await fetch('/api/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

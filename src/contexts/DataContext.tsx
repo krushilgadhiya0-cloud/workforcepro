@@ -68,6 +68,7 @@ interface DataContextType extends AppData {
   deleteMessage: (id: string) => void;
   editPrivateMessage: (id: string, content: string) => void;
   deletePrivateMessage: (id: string) => void;
+  updateCompanySubscription: (id: string, plan: SubscriptionPlan | null, days?: number) => void;
 }
 
 const DataContext = createContext<DataContextType | null>(null);
@@ -1064,6 +1065,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [data, persist]);
 
+  const updateCompanySubscription = useCallback((id: string, plan: SubscriptionPlan | null, days?: number) => {
+    const d = { ...data };
+    const company = d.companies.find(c => c.id === id);
+    if (company) {
+      company.subscription = plan;
+      company.subscriptionDate = plan ? new Date().toISOString() : null;
+      
+      if (plan === 'trial') {
+        const trialEndDate = new Date();
+        trialEndDate.setDate(trialEndDate.getDate() + (days || 30));
+        company.trialEndDate = trialEndDate.toISOString();
+        company.hasUsedTrial = true;
+      } else {
+        company.trialEndDate = undefined;
+      }
+      
+      persist(d);
+    }
+  }, [data, persist]);
+
   return (
     <DataContext.Provider value={{
       ...data,
@@ -1124,6 +1145,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       deleteMessage,
       editPrivateMessage,
       deletePrivateMessage,
+      updateCompanySubscription,
     }}>
       {!loading && children}
       {loading && (

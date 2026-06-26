@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Building2, Search, Mail, Phone, MapPin, Briefcase, Users, CreditCard } from 'lucide-react';
+import { Building2, Search, Mail, Phone, MapPin, Briefcase, Users, CreditCard, Pencil, Trash2 } from 'lucide-react';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -8,9 +8,12 @@ import { Badge } from '../../components/ui/Badge';
 import { useData } from '../../contexts/DataContext';
 
 export function SuperAdminCompanies() {
-  const { companies, workers, payments, tasks } = useData();
+  const { companies, workers, payments, tasks, removeCompanyAsSuperAdmin, updateCompanySubscription } = useData();
   const [search, setSearch] = useState('');
   const [viewId, setViewId] = useState<string | null>(null);
+  const [subId, setSubId] = useState<string | null>(null);
+  const [newPlan, setNewPlan] = useState<'trial' | 'monthly' | 'yearly' | 'none'>('none');
+  const [trialDays, setTrialDays] = useState(30);
 
   const filtered = companies.filter((c) => 
     c.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -98,6 +101,12 @@ export function SuperAdminCompanies() {
 
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" className="flex-1" onClick={() => setViewId(c.id)}>View Details</Button>
+                <Button size="sm" variant="outline" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => { setSubId(c.id); setNewPlan((c.subscription as any) || 'none'); }}>
+                  <Pencil size={14} className="mr-1" /> Plan
+                </Button>
+                <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => { if(confirm(`Are you sure you want to delete ${c.name}? This will remove all their data permanently.`)) removeCompanyAsSuperAdmin(c.id); }}>
+                  <Trash2 size={14} />
+                </Button>
               </div>
             </Card>
           );
@@ -136,6 +145,45 @@ export function SuperAdminCompanies() {
             <Button className="w-full" onClick={() => setViewId(null)}>Close</Button>
           </div>
         )}
+      </Modal>
+      <Modal isOpen={!!subId} onClose={() => setSubId(null)} title="Manage Subscription" size="sm">
+        <div className="space-y-4 pt-2">
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-muted)] mb-1">Select Subscription Plan</label>
+            <select 
+              value={newPlan} 
+              onChange={(e) => setNewPlan(e.target.value as any)}
+              className="w-full bg-[var(--card)] border border-[var(--border)] rounded-xl px-4 py-2 text-sm outline-none focus:border-[var(--primary)]"
+            >
+              <option value="none">No Subscription</option>
+              <option value="trial">Trial Access</option>
+              <option value="monthly">Monthly Plan (₹799)</option>
+              <option value="yearly">Yearly Plan (₹4999)</option>
+            </select>
+          </div>
+
+          {newPlan === 'trial' && (
+            <div className="animate-fade-in">
+              <label className="block text-sm font-medium text-[var(--text-muted)] mb-1">Trial Duration (Days)</label>
+              <input 
+                type="number"
+                value={trialDays}
+                onChange={(e) => setTrialDays(parseInt(e.target.value) || 1)}
+                className="w-full bg-[var(--card)] border border-[var(--border)] rounded-xl px-4 py-2 text-sm outline-none focus:border-[var(--primary)]"
+              />
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" className="flex-1" onClick={() => setSubId(null)}>Cancel</Button>
+            <Button className="flex-1" onClick={() => {
+              if (subId) {
+                updateCompanySubscription(subId, newPlan === 'none' ? null : newPlan as any, newPlan === 'trial' ? trialDays : undefined);
+                setSubId(null);
+              }
+            }}>Update Plan</Button>
+          </div>
+        </div>
       </Modal>
 
     </div>

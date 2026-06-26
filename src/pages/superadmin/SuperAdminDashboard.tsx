@@ -14,6 +14,7 @@ export function SuperAdminDashboard() {
   const owners = users.filter((u) => u.role === 'owner');
   const subscriptionRevenue = companies.reduce((sum, c) => {
     if (!c.subscription) return sum;
+    if (c.subscription === 'trial') return sum + (c.subscriptionPrice ?? 1);
     return sum + (c.subscriptionPrice ?? (c.subscription === 'monthly' ? 799 : 4999));
   }, 0);
   const duePayments = payments.filter((p) => p.status === 'due').length;
