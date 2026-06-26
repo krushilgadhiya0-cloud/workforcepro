@@ -116,6 +116,17 @@ body {
   animation: slide-in 0.3s ease forwards;
 }
 
+@keyframes text-reveal {
+  0% { transform: translateY(100%); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.animate-text-reveal {
+  display: inline-block;
+  overflow: hidden;
+  animation: text-reveal 0.8s cubic-bezier(0.77, 0, 0.175, 1) forwards;
+}
+
 /* Shimmer Effect */
 @keyframes shimmer {
   0% { background-position: -200% 0; }

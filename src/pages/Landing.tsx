@@ -154,9 +154,10 @@ export function Landing() {
               <Sparkles size={14} /> Premium Workforce Management
             </div>
             <h1 className="text-5xl md:text-6xl font-bold text-[var(--text)] leading-tight mb-6">
-              Manage Your Workforce <span className="gradient-text">Smarter</span>
+              <span className="animate-text-reveal">Manage Your Workforce</span> <br/>
+              <span className="animate-text-reveal" style={{ animationDelay: '0.2s' }}><span className="gradient-text">Smarter</span></span>
             </h1>
-            <p className="text-lg text-[var(--text-muted)] mb-8 max-w-2xl mx-auto">
+            <p className="text-lg text-[var(--text-muted)] mb-8 max-w-2xl mx-auto animate-fade-in" style={{ animationDelay: '0.4s' }}>
               Assign tasks, track payments, manage workers, and grow your business efficiently.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

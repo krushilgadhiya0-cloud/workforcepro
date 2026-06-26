@@ -147,8 +147,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
           });
         }
         
+        // ... same cleanup logic ...
+        const originalUserCount = loaded.users.length;
+        const originalCompanyCount = loaded.companies.length;
+        
         // Purge unwanted users
-        const originalUserCount = cleaned.users.length;
         cleaned.users = cleaned.users.filter(u => 
           u.role === 'superadmin' || allowedEmails.includes(u.email.toLowerCase())
         );
@@ -166,13 +169,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
         cleaned.messages = cleaned.messages.filter(m => allowedCompanyIds.includes(m.companyId));
         cleaned.dailyRevenue = cleaned.dailyRevenue.filter(r => allowedCompanyIds.includes(r.companyId));
         
-        // Private messages are harder, let's keep it simple: only between allowed users
         const allowedUserIds = cleaned.users.map(u => u.id);
         cleaned.privateMessages = cleaned.privateMessages.filter(m => 
           allowedUserIds.includes(m.senderId) && allowedUserIds.includes(m.receiverId)
         );
 
-        if (cleaned.users.length !== originalUserCount || originalUserCount === 0) {
+        // If ANYTHING changed, save the new state immediately
+        const hasChanges = cleaned.users.length !== originalUserCount || 
+                           cleaned.companies.length !== originalCompanyCount ||
+                           originalUserCount === 0;
+
+        if (hasChanges) {
           saveData(cleaned).then(setData);
         } else {
           setData(loaded);
@@ -464,6 +471,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     d.tasks = d.tasks.filter((t) => t.companyId !== companyId);
     d.leaves = d.leaves.filter((l) => l.companyId !== companyId);
     d.payments = d.payments.filter((p) => p.companyId !== companyId);
+    d.messages = d.messages.filter((m) => m.companyId !== companyId);
+    d.dailyRevenue = d.dailyRevenue.filter((r) => r.companyId !== companyId);
     if (d.currentCompanyId === companyId) d.currentCompanyId = null;
     setData(d); // Update UI immediately
     persist(d);

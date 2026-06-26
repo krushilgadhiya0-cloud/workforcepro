@@ -34,30 +34,42 @@ export function AI() {
   const generateAIResponse = (query: string) => {
     const q = query.toLowerCase();
     
-    // Context-aware "Smart" responses based on actual data
-    if (q.includes('revenue') || q.includes('money') || q.includes('income')) {
+    // Revenue & Money
+    if (q.includes('revenue') || q.includes('money') || q.includes('income') || q.includes('profit') || q.includes('sale')) {
       const companyRevenue = dailyRevenue.filter(r => r.companyId === company?.id);
       const total = companyRevenue.reduce((sum, r) => sum + r.amount, 0);
       const avg = companyRevenue.length > 0 ? (total / companyRevenue.length).toFixed(2) : 0;
       return `Our revenue tracking shows a total of **₹${total.toLocaleString()}** logged across ${companyRevenue.length} entries. The daily average sits at **₹${avg}**. ${total > 5000 ? 'Trends look positive! I recommend analyzing high-performing days to replicate success.' : 'I suggest logging more frequent entries to get a clearer picture of your growth.'}`;
     }
 
-    if (q.includes('worker') || q.includes('staff') || q.includes('employee') || q.includes('team')) {
+    // Workers & Team
+    if (q.includes('worker') || q.includes('staff') || q.includes('employee') || q.includes('team') || q.includes('people')) {
       const companyWorkers = workers.filter(w => w.companyId === company?.id);
-      return `You currently have **${companyWorkers.length}** active staff members. I've noticed most tasks are being handled efficiently, but ensure that joining dates are correctly tracked for future payroll audits. Would you like a list of top performers?`;
+      return `You currently have **${companyWorkers.length}** active staff members. ${companyWorkers.length > 0 ? "I've noticed most tasks are being handled efficiently, but ensure that joining dates are correctly tracked for future payroll audits." : "You haven't added any workers yet. Go to the Workers section to build your team!"} Would you like a list of top performers?`;
     }
 
-    if (q.includes('task') || q.includes('work') || q.includes('pending')) {
+    // Tasks & Work
+    if (q.includes('task') || q.includes('work') || q.includes('pending') || q.includes('todo') || q.includes('assignment')) {
       const companyTasks = tasks.filter(t => workers.find(w => w.id === t.workerId)?.companyId === company?.id);
       const pending = companyTasks.filter(t => t.status !== 'completed').length;
-      return `There are currently **${pending}** pending tasks. I highly suggest following up on tasks older than 3 days to maintain optimal workflow. Specifically, focus on high-priority assignments first.`;
+      return `There are currently **${pending}** pending tasks in your workflow. I highly suggest following up on tasks older than 3 days to maintain optimal speed. Focus on high-priority assignments first.`;
     }
 
-    if (q.includes('help') || q.includes('what can you do')) {
-      return "I can analyze your business data in real-time. Ask me about your **revenue trends**, **team performance**, **pending tasks**, or even for a **summary of your business growth**!";
+    // Subscription & Payment
+    if (q.includes('subscription') || q.includes('plan') || q.includes('payment') || q.includes('price')) {
+      return `Your current plan for **${company?.name}** is the **${company?.subscription || 'Trial'}** plan. ${company?.trialEndDate ? `Your trial ends on ${new Date(company.trialEndDate).toLocaleDateString()}.` : 'You are on a premium plan with full access to all features!'}`;
     }
 
-    return "That's an interesting question. While I'm learning more about your specific management style, I can tell you that based on your current workforce configuration, you are well-positioned for growth. Try asking about 'revenue trends' or 'task status' for specific insights.";
+    // Greeting & Identity
+    if (q.includes('hi') || q.includes('hello') || q.includes('hey') || q.includes('who are you')) {
+      return `Hello! I am your WorkForce AI. I specialize in analyzing your company **${company?.name}** to help you grow. You can ask me about your staff, revenue, or tasks!`;
+    }
+
+    if (q.includes('help') || q.includes('what can you do') || q.includes('capability')) {
+      return "I can analyze your business data in real-time. Ask me about your **revenue trends**, **team performance**, **pending tasks**, or a **summary of your business growth**. I can also help you understand your subscription and task priorities!";
+    }
+
+    return "I've analyzed that request, and while I don't have a specific metric for it yet, I can tell you that your overall business health is stable based on your current data points. Try asking about your 'monthly revenue', 'active workers', or 'pending tasks' for deeper insights.";
   };
 
   const handleSend = async (e?: React.FormEvent) => {
@@ -97,17 +109,17 @@ export function AI() {
         <Card className="flex-1 flex flex-col p-0 overflow-hidden glass-card border-[var(--primary)]/20 shadow-2xl relative">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[var(--primary)] to-transparent opacity-50" />
           
-          <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-slate-500/5">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar bg-slate-500/5">
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
-                <div className={`max-w-[85%] flex gap-3 ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-lg ${
+                <div className={`max-w-[85%] sm:max-w-[75%] flex gap-3 ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                  <div className={`w-8 h-8 md:w-10 md:h-10 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0 shadow-lg ${
                     m.role === 'user' ? 'bg-[var(--primary)] text-white' : 'bg-white dark:bg-slate-800 text-[var(--primary)] border border-[var(--primary)]/20'
                   }`}>
-                    {m.role === 'user' ? <Users size={20} /> : <Bot size={22} className="animate-float" />}
+                    {m.role === 'user' ? <Users size={18} /> : <Bot size={20} className="animate-float" />}
                   </div>
-                  <div className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
-                    <div className={`p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${
+                  <div className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'} min-w-0`}>
+                    <div className={`p-3 md:p-4 rounded-xl md:rounded-2xl text-xs md:text-sm leading-relaxed shadow-sm break-words w-full ${
                       m.role === 'user' 
                         ? 'bg-[var(--primary)] text-white rounded-tr-none' 
                         : 'bg-white dark:bg-slate-800 text-[var(--text)] rounded-tl-none border border-[var(--border)]'
@@ -116,7 +128,7 @@ export function AI() {
                         <p key={si} className={si > 0 ? 'mt-2' : ''}>{line}</p>
                       ))}
                     </div>
-                    <span className="text-[10px] text-[var(--text-muted)] mt-1.5 opacity-60">
+                    <span className="text-[9px] md:text-[10px] text-[var(--text-muted)] mt-1.5 opacity-60">
                       {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
