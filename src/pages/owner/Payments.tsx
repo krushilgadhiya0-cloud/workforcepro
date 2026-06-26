@@ -19,8 +19,11 @@ export function Payments() {
 
   const openAdd = () => {
     if (!checkSubscription()) return;
+    const firstWorkerId = companyWorkers[0]?.id || '';
+    setForm({ workerId: firstWorkerId, amount: '', dueDate: new Date().toISOString().split('T')[0] });
     setShowModal(true);
   };
+
 
   const companyPayments = payments.filter((p) => p.companyId === company?.id);
   const companyWorkers = workers.filter((w) => w.companyId === company?.id);

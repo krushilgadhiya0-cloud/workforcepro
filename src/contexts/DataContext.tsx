@@ -139,18 +139,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
       
       try {
         const refreshed = await loadData();
-        if (syncLockRef.current) return;
+        if (!refreshed || syncLockRef.current) return;
 
-        setData(current => {
-          // Merge remote data while preserving local active session
-          return { ...refreshed, currentUserId: current.currentUserId, currentCompanyId: current.currentCompanyId };
-        });
+        setData(current => ({
+          ...refreshed,
+          currentUserId: current.currentUserId,
+          currentCompanyId: current.currentCompanyId
+        }));
         updateSyncStatus();
       } catch (e) {
         console.warn('Background sync failed', e);
       }
-    }, 4000); // Polling slightly slower to prevent collisions
+    }, 4000);
     return () => clearInterval(interval);
+
   }, [updateSyncStatus]);
 
   const appendNotification = (d: AppData, notif: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
@@ -529,12 +531,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const addWorker = useCallback((workerData: Omit<Worker, 'id' | 'createdAt' | 'userId' | 'attendanceStatus'> & { password: string }): Worker | null => {
     const email = assertValidEmailFormat(workerData.email);
-    if (data.users.some((u) => u.email.toLowerCase() === email)) {
-      return null;
-    }
-    if (workerData.phone && data.users.some((u) => u.phone === workerData.phone)) {
-      return null;
-    }
+    if (data.users.some(u => u.email.toLowerCase() === email)) return null;
+
     const user: User = {
       id: generateId(),
       email,
@@ -558,32 +556,36 @@ export function DataProvider({ children }: { children: ReactNode }) {
       attendanceStatus: 'present',
       createdAt: new Date().toISOString(),
     };
-    const d = { ...data };
-    d.users.push(user);
-    d.workers.push(worker);
-    appendNotification(d, {
-      userId: user.id,
-      title: 'Account Registered',
-      message: `Your worker account is ready. Login with email: ${workerData.email} and the password shared by your admin.`,
-      type: 'general',
-    });
-    const company = d.companies.find((c) => c.id === workerData.companyId);
-    appendActivity(d, {
-      type: 'worker_added',
-      userId: user.id,
-      userName: worker.name,
-      userRole: 'worker',
-      companyId: company?.id,
-      companyName: company?.name,
-      message: `Worker ${worker.name} was added to ${company?.name ?? 'a company'}`,
-    });
-    persist(d);
-    
-    // SEND WELCOME EMAIL WITH PASSWORD
-    void sendWelcomeEmail(workerData.email, workerData.name, workerData.password);
 
+    setData(current => {
+      if (current.users.some(u => u.email.toLowerCase() === email)) return current;
+      const d = { ...current, users: [...current.users, user], workers: [...current.workers, worker] };
+      
+      appendNotification(d, {
+        userId: user.id,
+        title: 'Account Registered',
+        message: `Your worker account is ready. Login with email: ${workerData.email}`,
+        type: 'general',
+      });
+      const company = d.companies.find(c => c.id === workerData.companyId);
+      appendActivity(d, {
+        type: 'worker_added',
+        userId: user.id,
+        userName: worker.name,
+        userRole: 'worker',
+        companyId: company?.id,
+        companyName: company?.name,
+        message: `Worker ${worker.name} was added to ${company?.name || 'company'}`,
+      });
+      persist(d);
+      return d;
+    });
+
+    void sendWelcomeEmail(workerData.email, workerData.name, workerData.password);
     return worker;
-  }, [data, persist]);
+  }, [data.users, persist]);
+
+
 
   const updateWorker = useCallback((id: string, updates: Partial<Worker>) => {
     const d = { ...data };
