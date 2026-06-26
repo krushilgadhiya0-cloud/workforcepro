@@ -65,7 +65,7 @@ export function SideCommunication({ isOpen, onClose }: SideCommunicationProps) {
             <p className="text-xs">No company messages yet.</p>
           </div>
         ) : (
-          companyMessages.map((m, i) => {
+          companyMessages.map((m) => {
             const isMe = m.senderId === user?.id;
             const isAI = m.senderId === 'ai-assistant';
             

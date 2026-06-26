@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, User as UserIcon, Shield, Briefcase, MessageSquare, Pencil, Trash2 } from 'lucide-react';
+import { Send, User as UserIcon, Shield, Briefcase, MessageSquare, Pencil, Trash2, Sparkles } from 'lucide-react';
 import { PageHeader } from '../components/layout/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
