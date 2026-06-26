@@ -9,7 +9,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 export function WorkerSettings() {
   const { settings, updateSettings, changePassword } = useData();
   const user = useCurrentUser();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, accentColor, setAccentColor } = useTheme();
   const [passwords, setPasswords] = useState({ old: '', new: '', confirm: '' });
   const [passwordMsg, setPasswordMsg] = useState('');
 
@@ -52,16 +52,39 @@ export function WorkerSettings() {
         </Card>
 
         <Card>
-          <h3 className="text-lg font-semibold text-[var(--text)] mb-4">Theme</h3>
-          <div className="flex gap-3">
-            <button onClick={() => setTheme('light')} className={`flex-1 p-4 rounded-xl border-2 transition-all cursor-pointer ${theme === 'light' ? 'border-[var(--primary)] bg-[var(--primary)]/5' : 'border-[var(--border)]'}`}>
+          <h3 className="text-lg font-semibold text-[var(--text)] mb-4">Theme & Appearance</h3>
+          <div className="flex gap-3 mb-6">
+            <button onClick={() => setTheme('light')} className={`flex-1 p-4 rounded-xl border-2 transition-all cursor-pointer ${theme === 'light' ? 'border-[var(--primary)] bg-[var(--primary)]/5 shadow-inner' : 'border-[var(--border)] hover:bg-[var(--border)]/20'}`}>
               <span className="text-2xl">☀️</span>
               <p className="text-sm font-medium mt-2">Light</p>
             </button>
-            <button onClick={() => setTheme('dark')} className={`flex-1 p-4 rounded-xl border-2 transition-all cursor-pointer ${theme === 'dark' ? 'border-[var(--primary)] bg-[var(--primary)]/5' : 'border-[var(--border)]'}`}>
+            <button onClick={() => setTheme('dark')} className={`flex-1 p-4 rounded-xl border-2 transition-all cursor-pointer ${theme === 'dark' ? 'border-[var(--primary)] bg-[var(--primary)]/5 shadow-inner' : 'border-[var(--border)] hover:bg-[var(--border)]/20'}`}>
               <span className="text-2xl">🌙</span>
               <p className="text-sm font-medium mt-2">Dark</p>
             </button>
+          </div>
+
+          <p className="text-sm font-medium text-[var(--text)] mb-3">Accent Color</p>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+            {[
+              { id: 'indigo', name: 'Indigo', color: 'bg-[#2563eb]' },
+              { id: 'rose', name: 'Rose', color: 'bg-[#e11d48]' },
+              { id: 'emerald', name: 'Emerald', color: 'bg-[#10b981]' },
+              { id: 'amber', name: 'Amber', color: 'bg-[#f59e0b]' },
+              { id: 'violet', name: 'Violet', color: 'bg-[#7c3aed]' },
+              { id: 'slate', name: 'Slate', color: 'bg-[#334155]' },
+            ].map((c) => (
+              <button 
+                key={c.id} 
+                onClick={() => setAccentColor(c.id)}
+                className="group flex flex-col items-center gap-2 cursor-pointer"
+              >
+                <div className={`w-8 h-8 rounded-full ${c.color} flex items-center justify-center transition-all duration-300 ring-offset-2 ${accentColor === c.id ? 'ring-2 ring-[var(--primary)] scale-110' : 'hover:scale-110 opacity-70 hover:opacity-100'}`}>
+                  {accentColor === c.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                </div>
+                <span className={`text-[9px] font-bold uppercase tracking-wider ${accentColor === c.id ? 'text-[var(--primary)]' : 'text-[var(--text-muted)]'}`}>{c.name}</span>
+              </button>
+            ))}
           </div>
         </Card>
 

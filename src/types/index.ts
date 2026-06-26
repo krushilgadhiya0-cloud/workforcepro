@@ -120,6 +120,7 @@ export interface Notification {
 
 export interface AppSettings {
   theme: 'light' | 'dark';
+  accentColor?: 'indigo' | 'rose' | 'emerald' | 'amber' | 'violet' | 'slate';
   emailNotifications: boolean;
   pushNotifications: boolean;
 }

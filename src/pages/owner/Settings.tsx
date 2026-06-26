@@ -15,7 +15,7 @@ export function Settings() {
   } = useData();
   const company = useCurrentCompany();
   const user = useCurrentUser();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, accentColor, setAccentColor } = useTheme();
   const isOwner = user?.role === 'owner';
 
   const myCompanies = isOwner
@@ -81,15 +81,38 @@ export function Settings() {
         <Card>
           <h3 className="text-lg font-semibold text-[var(--text)] mb-1">Theme Settings</h3>
           <p className="text-xs text-[var(--text-muted)] mb-4">Saved automatically across all pages.</p>
-          <div className="flex gap-3">
-            <button onClick={() => setTheme('light')} className={`flex-1 p-4 rounded-xl border-2 transition-all cursor-pointer ${theme === 'light' ? 'border-[var(--primary)] bg-[var(--primary)]/5' : 'border-[var(--border)]'}`}>
+          <div className="flex gap-3 mb-6">
+            <button onClick={() => setTheme('light')} className={`flex-1 p-4 rounded-xl border-2 transition-all cursor-pointer ${theme === 'light' ? 'border-[var(--primary)] bg-[var(--primary)]/5 shadow-inner' : 'border-[var(--border)] hover:bg-[var(--border)]/20'}`}>
               <span className="text-2xl">☀️</span>
               <p className="text-sm font-medium mt-2">Light Mode</p>
             </button>
-            <button onClick={() => setTheme('dark')} className={`flex-1 p-4 rounded-xl border-2 transition-all cursor-pointer ${theme === 'dark' ? 'border-[var(--primary)] bg-[var(--primary)]/5' : 'border-[var(--border)]'}`}>
+            <button onClick={() => setTheme('dark')} className={`flex-1 p-4 rounded-xl border-2 transition-all cursor-pointer ${theme === 'dark' ? 'border-[var(--primary)] bg-[var(--primary)]/5 shadow-inner' : 'border-[var(--border)] hover:bg-[var(--border)]/20'}`}>
               <span className="text-2xl">🌙</span>
               <p className="text-sm font-medium mt-2">Dark Mode</p>
             </button>
+          </div>
+
+          <p className="text-sm font-medium text-[var(--text)] mt-6 mb-3">UI Accent Color</p>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+            {[
+              { id: 'indigo', name: 'Indigo', color: 'bg-[#2563eb]' },
+              { id: 'rose', name: 'Rose', color: 'bg-[#e11d48]' },
+              { id: 'emerald', name: 'Emerald', color: 'bg-[#10b981]' },
+              { id: 'amber', name: 'Amber', color: 'bg-[#f59e0b]' },
+              { id: 'violet', name: 'Violet', color: 'bg-[#7c3aed]' },
+              { id: 'slate', name: 'Slate', color: 'bg-[#334155]' },
+            ].map((c) => (
+              <button 
+                key={c.id} 
+                onClick={() => setAccentColor(c.id)}
+                className="group flex flex-col items-center gap-2 cursor-pointer"
+              >
+                <div className={`w-10 h-10 rounded-full ${c.color} flex items-center justify-center transition-all duration-300 ring-offset-2 ${accentColor === c.id ? 'ring-2 ring-[var(--primary)] scale-110' : 'hover:scale-110 opacity-70 hover:opacity-100'}`}>
+                  {accentColor === c.id && <div className="w-2 h-2 rounded-full bg-white shadow-sm" />}
+                </div>
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${accentColor === c.id ? 'text-[var(--primary)]' : 'text-[var(--text-muted)]'}`}>{c.name}</span>
+              </button>
+            ))}
           </div>
         </Card>
 
