@@ -124,12 +124,13 @@ export function Communication({ companyId, isSuperAdmin = false }: Communication
                       <div className="group relative">
                         <div className={`p-3 rounded-2xl text-sm ${
                           m.isDeleted ? 'bg-slate-500/5 text-slate-400 italic border border-slate-200/50' :
+                          m.senderId === 'ai-assistant' ? 'bg-gradient-to-br from-indigo-600 to-violet-700 text-white rounded-tl-none shadow-indigo-200 shadow-lg border border-indigo-400/30' :
                           isMe ? 'bg-[var(--primary)] text-white rounded-tr-none shadow-sm' : 'bg-[var(--border)]/30 text-[var(--text)] rounded-tl-none'
                         }`}>
                           {m.content}
                         </div>
                         
-                        {!isSuperAdmin && !m.isDeleted && (
+                        {!isSuperAdmin && !m.isDeleted && m.senderId !== 'ai-assistant' && (
                           <div className={`absolute -top-6 ${isMe ? 'right-0' : 'left-0'} hidden group-hover:flex items-center gap-1.5 p-1 px-2 rounded-lg bg-white dark:bg-slate-800 shadow-xl border border-[var(--border)] animate-fade-in z-10`}>
                             {(isMe && !m.isDeleted) && (
                               <button onClick={() => handleEdit(m.id, m.content)} className="p-1 text-slate-500 hover:text-[var(--primary)] transition-colors"><Pencil size={12} /></button>
@@ -141,6 +142,7 @@ export function Communication({ companyId, isSuperAdmin = false }: Communication
                         )}
                       </div>
                     )}
+
 
                     <div className="flex items-center gap-2 mt-1 px-1">
                       {m.updatedAt && !m.isDeleted && <span className="text-[9px] text-[var(--text-muted)] italic opacity-60">edited</span>}
@@ -173,18 +175,21 @@ export function Communication({ companyId, isSuperAdmin = false }: Communication
       </Card>
       
       {/* Help Note */}
-      <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/10 flex items-start gap-3">
-        <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-500">
-           <MessageSquare size={16} />
+      <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/10 flex items-start gap-4">
+        <div className="p-2.5 rounded-xl bg-indigo-500 text-white shadow-lg shadow-indigo-200">
+           <Sparkles size={18} />
         </div>
         <div>
-          <h4 className="text-sm font-medium text-indigo-700 dark:text-indigo-400">Communication Guidelines</h4>
-          <p className="text-xs text-indigo-600/70 dark:text-indigo-400/60 mt-0.5">
-            Use this space for professional updates, asking questions to your admin, or sharing task-related concerns. 
-            All messages are visible to your company admins and super-administrators.
+          <h4 className="text-sm font-bold text-indigo-700 dark:text-indigo-400 flex items-center gap-2">
+            AI-Enhanced Collaboration
+            <span className="text-[10px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full uppercase tracking-wider">New</span>
+          </h4>
+          <p className="text-xs text-indigo-600/70 dark:text-indigo-400/60 mt-0.5 leading-relaxed">
+            Mention <span className="font-bold text-indigo-700">@ai</span> or <span className="font-bold text-indigo-700">@chatgpt</span> in your messages to get instant data insights, revenue summaries, or business advice visible to everyone in the group.
           </p>
         </div>
       </div>
+
     </div>
   );
 }

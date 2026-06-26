@@ -903,8 +903,59 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
 
     const d = { ...data, messages: [...data.messages, newMessage] };
+
+    // AI MENTION LOGIC (ChatGPT Group Chat style)
+    const lowerContent = content.toLowerCase();
+    if (lowerContent.includes('@ai') || lowerContent.includes('@chatgpt')) {
+      // Simulate AI processing
+      setTimeout(() => {
+        setData(current => {
+          const aiResponse = generateAIResponseInternal(content, current, companyId);
+          const aiMessage: CommunicationMessage = {
+            id: generateId(),
+            companyId,
+            senderId: 'ai-assistant',
+            senderName: 'WorkForce AI',
+            senderRole: 'admin',
+            content: aiResponse,
+            createdAt: new Date().toISOString(),
+          };
+          const updated = { ...current, messages: [...current.messages, aiMessage] };
+          saveData(updated);
+          return updated;
+        });
+      }, 1500);
+    }
+
     persist(d);
   }, [data, persist]);
+
+  // Internal helper for AI responses in Group Chat (ChatGPT-style Participation)
+  const generateAIResponseInternal = (query: string, currentData: AppData, companyId: string) => {
+    const q = query.toLowerCase();
+    const currentUserName = currentData.users.find(u => u.id === currentData.currentUserId)?.name;
+    const company = currentData.companies.find(c => c.id === companyId);
+    
+    if (q.includes('revenue') || q.includes('money') || q.includes('profit')) {
+      const revenue = currentData.dailyRevenue.filter(r => r.companyId === companyId);
+      const total = revenue.reduce((sum, r) => sum + r.amount, 0);
+      return `[AI Group Analysis] @${currentUserName}, I've checked the records. Our total revenue is ₹${total.toLocaleString()}. We should focus on high-performing days to maintain growth!`;
+    }
+    
+    if (q.includes('worker') || q.includes('team') || q.includes('staff')) {
+      const workers = currentData.workers.filter(w => w.companyId === companyId);
+      return `@${currentUserName}, we have ${workers.length} active team members. Ensuring clear task assignments will keep the team motivated.`;
+    }
+
+    if (q.includes('task') || q.includes('pending') || q.includes('priority')) {
+      const companyTasks = currentData.tasks.filter(t => currentData.workers.find(w => w.id === t.workerId)?.companyId === companyId);
+      const pending = companyTasks.filter(t => t.status !== 'completed').length;
+      return `@${currentUserName}, there are ${pending} pending tasks. I recommend focusing on the oldest assignments first.`;
+    }
+
+    return `Hello! I am your WorkForce AI. I am now a participant in this group chat. Tag me with @ai or @chatgpt whenever you need data insights or help with ${company?.name || 'the company'}.`;
+  };
+
 
   const sendPrivateMessage = useCallback((receiverId: string, content: string) => {
     if (!data.currentUserId) return;
