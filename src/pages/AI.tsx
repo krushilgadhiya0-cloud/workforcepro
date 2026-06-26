@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bot, Send, Sparkles, Brain, TrendingUp, Users, CheckCircle2, MessageSquare } from 'lucide-react';
+import { Bot, Send, Sparkles, Brain, TrendingUp, Users, CheckCircle2 } from 'lucide-react';
 import { PageHeader } from '../components/layout/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -12,7 +12,7 @@ interface Message {
 }
 
 export function AI() {
-  const { data, workers, tasks, dailyRevenue } = useData();
+  const { workers, tasks, dailyRevenue } = useData();
   const company = useCurrentCompany();
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -199,7 +199,7 @@ export function AI() {
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl bg-slate-500/5">
                 <span className="text-xs text-[var(--text-muted)]">Data Analyzed</span>
-                <span className="text-xs font-bold">{data.tasks.length + data.workers.length + data.dailyRevenue.length} points</span>
+                <span className="text-xs font-bold">{tasks.length + workers.length + dailyRevenue.length} points</span>
               </div>
               <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
                 <div className="flex items-center gap-2 mb-1">
