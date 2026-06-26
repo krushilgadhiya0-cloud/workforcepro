@@ -6,19 +6,28 @@ import { Card } from '../../components/ui/Card';
 import { useData } from '../../contexts/DataContext';
 
 export function SuperAdminPayments() {
-  const { companies } = useData();
+  const { companies, users } = useData();
   const [search, setSearch] = useState('');
 
   const subscriptionPayments = companies
     .filter((c) => c.subscription && c.name.toLowerCase().includes(search.toLowerCase()))
-    .map((c) => ({
-      id: c.id,
-      companyName: c.name,
-      plan: c.subscription!,
-      amount: c.subscriptionPrice ?? (c.subscription === 'monthly' ? 799 : 4999),
-      date: c.subscriptionDate,
-      status: 'paid' as const,
-    }));
+    .map((c) => {
+      let amount = c.subscriptionPrice;
+      if (amount === undefined || amount === null) {
+        if (c.subscription === 'trial') amount = 1;
+        else if (c.subscription === 'monthly') amount = 799;
+        else if (c.subscription === 'yearly') amount = 4999;
+        else amount = 0;
+      }
+      return {
+        id: c.id,
+        companyName: c.name,
+        plan: c.subscription!,
+        amount,
+        date: c.subscriptionDate,
+        status: 'paid' as const,
+      };
+    });
 
   const totalSubscription = subscriptionPayments.reduce((s, p) => s + p.amount, 0);
 

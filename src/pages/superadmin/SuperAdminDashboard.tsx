@@ -14,8 +14,14 @@ export function SuperAdminDashboard() {
   const owners = users.filter((u) => u.role === 'owner');
   const subscriptionRevenue = companies.reduce((sum, c) => {
     if (!c.subscription) return sum;
-    if (c.subscription === 'trial') return sum + (c.subscriptionPrice ?? 1);
-    return sum + (c.subscriptionPrice ?? (c.subscription === 'monthly' ? 799 : 4999));
+    let price = c.subscriptionPrice;
+    if (price === undefined || price === null) {
+      if (c.subscription === 'trial') price = 1;
+      else if (c.subscription === 'monthly') price = 799;
+      else if (c.subscription === 'yearly') price = 4999;
+      else price = 0;
+    }
+    return sum + price;
   }, 0);
   const duePayments = payments.filter((p) => p.status === 'due').length;
 

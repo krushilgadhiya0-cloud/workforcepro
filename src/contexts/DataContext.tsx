@@ -197,32 +197,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
       });
   }, [updateSyncStatus]);
 
-  // Background Sync for real-time updates
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const refreshed = await loadData();
-        // Only trigger update if something actually changed to avoid re-renders
-        // For simplicity in this demo, we'll just set it. 
-        // In a real app we'd compare hashes or timestamps.
-        setData(current => {
-          // Keep current local session
-          return { ...refreshed, currentUserId: current.currentUserId, currentCompanyId: current.currentCompanyId };
-        });
-        updateSyncStatus();
-      } catch (e) {
-        console.warn('Background sync failed', e);
-      }
-    }, 1000); // Sync every 1 second for ultra-fast updates
-
-    return () => clearInterval(interval);
-  }, [updateSyncStatus]);
-
   const persist = useCallback(async (newData: AppData) => {
     const session = { currentUserId: newData.currentUserId, currentCompanyId: newData.currentCompanyId };
-    const saved = await saveData(newData);
+    syncLockRef.current = true;
+    try {
+      const saved = await saveData(newData);
+      setData({ ...saved, ...session });
+    } finally {
+      setTimeout(() => { syncLockRef.current = false; }, 3000);
+    }
     updateSyncStatus();
-    setData({ ...saved, ...session });
   }, [updateSyncStatus]);
 
   const refresh = useCallback(async (): Promise<AppData> => {
@@ -230,6 +214,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateSyncStatus();
     setData(synced);
     return synced;
+  }, [updateSyncStatus]);
+
+  // Background Sync for real-time updates
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      if (syncLockRef.current) return;
+      
+      try {
+        const refreshed = await loadData();
+        if (syncLockRef.current) return;
+
+        setData(current => {
+          // Merge remote data while preserving local active session
+          return { ...refreshed, currentUserId: current.currentUserId, currentCompanyId: current.currentCompanyId };
+        });
+        updateSyncStatus();
+      } catch (e) {
+        console.warn('Background sync failed', e);
+      }
+    }, 4000); // Polling slightly slower to prevent collisions
+    return () => clearInterval(interval);
   }, [updateSyncStatus]);
 
   const appendNotification = (d: AppData, notif: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
@@ -883,13 +888,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const getCompanyMessages = useCallback((companyId: string) => data.messages.filter((m) => m.companyId === companyId), [data.messages]);
   const getUserNotifications = useCallback((userId: string) => data.notifications.filter((n) => n.userId === userId).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), [data.notifications]);
 
-  const sendMessage = useCallback((content: string) => {
+  const sendMessage = useCallback(async (content: string) => {
     const user = data.users.find((u) => u.id === data.currentUserId);
     if (!user) return;
     
-    // Support owners who might not have companyId on their user object
     const companyId = data.currentCompanyId || user.companyId || (user.role === 'owner' ? data.companies.find(c => c.ownerId === user.id)?.id : null);
-    
     if (!companyId) return;
 
     const newMessage: CommunicationMessage = {
@@ -902,32 +905,36 @@ export function DataProvider({ children }: { children: ReactNode }) {
       createdAt: new Date().toISOString(),
     };
 
-    const d = { ...data, messages: [...data.messages, newMessage] };
+    // Optimistic Update
+    setData(prev => ({ ...prev, messages: [...prev.messages, newMessage] }));
 
     // AI MENTION LOGIC (ChatGPT Group Chat style)
     const lowerContent = content.toLowerCase();
     if (lowerContent.includes('@ai') || lowerContent.includes('@chatgpt')) {
-      // Simulate AI processing
-      setTimeout(() => {
-        setData(current => {
-          const aiResponse = generateAIResponseInternal(content, current, companyId);
-          const aiMessage: CommunicationMessage = {
-            id: generateId(),
-            companyId,
-            senderId: 'ai-assistant',
-            senderName: 'WorkForce AI',
-            senderRole: 'admin',
-            content: aiResponse,
-            createdAt: new Date().toISOString(),
-          };
-          const updated = { ...current, messages: [...current.messages, aiMessage] };
-          saveData(updated);
+      setTimeout(async () => {
+        const aiResponse = generateAIResponseInternal(content, data, companyId);
+        const aiMessage: CommunicationMessage = {
+          id: generateId(),
+          companyId,
+          senderId: 'ai-assistant',
+          senderName: 'WorkForce AI',
+          senderRole: 'admin',
+          content: aiResponse,
+          createdAt: new Date().toISOString(),
+        };
+        
+        // Update both local and remote with the full set including AI reply
+        setData(prev => {
+          const updated = { ...prev, messages: [...prev.messages, aiMessage] };
+          void saveData(updated); // Side effect outside of render/updater is better handled here via void
           return updated;
         });
       }, 1500);
+    } else {
+      // Just persist the user message if no AI tag
+      const d = { ...data, messages: [...data.messages, newMessage] };
+      await persist(d);
     }
-
-    persist(d);
   }, [data, persist]);
 
   // Internal helper for AI responses in Group Chat (ChatGPT-style Participation)
@@ -955,6 +962,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     return `Hello! I am your WorkForce AI. I am now a participant in this group chat. Tag me with @ai or @chatgpt whenever you need data insights or help with ${company?.name || 'the company'}.`;
   };
+
 
 
   const sendPrivateMessage = useCallback((receiverId: string, content: string) => {

@@ -2,20 +2,26 @@ import type { AppData } from '../src/types';
 import { mergeAppData, normalizeAppData } from './data-sync.js';
 import { getKvStore, getRedisEnvStatus, isKvConfigured } from './kv-store.js';
 import { isTcpRedisConfigured } from './redis-tcp-env.js';
+import { isSupabaseConfigured, supabaseAdmin } from './supabase.js';
 import { ensureSuperAdminInData } from './super-admin.js';
 
 const KV_KEY = 'workforce:app-data';
 const BLOB_PATH = 'workforce-app-data.json';
+const SUPABASE_TABLE = 'app_storage';
 
-export type StorageBackend = 'redis' | 'redis-tcp' | 'blob' | 'none';
+export type StorageBackend = 'supabase' | 'redis' | 'redis-tcp' | 'blob' | 'none';
 
 export function getStorageBackend(): StorageBackend {
-  // Always prioritize the fuchsia dog (REST) because it never crashes on Vercel
+  // Respect the user's wish to connect to supabase
+  if (isSupabaseConfigured()) return 'supabase';
+  
+  // Backwards compatibility / fallbacks
   if (isKvConfigured()) return 'redis';
   if (process.env.BLOB_READ_WRITE_TOKEN) return 'blob';
   if (isTcpRedisConfigured()) return 'redis-tcp';
   return 'none';
 }
+
 
 export function getStorageStatus() {
   const backend = getStorageBackend();
@@ -88,9 +94,31 @@ async function saveToBlob(data: AppData): Promise<AppData> {
   return merged;
 }
 
+async function loadFromSupabase(): Promise<AppData | null> {
+  const { data, error } = await supabaseAdmin
+    .from(SUPABASE_TABLE)
+    .select('data')
+    .eq('key', KV_KEY)
+    .single();
+
+  if (error || !data) return ensureSuperAdminInData(normalizeAppData(null));
+  return ensureSuperAdminInData(normalizeAppData(data.data as object));
+}
+
+async function saveToSupabase(data: AppData): Promise<AppData> {
+  const finalData = ensureSuperAdminInData(data);
+  const { error } = await supabaseAdmin
+    .from(SUPABASE_TABLE)
+    .upsert({ key: KV_KEY, data: finalData, updated_at: new Date().toISOString() });
+
+  if (error) throw new Error(`Supabase save failed: ${error.message}`);
+  return finalData;
+}
+
 export async function loadStoredAppData(): Promise<AppData | null> {
   const backend = getStorageBackend();
   try {
+    if (backend === 'supabase') return await loadFromSupabase();
     if (backend === 'redis') return await loadFromRestRedis();
     if (backend === 'redis-tcp') return await loadFromTcpRedis();
     if (backend === 'blob') return await loadFromBlob();
@@ -104,8 +132,10 @@ export async function loadStoredAppData(): Promise<AppData | null> {
 export async function saveStoredAppData(data: AppData): Promise<AppData> {
   const backend = getStorageBackend();
   const stripped = { ...data, currentUserId: null, currentCompanyId: null };
+  if (backend === 'supabase') return saveToSupabase(stripped);
   if (backend === 'redis') return saveToRestRedis(stripped);
   if (backend === 'redis-tcp') return saveToTcpRedis(stripped);
   if (backend === 'blob') return saveToBlob(stripped);
-  throw new Error('No cloud storage configured. Connect Redis to your Vercel project and redeploy.');
+  throw new Error('No cloud storage configured. Connect Redis/Supabase to your Vercel project and redeploy.');
 }
+
