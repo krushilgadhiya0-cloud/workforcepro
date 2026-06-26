@@ -6,7 +6,7 @@ import { Card } from '../../components/ui/Card';
 import { useData } from '../../contexts/DataContext';
 
 export function SuperAdminPayments() {
-  const { companies, users } = useData();
+  const { companies } = useData();
   const [search, setSearch] = useState('');
 
   const subscriptionPayments = companies

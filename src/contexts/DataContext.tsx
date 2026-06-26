@@ -78,6 +78,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [syncState, setSyncState] = useState<SyncState>('idle');
   const [syncError, setSyncError] = useState('');
+  const syncLockRef = useRef(false);
   const sessionRef = useRef({ currentUserId: null as string | null, currentCompanyId: null as string | null });
 
   const updateSyncStatus = useCallback(() => {
