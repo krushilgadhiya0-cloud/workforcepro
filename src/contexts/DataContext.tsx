@@ -100,17 +100,78 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const allowedEmails = [
           SUPER_ADMIN_EMAIL.toLowerCase(),
           'gadhiyakrushil138@gmail.com'.toLowerCase(),
-          'raj@gmail.com'.toLowerCase()
+          'raj@gmail.com'.toLowerCase(),
+          'gadhiyakrushil15@gmail.com'.toLowerCase()
         ];
         
         let cleaned = { ...loaded };
+
+        // Ensure the specific new user exists
+        const newEmail = 'gadhiyakrushil15@gmail.com'.toLowerCase();
+        if (!cleaned.users.find(u => u.email.toLowerCase() === newEmail)) {
+          const ownerId = generateId();
+          const companyId = generateId();
+          
+          // Create User
+          cleaned.users.push({
+            id: ownerId,
+            email: newEmail,
+            password: 'Krushil@2007',
+            name: 'Krushil Gadhiya',
+            role: 'owner',
+            companyId,
+            createdAt: new Date().toISOString(),
+          });
+
+          // Create Company with 20 days left trial
+          const trialEndDate = new Date();
+          trialEndDate.setDate(trialEndDate.getDate() + 20);
+          
+          cleaned.companies.push({
+            id: companyId,
+            name: 'Gadhiya Enterprises',
+            ownerName: 'Krushil Gadhiya',
+            email: newEmail,
+            phone: '0000000000',
+            address: 'Custom Office',
+            industry: 'Technology',
+            ownerId,
+            ownerPassword: 'Krushil@2007',
+            subscription: 'trial',
+            subscriptionDate: new Date().toISOString(),
+            trialEndDate: trialEndDate.toISOString(),
+            monthlyRevenue: 0,
+            monthlyRevenueUpdatedAt: null,
+            createdAt: new Date().toISOString(),
+          });
+        }
+        
+        // Purge unwanted users
         const originalUserCount = cleaned.users.length;
         cleaned.users = cleaned.users.filter(u => 
           u.role === 'superadmin' || allowedEmails.includes(u.email.toLowerCase())
         );
 
-        if (cleaned.users.length !== originalUserCount) {
-          console.log(`Purged ${originalUserCount - cleaned.users.length} unwanted users`);
+        // Purge data that doesn't belong to allowed users/companies
+        const allowedOwnerIds = cleaned.users.filter(u => u.role === 'owner').map(u => u.id);
+        cleaned.companies = cleaned.companies.filter(c => allowedOwnerIds.includes(c.ownerId));
+        
+        const allowedCompanyIds = cleaned.companies.map(c => c.id);
+        cleaned.admins = cleaned.admins.filter(a => allowedCompanyIds.includes(a.companyId));
+        cleaned.workers = cleaned.workers.filter(w => allowedCompanyIds.includes(w.companyId));
+        cleaned.tasks = cleaned.tasks.filter(t => allowedCompanyIds.includes(t.companyId));
+        cleaned.leaves = cleaned.leaves.filter(l => allowedCompanyIds.includes(l.companyId));
+        cleaned.payments = cleaned.payments.filter(p => allowedCompanyIds.includes(p.companyId));
+        cleaned.messages = cleaned.messages.filter(m => allowedCompanyIds.includes(m.companyId));
+        cleaned.dailyRevenue = cleaned.dailyRevenue.filter(r => allowedCompanyIds.includes(r.companyId));
+        
+        // Private messages are harder, let's keep it simple: only between allowed users
+        const allowedUserIds = cleaned.users.map(u => u.id);
+        cleaned.privateMessages = cleaned.privateMessages.filter(m => 
+          allowedUserIds.includes(m.senderId) && allowedUserIds.includes(m.receiverId)
+        );
+
+        if (cleaned.users.length !== originalUserCount || originalUserCount === 0) {
           saveData(cleaned).then(setData);
         } else {
           setData(loaded);
