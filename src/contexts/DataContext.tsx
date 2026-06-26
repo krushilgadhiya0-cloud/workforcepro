@@ -890,53 +890,55 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const getUserNotifications = useCallback((userId: string) => data.notifications.filter((n) => n.userId === userId).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), [data.notifications]);
 
   const sendMessage = useCallback(async (content: string) => {
-    const user = data.users.find((u) => u.id === data.currentUserId);
-    if (!user) return;
-    
-    const companyId = data.currentCompanyId || user.companyId || (user.role === 'owner' ? data.companies.find(c => c.ownerId === user.id)?.id : null);
-    if (!companyId) return;
+    // We use a functional update and a promise-based save to ENSURE no race conditions
+    setData(current => {
+      const user = current.users.find((u) => u.id === current.currentUserId);
+      if (!user) return current;
+      
+      const companyId = current.currentCompanyId || user.companyId || (user.role === 'owner' ? current.companies.find(c => c.ownerId === user.id)?.id : null);
+      if (!companyId) return current;
 
-    const newMessage: CommunicationMessage = {
-      id: generateId(),
-      companyId,
-      senderId: user.id,
-      senderName: user.name,
-      senderRole: user.role,
-      content,
-      createdAt: new Date().toISOString(),
-    };
+      const newMessage: CommunicationMessage = {
+        id: generateId(),
+        companyId,
+        senderId: user.id,
+        senderName: user.name,
+        senderRole: user.role,
+        content,
+        createdAt: new Date().toISOString(),
+      };
 
-    // Optimistic Update
-    setData(prev => ({ ...prev, messages: [...prev.messages, newMessage] }));
+      const updated = { ...current, messages: [...current.messages, newMessage] };
 
-    // AI MENTION LOGIC (ChatGPT Group Chat style)
-    const lowerContent = content.toLowerCase();
-    if (lowerContent.includes('@ai') || lowerContent.includes('@chatgpt')) {
-      setTimeout(async () => {
-        const aiResponse = generateAIResponseInternal(content, data, companyId);
-        const aiMessage: CommunicationMessage = {
-          id: generateId(),
-          companyId,
-          senderId: 'ai-assistant',
-          senderName: 'WorkForce AI',
-          senderRole: 'admin',
-          content: aiResponse,
-          createdAt: new Date().toISOString(),
-        };
-        
-        // Update both local and remote with the full set including AI reply
-        setData(prev => {
-          const updated = { ...prev, messages: [...prev.messages, aiMessage] };
-          void saveData(updated); // Side effect outside of render/updater is better handled here via void
-          return updated;
-        });
-      }, 1500);
-    } else {
-      // Just persist the user message if no AI tag
-      const d = { ...data, messages: [...data.messages, newMessage] };
-      await persist(d);
-    }
-  }, [data, persist]);
+      // Handle AI Mentions if applicable
+      const lowerContent = content.toLowerCase();
+      if (lowerContent.includes('@ai') || lowerContent.includes('@chatgpt')) {
+        setTimeout(async () => {
+          // Use another functional update inside the timeout to get LATEST messages
+          setData(latest => {
+            const aiResponse = generateAIResponseInternal(content, latest, companyId);
+            const aiMessage: CommunicationMessage = {
+              id: generateId(),
+              companyId,
+              senderId: 'ai-assistant',
+              senderName: 'WorkForce AI',
+              senderRole: 'admin',
+              content: aiResponse,
+              createdAt: new Date().toISOString(),
+            };
+            const withAi = { ...latest, messages: [...latest.messages, aiMessage] };
+            void persist(withAi);
+            return withAi;
+          });
+        }, 1500);
+      } else {
+        void persist(updated);
+      }
+
+      return updated;
+    });
+  }, [persist]);
+
 
   // Internal helper for AI responses in Group Chat (ChatGPT-style Participation)
   const generateAIResponseInternal = (query: string, currentData: AppData, companyId: string) => {
