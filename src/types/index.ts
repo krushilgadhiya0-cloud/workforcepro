@@ -49,6 +49,8 @@ export interface CommunicationMessage {
   senderRole: UserRole;
   content: string;
   createdAt: string;
+  updatedAt?: string;
+  isDeleted?: boolean;
 }
 
 export interface Admin {
@@ -155,7 +157,9 @@ export interface PrivateMessage {
   receiverId: string;
   content: string;
   createdAt: string;
+  updatedAt?: string;
   read: boolean;
+  isDeleted?: boolean;
 }
 
 export interface DailyRevenue {

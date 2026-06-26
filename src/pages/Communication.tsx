@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, User as UserIcon, Shield, Briefcase, MessageSquare } from 'lucide-react';
+import { Send, User as UserIcon, Shield, Briefcase, MessageSquare, Pencil, Trash2 } from 'lucide-react';
 import { PageHeader } from '../components/layout/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -12,9 +12,11 @@ interface CommunicationProps {
 }
 
 export function Communication({ companyId, isSuperAdmin = false }: CommunicationProps) {
-  const { getCompanyMessages, sendMessage, companies, markAllCommunicationRead } = useData();
+  const { getCompanyMessages, sendMessage, companies, markAllCommunicationRead, editMessage, deleteMessage } = useData();
   const user = useCurrentUser();
   const [content, setContent] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // If companyId is provided (Super Admin view), use it. Otherwise use current user's company.
@@ -37,6 +39,19 @@ export function Communication({ companyId, isSuperAdmin = false }: Communication
     if (!content.trim()) return;
     sendMessage(content);
     setContent('');
+  };
+
+  const handleEdit = (id: string, content: string) => {
+    setEditingId(id);
+    setEditingContent(content);
+  };
+
+  const saveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingId && editingContent.trim()) {
+      editMessage(editingId, editingContent);
+      setEditingId(null);
+    }
   };
 
   const getRoleIcon = (role: string) => {
@@ -92,14 +107,47 @@ export function Communication({ companyId, isSuperAdmin = false }: Communication
                         {m.senderRole.toUpperCase()}
                       </span>
                     </div>
-                    <div className={`p-3 rounded-2xl text-sm ${
-                      isMe ? 'bg-[var(--primary)] text-white rounded-tr-none' : 'bg-[var(--border)]/30 text-[var(--text)] rounded-tl-none'
-                    }`}>
-                      {m.content}
+                    {editingId === m.id ? (
+                      <form onSubmit={saveEdit} className="bg-[var(--card)] border border-[var(--primary)] rounded-2xl p-2 w-full min-w-[200px]">
+                        <input
+                          autoFocus
+                          value={editingContent}
+                          onChange={(e) => setEditingContent(e.target.value)}
+                          className="w-full bg-transparent text-sm outline-none p-1 text-[var(--text)]"
+                        />
+                        <div className="flex justify-end gap-2 mt-2">
+                          <button type="button" onClick={() => setEditingId(null)} className="text-[10px] text-[var(--text-muted)] hover:text-red-500">Cancel</button>
+                          <button type="submit" className="text-[10px] text-[var(--primary)] font-bold">Save Changes</button>
+                        </div>
+                      </form>
+                    ) : (
+                      <div className="group relative">
+                        <div className={`p-3 rounded-2xl text-sm ${
+                          m.isDeleted ? 'bg-slate-500/5 text-slate-400 italic border border-slate-200/50' :
+                          isMe ? 'bg-[var(--primary)] text-white rounded-tr-none shadow-sm' : 'bg-[var(--border)]/30 text-[var(--text)] rounded-tl-none'
+                        }`}>
+                          {m.content}
+                        </div>
+                        
+                        {!isSuperAdmin && !m.isDeleted && (
+                          <div className={`absolute -top-6 ${isMe ? 'right-0' : 'left-0'} hidden group-hover:flex items-center gap-1.5 p-1 px-2 rounded-lg bg-white dark:bg-slate-800 shadow-xl border border-[var(--border)] animate-fade-in z-10`}>
+                            {(isMe && !m.isDeleted) && (
+                              <button onClick={() => handleEdit(m.id, m.content)} className="p-1 text-slate-500 hover:text-[var(--primary)] transition-colors"><Pencil size={12} /></button>
+                            )}
+                            {(isMe || user?.role === 'owner') && (
+                              <button onClick={() => deleteMessage(m.id)} className="p-1 text-slate-500 hover:text-red-500 transition-colors"><Trash2 size={12} /></button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2 mt-1 px-1">
+                      {m.updatedAt && !m.isDeleted && <span className="text-[9px] text-[var(--text-muted)] italic opacity-60">edited</span>}
+                      <span className="text-[10px] text-[var(--text-muted)] opacity-60">
+                        {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
                     </div>
-                    <span className="text-[10px] text-[var(--text-muted)] mt-1 px-1">
-                      {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
                   </div>
                 </div>
               );

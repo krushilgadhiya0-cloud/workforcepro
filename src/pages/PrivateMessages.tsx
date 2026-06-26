@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, User as UserIcon, Shield, Briefcase, MessageSquare, Search, ChevronLeft } from 'lucide-react';
+import { Send, User as UserIcon, Shield, Briefcase, MessageSquare, Search, ChevronLeft, Pencil, Trash2 } from 'lucide-react';
 import { PageHeader } from '../components/layout/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -7,11 +7,13 @@ import { useData, useCurrentUser } from '../contexts/DataContext';
 import type { User, PrivateMessage } from '../types';
 
 export function PrivateMessages() {
-  const { privateMessages, getPrivateMessages, sendPrivateMessage, getPrivateContacts, markPrivateMessageRead } = useData();
+  const { privateMessages, getPrivateMessages, sendPrivateMessage, getPrivateContacts, markPrivateMessageRead, editPrivateMessage, deletePrivateMessage } = useData();
   const user = useCurrentUser();
   const [selectedContact, setSelectedContact] = useState<User | null>(null);
   const [content, setContent] = useState('');
   const [search, setSearch] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const contacts = user ? getPrivateContacts(user.id) : [];
@@ -41,6 +43,19 @@ export function PrivateMessages() {
     if (!content.trim() || !selectedContact) return;
     sendPrivateMessage(selectedContact.id, content);
     setContent('');
+  };
+
+  const handleEdit = (id: string, content: string) => {
+    setEditingId(id);
+    setEditingContent(content);
+  };
+
+  const saveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingId && editingContent.trim()) {
+      editPrivateMessage(editingId, editingContent);
+      setEditingId(null);
+    }
   };
 
   const getRoleIcon = (role: string) => {
@@ -143,17 +158,43 @@ export function PrivateMessages() {
                     return (
                       <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[75%] flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                          <div className={`p-3 rounded-2xl text-sm ${
-                            isMe ? 'bg-[var(--primary)] text-white rounded-tr-none' : 'bg-[var(--border)]/40 text-[var(--text)] rounded-tl-none'
-                          }`}>
-                            {m.content}
+                    {editingId === m.id ? (
+                      <form onSubmit={saveEdit} className="bg-[var(--card)] border border-[var(--primary)] rounded-xl p-2 w-full min-w-[150px]">
+                        <input
+                          autoFocus
+                          value={editingContent}
+                          onChange={(e) => setEditingContent(e.target.value)}
+                          className="w-full bg-transparent text-sm outline-none p-1 text-[var(--text)]"
+                        />
+                        <div className="flex justify-end gap-2 mt-1">
+                          <button type="button" onClick={() => setEditingId(null)} className="text-[10px] text-[var(--text-muted)] hover:text-red-500">Cancel</button>
+                          <button type="submit" className="text-[10px] text-[var(--primary)] font-bold">Save</button>
+                        </div>
+                      </form>
+                    ) : (
+                      <div className="group relative">
+                        <div className={`p-3 rounded-2xl text-sm ${
+                          m.isDeleted ? 'bg-slate-500/5 text-slate-400 italic border border-slate-200/50' :
+                          isMe ? 'bg-[var(--primary)] text-white rounded-tr-none shadow-sm' : 'bg-[var(--border)]/40 text-[var(--text)] rounded-tl-none'
+                        }`}>
+                          {m.content}
+                        </div>
+                        
+                        {isMe && !m.isDeleted && (
+                          <div className={`absolute -top-6 ${isMe ? 'right-0' : 'left-0'} hidden group-hover:flex items-center gap-1 p-1 px-2 rounded-lg bg-white dark:bg-slate-800 shadow-xl border border-[var(--border)] animate-fade-in z-10`}>
+                            <button onClick={() => handleEdit(m.id, m.content)} className="p-1 text-slate-500 hover:text-[var(--primary)] transition-colors"><Pencil size={12} /></button>
+                            <button onClick={() => deletePrivateMessage(m.id)} className="p-1 text-slate-500 hover:text-red-500 transition-colors"><Trash2 size={12} /></button>
                           </div>
-                          <div className="flex items-center gap-2 mt-1 px-1">
-                            {m.read && isMe && <span className="text-[9px] text-green-500 font-bold uppercase">Seen</span>}
-                            <span className="text-[10px] text-[var(--text-muted)]">
-                              {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          </div>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 mt-1 px-1">
+                      {m.read && isMe && !m.isDeleted && <span className="text-[9px] text-green-500 font-bold uppercase">Seen</span>}
+                      {m.updatedAt && !m.isDeleted && <span className="text-[9px] text-[var(--text-muted)] italic opacity-60">edited</span>}
+                      <span className="text-[10px] text-[var(--text-muted)] opacity-60">
+                        {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
                         </div>
                       </div>
                     );

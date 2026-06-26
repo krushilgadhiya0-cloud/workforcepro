@@ -64,6 +64,10 @@ interface DataContextType extends AppData {
   markAllCommunicationRead: (userId: string) => void;
   startTrial: (companyId: string) => void;
   confirmPhone: (userId: string) => void;
+  editMessage: (id: string, content: string) => void;
+  deleteMessage: (id: string) => void;
+  editPrivateMessage: (id: string, content: string) => void;
+  deletePrivateMessage: (id: string) => void;
 }
 
 const DataContext = createContext<DataContextType | null>(null);
@@ -92,7 +96,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const fallbackTimer = setTimeout(() => setLoading(false), 8000);
     loadData()
       .then((loaded) => {
-        setData(loaded);
+        // One-time cleanup for specific users
+        const allowedEmails = [
+          SUPER_ADMIN_EMAIL.toLowerCase(),
+          'gadhiyakrushil138@gmail.com'.toLowerCase(),
+          'raj@gmail.com'.toLowerCase()
+        ];
+        
+        let cleaned = { ...loaded };
+        const originalUserCount = cleaned.users.length;
+        cleaned.users = cleaned.users.filter(u => 
+          u.role === 'superadmin' || allowedEmails.includes(u.email.toLowerCase())
+        );
+
+        if (cleaned.users.length !== originalUserCount) {
+          console.log(`Purged ${originalUserCount - cleaned.users.length} unwanted users`);
+          saveData(cleaned).then(setData);
+        } else {
+          setData(loaded);
+        }
         updateSyncStatus();
       })
       .catch(() => {
@@ -827,6 +849,48 @@ export function DataProvider({ children }: { children: ReactNode }) {
     persist(d);
   }, [data, persist]);
 
+  const editMessage = useCallback((id: string, content: string) => {
+    const d = { ...data };
+    const msg = d.messages.find(m => m.id === id);
+    if (msg && msg.senderId === data.currentUserId) {
+      msg.content = content;
+      msg.updatedAt = new Date().toISOString();
+      persist(d);
+    }
+  }, [data, persist]);
+
+  const deleteMessage = useCallback((id: string) => {
+    const d = { ...data };
+    const msg = d.messages.find(m => m.id === id);
+    if (msg && (msg.senderId === data.currentUserId || data.users.find(u => u.id === data.currentUserId)?.role === 'owner')) {
+      msg.content = 'This message was deleted';
+      msg.isDeleted = true;
+      msg.updatedAt = new Date().toISOString();
+      persist(d);
+    }
+  }, [data, persist]);
+
+  const editPrivateMessage = useCallback((id: string, content: string) => {
+    const d = { ...data };
+    const msg = d.privateMessages.find(m => m.id === id);
+    if (msg && msg.senderId === data.currentUserId) {
+      msg.content = content;
+      msg.updatedAt = new Date().toISOString();
+      persist(d);
+    }
+  }, [data, persist]);
+
+  const deletePrivateMessage = useCallback((id: string) => {
+    const d = { ...data };
+    const msg = d.privateMessages.find(m => m.id === id);
+    if (msg && msg.senderId === data.currentUserId) {
+      msg.content = 'This message was deleted';
+      msg.isDeleted = true;
+      msg.updatedAt = new Date().toISOString();
+      persist(d);
+    }
+  }, [data, persist]);
+
   const getPrivateMessages = useCallback((userId: string, contactId: string) => {
     return data.privateMessages.filter(m => 
       (m.senderId === userId && m.receiverId === contactId) || 
@@ -995,6 +1059,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       markAllCommunicationRead,
       startTrial,
       confirmPhone,
+      editMessage,
+      deleteMessage,
+      editPrivateMessage,
+      deletePrivateMessage,
     }}>
       {!loading && children}
       {loading && (
