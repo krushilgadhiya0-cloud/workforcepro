@@ -13,7 +13,7 @@ export async function generateAIResponse(prompt: string, contextData: any): Prom
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     
     // Convert current app context to a readable string for the model
     const contextString = JSON.stringify(contextData, null, 2);
