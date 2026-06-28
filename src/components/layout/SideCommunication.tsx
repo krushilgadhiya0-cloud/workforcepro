@@ -13,13 +13,26 @@ export function SideCommunication({ isOpen, onClose }: SideCommunicationProps) {
   const user = useCurrentUser();
   const [content, setContent] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const isNearBottomRef = useRef(true);
 
   const targetCompanyId = user?.companyId || (user?.role === 'owner' ? companies.find(c => c.ownerId === user.id)?.id : null);
   const companyMessages = targetCompanyId ? getCompanyMessages(targetCompanyId) : [];
 
+  const handleScroll = () => {
+    if (scrollRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+      isNearBottomRef.current = scrollHeight - scrollTop - clientHeight < 100;
+    }
+  };
+
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      const lastMsg = companyMessages[companyMessages.length - 1];
+      const IJustSentMessage = lastMsg && lastMsg.senderId === user?.id;
+      
+      if (isNearBottomRef.current || IJustSentMessage) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }
     }
     
     if (isOpen && user) {
@@ -35,6 +48,7 @@ export function SideCommunication({ isOpen, onClose }: SideCommunicationProps) {
     if (!content.trim()) return;
     sendMessage(content);
     setContent('');
+    isNearBottomRef.current = true;
   };
 
   return (
@@ -64,6 +78,7 @@ export function SideCommunication({ isOpen, onClose }: SideCommunicationProps) {
       {/* Messages */}
       <div 
         ref={scrollRef} 
+        onScroll={handleScroll}
         className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-slate-500/5"
       >
         {companyMessages.length === 0 ? (

@@ -1,10 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, User as UserIcon, Shield, Briefcase, MessageSquare, Search, ChevronLeft, Pencil, Trash2 } from 'lucide-react';
+import { Send, User as UserIcon, Shield, Briefcase, MessageSquare, Search, ChevronLeft, Pencil, Trash2, Video, Phone } from 'lucide-react';
 import { PageHeader } from '../components/layout/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useData, useCurrentUser } from '../contexts/DataContext';
 import type { User, PrivateMessage } from '../types';
+
+function generateJitsiLink(user1: string, user2: string) {
+  return `https://meet.jit.si/workforcepro-private-${user1.substring(0,8)}-${user2.substring(0,8)}`;
+}
 
 export function PrivateMessages() {
   const { privateMessages, getPrivateMessages, sendPrivateMessage, getPrivateContacts, markPrivateMessageRead, editPrivateMessage, deletePrivateMessage } = useData();
@@ -15,6 +19,7 @@ export function PrivateMessages() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const isNearBottomRef = useRef(true);
 
   const contacts = user ? getPrivateContacts(user.id) : [];
   const filteredContacts = contacts.filter(c => 
@@ -24,9 +29,21 @@ export function PrivateMessages() {
 
   const messages = (user && selectedContact) ? getPrivateMessages(user.id, selectedContact.id) : [];
 
+  const handleScroll = () => {
+    if (scrollRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+      isNearBottomRef.current = scrollHeight - scrollTop - clientHeight < 100;
+    }
+  };
+
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      const lastMsg = messages[messages.length - 1];
+      const IJustSentMessage = lastMsg && lastMsg.senderId === user?.id;
+      
+      if (isNearBottomRef.current || IJustSentMessage) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }
     }
     // Mark unread as read
     if (user && selectedContact) {
@@ -43,6 +60,15 @@ export function PrivateMessages() {
     if (!content.trim() || !selectedContact) return;
     sendPrivateMessage(selectedContact.id, content);
     setContent('');
+    isNearBottomRef.current = true;
+  };
+
+  const startPrivateCall = (isVideo: boolean) => {
+    if (!user || !selectedContact) return;
+    const link = generateJitsiLink(user.id, selectedContact.id) + (isVideo ? '' : '#config.startWithVideoMuted=true');
+    const msg = `I've started a ${isVideo ? 'Video' : 'Voice'} Call. Click here to join: ${link}`;
+    sendPrivateMessage(selectedContact.id, msg);
+    window.open(link, '_blank');
   };
 
   const handleEdit = (id: string, content: string) => {
@@ -135,18 +161,27 @@ export function PrivateMessages() {
                 >
                   <ChevronLeft size={20} />
                 </button>
-                <div className="w-10 h-10 rounded-full bg-[var(--primary)]/10 text-[var(--primary)] flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-[var(--primary)]/10 text-[var(--primary)] flex items-center justify-center shrink-0">
                   <UserIcon size={20} />
                 </div>
-                <div>
-                  <h3 className="font-bold text-[var(--text)] leading-tight">{selectedContact.name}</h3>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-[var(--text)] leading-tight truncate">{selectedContact.name}</h3>
                   <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mt-0.5">
                     {getRoleIcon(selectedContact.role)} {selectedContact.role}
                   </div>
                 </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => startPrivateCall(false)} className="p-2 md:px-3 text-slate-500 hover:text-[var(--primary)] hover:bg-[var(--primary)]/10 rounded-xl transition-all" title="Start Voice Call">
+                    <Phone size={18} />
+                  </button>
+                  <button onClick={() => startPrivateCall(true)} className="p-2 md:px-3 text-[var(--primary)] bg-[var(--primary)]/10 hover:bg-[var(--primary)]/20 rounded-xl transition-all font-bold md:flex items-center gap-2" title="Start Video Call">
+                    <Video size={18} />
+                    <span className="hidden md:inline text-xs">Video</span>
+                  </button>
+                </div>
               </div>
 
-              <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+              <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
                 {messages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-[var(--text-muted)]">
                     <MessageSquare size={48} className="mb-4 opacity-20" />
