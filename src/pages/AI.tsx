@@ -4,6 +4,7 @@ import { PageHeader } from '../components/layout/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useData, useCurrentCompany } from '../contexts/DataContext';
+import { generateAIResponse } from '../utils/ai';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -31,46 +32,7 @@ export function AI() {
     }
   }, [messages, isTyping]);
 
-  const generateAIResponse = (query: string) => {
-    const q = query.toLowerCase();
-    
-    // Revenue & Money
-    if (q.includes('revenue') || q.includes('money') || q.includes('income') || q.includes('profit') || q.includes('sale')) {
-      const companyRevenue = dailyRevenue.filter(r => r.companyId === company?.id);
-      const total = companyRevenue.reduce((sum, r) => sum + r.amount, 0);
-      const avg = companyRevenue.length > 0 ? (total / companyRevenue.length).toFixed(2) : 0;
-      return `Our revenue tracking shows a total of **₹${total.toLocaleString()}** logged across ${companyRevenue.length} entries. The daily average sits at **₹${avg}**. ${total > 5000 ? 'Trends look positive! I recommend analyzing high-performing days to replicate success.' : 'I suggest logging more frequent entries to get a clearer picture of your growth.'}`;
-    }
 
-    // Workers & Team
-    if (q.includes('worker') || q.includes('staff') || q.includes('employee') || q.includes('team') || q.includes('people')) {
-      const companyWorkers = workers.filter(w => w.companyId === company?.id);
-      return `You currently have **${companyWorkers.length}** active staff members. ${companyWorkers.length > 0 ? "I've noticed most tasks are being handled efficiently, but ensure that joining dates are correctly tracked for future payroll audits." : "You haven't added any workers yet. Go to the Workers section to build your team!"} Would you like a list of top performers?`;
-    }
-
-    // Tasks & Work
-    if (q.includes('task') || q.includes('work') || q.includes('pending') || q.includes('todo') || q.includes('assignment')) {
-      const companyTasks = tasks.filter(t => workers.find(w => w.id === t.workerId)?.companyId === company?.id);
-      const pending = companyTasks.filter(t => t.status !== 'completed').length;
-      return `There are currently **${pending}** pending tasks in your workflow. I highly suggest following up on tasks older than 3 days to maintain optimal speed. Focus on high-priority assignments first.`;
-    }
-
-    // Subscription & Payment
-    if (q.includes('subscription') || q.includes('plan') || q.includes('payment') || q.includes('price')) {
-      return `Your current plan for **${company?.name}** is the **${company?.subscription || 'Trial'}** plan. ${company?.trialEndDate ? `Your trial ends on ${new Date(company.trialEndDate).toLocaleDateString()}.` : 'You are on a premium plan with full access to all features!'}`;
-    }
-
-    // Greeting & Identity
-    if (q.includes('hi') || q.includes('hello') || q.includes('hey') || q.includes('who are you')) {
-      return `Hello! I am your WorkForce AI. I specialize in analyzing your company **${company?.name}** to help you grow. You can ask me about your staff, revenue, or tasks!`;
-    }
-
-    if (q.includes('help') || q.includes('what can you do') || q.includes('capability')) {
-      return "I can analyze your business data in real-time. Ask me about your **revenue trends**, **team performance**, **pending tasks**, or a **summary of your business growth**. I can also help you understand your subscription and task priorities!";
-    }
-
-    return "I've analyzed that request, and while I don't have a specific metric for it yet, I can tell you that your overall business health is stable based on your current data points. Try asking about your 'monthly revenue', 'active workers', or 'pending tasks' for deeper insights.";
-  };
 
   const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -81,13 +43,32 @@ export function AI() {
     setInput('');
     setIsTyping(true);
 
-    // Simulate AI thinking
-    setTimeout(() => {
-      const response = generateAIResponse(userMsg.content);
+    // Call real AI
+    try {
+      const companyWorkers = workers.filter(w => w.companyId === company?.id).map(w => ({ name: w.name, designation: w.designation, status: w.attendanceStatus }));
+      const companyTasks = tasks.filter(t => workers.find(w => w.id === t.workerId)?.companyId === company?.id).map(t => ({ title: t.title, status: t.status }));
+      const companyRevenue = dailyRevenue.filter(r => r.companyId === company?.id);
+      const totalRevenue = companyRevenue.reduce((sum, r) => sum + r.amount, 0);
+
+      const contextData = {
+        companyName: company?.name,
+        companySubscription: company?.subscription,
+        totalWorkers: companyWorkers.length,
+        workersList: companyWorkers,
+        totalTasks: companyTasks.length,
+        tasksSummary: companyTasks,
+        totalRevenue: `₹${totalRevenue}`,
+      };
+
+      const response = await generateAIResponse(userMsg.content, contextData);
       const aiMsg: Message = { role: 'assistant', content: response, timestamp: new Date().toISOString() };
       setMessages(prev => [...prev, aiMsg]);
+    } catch (err) {
+      const errorMsg: Message = { role: 'assistant', content: "Sorry, I ran into an issue connecting to the AI brain.", timestamp: new Date().toISOString() };
+      setMessages(prev => [...prev, errorMsg]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   return (

@@ -9,7 +9,7 @@ import {
   matchesSuperAdminLogin, type SyncState,
 } from '../utils/storage';
 import { assertValidEmailFormat, sendWelcomeEmail } from '../utils/email';
-
+import { generateAIResponse } from '../utils/ai';
 interface DataContextType extends AppData {
   syncState: SyncState;
   syncError: string;
@@ -830,24 +830,50 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // Handle AI Mentions if applicable
       const lowerContent = content.toLowerCase();
       if (lowerContent.includes('@ai') || lowerContent.includes('@chatgpt')) {
-        setTimeout(async () => {
-          // Use another functional update inside the timeout to get LATEST messages
-          setData(latest => {
-            const aiResponse = generateAIResponseInternal(content, latest, companyId);
-            const aiMessage: CommunicationMessage = {
-              id: generateId(),
-              companyId,
-              senderId: 'ai-assistant',
-              senderName: 'WorkForce AI',
-              senderRole: 'admin',
-              content: aiResponse,
-              createdAt: new Date().toISOString(),
+        void persist(updated); // Save the user's message right away
+
+        // Async IIFE to fetch AI response without blocking
+        (async () => {
+          try {
+            const currentUserName = current.users.find(u => u.id === current.currentUserId)?.name;
+            const company = current.companies.find(c => c.id === companyId);
+            
+            const companyWorkers = current.workers.filter(w => w.companyId === company?.id).map(w => ({ name: w.name, designation: w.designation, status: w.attendanceStatus }));
+            const companyTasks = current.tasks.filter(t => current.workers.find(w => w.id === t.workerId)?.companyId === company?.id).map(t => ({ title: t.title, status: t.status }));
+            const companyRevenue = current.dailyRevenue.filter(r => r.companyId === company?.id);
+            const totalRevenue = companyRevenue.reduce((sum, r) => sum + r.amount, 0);
+             
+            const contextData = {
+               companyName: company?.name,
+               userAsking: currentUserName,
+               totalWorkers: companyWorkers.length,
+               workersList: companyWorkers,
+               totalTasks: companyTasks.length,
+               tasksSummary: companyTasks,
+               totalRevenue: `₹${totalRevenue}`,
+               recentGroupChat: current.messages.filter(m => m.companyId === companyId).slice(-10).map(m => `${m.senderName}: ${m.content}`)
             };
-            const withAi = { ...latest, messages: [...latest.messages, aiMessage] };
-            void persist(withAi);
-            return withAi;
-          });
-        }, 1500);
+
+            const aiResponseText = await generateAIResponse(content, contextData);
+
+            setData(latest => {
+              const aiMessage: CommunicationMessage = {
+                id: generateId(),
+                companyId,
+                senderId: 'ai-assistant',
+                senderName: 'WorkForce AI',
+                senderRole: 'admin',
+                content: aiResponseText,
+                createdAt: new Date().toISOString(),
+              };
+              const withAi = { ...latest, messages: [...latest.messages, aiMessage] };
+              void persist(withAi);
+              return withAi;
+            });
+          } catch (e) {
+            console.error("AI Group Chat Error", e);
+          }
+        })();
       } else {
         void persist(updated);
       }
@@ -855,41 +881,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       return updated;
     });
   }, [persist]);
-
-
-  // Internal helper for AI responses in Group Chat (ChatGPT-style Participation)
-  const generateAIResponseInternal = (query: string, currentData: AppData, companyId: string) => {
-    const q = query.toLowerCase();
-    const currentUserName = currentData.users.find(u => u.id === currentData.currentUserId)?.name;
-    const company = currentData.companies.find(c => c.id === companyId);
-    
-    if (q.includes('payment') || q.includes('salary') || q.includes('payroll')) {
-      const totalPayments = currentData.payments.filter(p => p.companyId === companyId).reduce((sum, p) => sum + p.amount, 0);
-      const paidPayments = currentData.payments.filter(p => p.companyId === companyId && p.status === 'paid').reduce((sum, p) => sum + p.amount, 0);
-      const duePayments = currentData.payments.filter(p => p.companyId === companyId && p.status === 'due').reduce((sum, p) => sum + p.amount, 0);
-      
-      return `📊 FINANCIAL REPORT for @${currentUserName}:\n\n• Total Payroll: ₹${totalPayments.toLocaleString()}\n• Salaries Paid: ₹${paidPayments.toLocaleString()}\n• Outstanding Dues: ₹${duePayments.toLocaleString()}\n\nWhat else would you like to know?`;
-    }
-
-    if (q.includes('revenue') || q.includes('money') || q.includes('profit')) {
-      const revenue = currentData.dailyRevenue.filter(r => r.companyId === companyId);
-      const total = revenue.reduce((sum, r) => sum + r.amount, 0);
-      return `[AI Group Analysis] @${currentUserName}, I've checked the records. Our total revenue is ₹${total.toLocaleString()}. We should focus on high-performing days to maintain growth!`;
-    }
-    
-    if (q.includes('worker') || q.includes('team') || q.includes('staff')) {
-      const workers = currentData.workers.filter(w => w.companyId === companyId);
-      return `@${currentUserName}, we have ${workers.length} active team members. Ensuring clear task assignments will keep the team motivated.`;
-    }
-
-    if (q.includes('task') || q.includes('pending') || q.includes('priority')) {
-      const companyTasks = currentData.tasks.filter(t => currentData.workers.find(w => w.id === t.workerId)?.companyId === companyId);
-      const pending = companyTasks.filter(t => t.status !== 'completed').length;
-      return `@${currentUserName}, there are ${pending} pending tasks. I recommend focusing on the oldest assignments first.`;
-    }
-
-    return `Hello! I am your WorkForce AI. I am now a participant in this group chat. Tag me with @ai or @chatgpt whenever you need data insights or help with ${company?.name || 'the company'}.`;
-  };
 
 
 
