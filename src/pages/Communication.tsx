@@ -28,9 +28,12 @@ export function Communication({ companyId, isSuperAdmin = false }: Communication
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-    // Mark as read
+    // Mark as read only if there are unread messages to avoid infinite sync loops
     if (user && targetCompanyId && !isSuperAdmin) {
-      markAllCommunicationRead(user.id);
+      const hasUnread = companyMessages.some(m => !user.lastCommunicationReadAt || new Date(m.createdAt) > new Date(user.lastCommunicationReadAt));
+      if (hasUnread) {
+        markAllCommunicationRead(user.id);
+      }
     }
   }, [companyMessages, user, targetCompanyId, markAllCommunicationRead, isSuperAdmin]);
 

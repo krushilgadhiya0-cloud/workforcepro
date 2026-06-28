@@ -9,7 +9,7 @@ interface SideCommunicationProps {
 }
 
 export function SideCommunication({ isOpen, onClose }: SideCommunicationProps) {
-  const { getCompanyMessages, sendMessage, companies } = useData();
+  const { getCompanyMessages, sendMessage, companies, markAllCommunicationRead } = useData();
   const user = useCurrentUser();
   const [content, setContent] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -21,7 +21,14 @@ export function SideCommunication({ isOpen, onClose }: SideCommunicationProps) {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [companyMessages, isOpen]);
+    
+    if (isOpen && user) {
+      const hasUnread = companyMessages.some(m => !user.lastCommunicationReadAt || new Date(m.createdAt) > new Date(user.lastCommunicationReadAt));
+      if (hasUnread) {
+        markAllCommunicationRead(user.id);
+      }
+    }
+  }, [companyMessages, isOpen, user, markAllCommunicationRead]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();

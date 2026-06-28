@@ -150,7 +150,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       } catch (e) {
         console.warn('Background sync failed', e);
       }
-    }, 4000);
+    }, 1500);
     return () => clearInterval(interval);
 
   }, [updateSyncStatus]);
