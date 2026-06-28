@@ -5,6 +5,7 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useData, useCurrentUser } from '../contexts/DataContext';
 import type { User, PrivateMessage } from '../types';
+import { renderTextWithLinks } from '../utils/text';
 
 function generateJitsiLink(user1: string, user2: string) {
   return `https://meet.jit.si/workforcepro-private-${user1.substring(0,8)}-${user2.substring(0,8)}`;
@@ -212,7 +213,7 @@ export function PrivateMessages() {
                           m.isDeleted ? 'bg-slate-500/5 text-slate-400 italic border border-slate-200/50' :
                           isMe ? 'bg-[var(--primary)] text-white rounded-tr-none shadow-sm' : 'bg-[var(--border)]/40 text-[var(--text)] rounded-tl-none'
                         }`}>
-                          {m.content}
+                          {renderTextWithLinks(m.content)}
                         </div>
                         
                         {isMe && !m.isDeleted && (

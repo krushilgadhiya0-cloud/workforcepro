@@ -5,6 +5,7 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useData, useCurrentUser } from '../contexts/DataContext';
 import { Modal } from '../components/ui/Modal';
+import { renderTextWithLinks } from '../utils/text';
 
 function generateJitsiLink(companyId: string) {
   const randomSuffix = Math.random().toString(36).substring(2, 8);
@@ -180,7 +181,7 @@ export function Communication({ companyId, isSuperAdmin = false }: Communication
                           m.senderId === 'ai-assistant' ? 'bg-gradient-to-br from-indigo-600 to-violet-700 text-white rounded-tl-none shadow-indigo-200 shadow-lg border border-indigo-400/30' :
                           isMe ? 'bg-[var(--primary)] text-white rounded-tr-none shadow-sm' : 'bg-[var(--border)]/30 text-[var(--text)] rounded-tl-none'
                         }`}>
-                          {m.content}
+                          {renderTextWithLinks(m.content)}
                         </div>
                         
                         {!isSuperAdmin && !m.isDeleted && m.senderId !== 'ai-assistant' && (

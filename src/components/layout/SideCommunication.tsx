@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Send, MessageSquare, X, Sparkles, Brain } from 'lucide-react';
 import { useData, useCurrentUser } from '../../contexts/DataContext';
 import { Button } from '../ui/Button';
+import { renderTextWithLinks } from '../../utils/text';
 
 interface SideCommunicationProps {
   isOpen: boolean;
@@ -104,7 +105,7 @@ export function SideCommunication({ isOpen, onClose }: SideCommunicationProps) {
                     isAI ? 'bg-indigo-500 text-white rounded-tl-none border border-white/20' :
                     isMe ? 'bg-[var(--primary)] text-white rounded-tr-none' : 'bg-white dark:bg-slate-800 text-[var(--text)] rounded-tl-none border border-[var(--border)]'
                   }`}>
-                    {m.content}
+                    {renderTextWithLinks(m.content)}
                   </div>
                   <span className="text-[9px] text-[var(--text-muted)] mt-1 px-1 opacity-60">
                     {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
