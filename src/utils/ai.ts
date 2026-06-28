@@ -38,6 +38,6 @@ Please respond intelligently to the query based purely on the data provided abov
     return response.text();
   } catch (error: any) {
     console.error('Error with Gemini API:', error);
-    return "I'm sorry, I'm currently unable to process your request due to a backend intelligence error. Please try again later.";
+    return `I'm sorry, I'm currently unable to process your request due to an API error. The error is: ${error?.message || error}. Please ensure your API key is accurate and active.`;
   }
 }
