@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, MessageSquare, X, Sparkles, Brain, Users, CheckCircle2 } from 'lucide-react';
+import { Send, MessageSquare, X, Brain, Users, CheckCircle2 } from 'lucide-react';
 import { useData, useCurrentUser } from '../../contexts/DataContext';
 import { Button } from '../ui/Button';
 import { renderTextWithLinks } from '../../utils/text';
@@ -90,7 +90,6 @@ export function SideCommunication({ isOpen, onClose }: SideCommunicationProps) {
           <div className="w-8 h-8 rounded-lg bg-[var(--primary)] text-white flex items-center justify-center shadow-md">
             <MessageSquare size={16} />
           </div>
-          <div>
           <div>
             <h3 className="font-bold text-sm text-[var(--text)] leading-tight">{companyName}</h3>
             <p className="text-[10px] text-[var(--text-muted)] flex items-center gap-1">

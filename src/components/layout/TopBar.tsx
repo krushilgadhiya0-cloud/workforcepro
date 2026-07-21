@@ -25,9 +25,10 @@ export function TopBar({ onToggleChat, onMenuClick }: TopBarProps) {
         </button>
         <div>
           <p className="text-xs text-[var(--text-muted)] capitalize">{user?.role} account</p>
-        <p className="text-sm font-medium text-[var(--text)]">
-          {company?.name || user?.name || 'WorkForce Pro'}
-        </p>
+          <p className="text-sm font-medium text-[var(--text)]">
+            {company?.name || user?.name || 'WorkForce Pro'}
+          </p>
+        </div>
       </div>
       <div className="flex items-center gap-2">
         <button 

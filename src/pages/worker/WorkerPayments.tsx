@@ -5,7 +5,8 @@ import { Button } from '../../components/ui/Button';
 import { useData, useCurrentUser, useCurrentCompany } from '../../contexts/DataContext';
 import { downloadReceipt } from '../../utils/pdf';
 import { Input } from '../../components/ui/Input';
-import { QrCode, Save } from 'lucide-react';
+import { Save } from 'lucide-react';
+import { useState } from 'react';
 
 export function WorkerPayments() {
   const { payments, workers } = useData();
@@ -47,8 +48,7 @@ export function WorkerPayments() {
             label="My Payment UPI ID" 
             value={upiId} 
             onChange={(e) => setUpiId(e.target.value)} 
-            placeholder="e.g. 9876543210@ybl" 
-            icon={<QrCode size={18} />}
+            placeholder="e.g. 9876543210@ybl"
           />
         </div>
         <Button onClick={handleSaveContact} className="shrink-0 mb-1">

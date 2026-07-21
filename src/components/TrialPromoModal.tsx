@@ -41,8 +41,8 @@ export function TrialPromoModal() {
 
   const handleActivate = async () => {
     if (!company) return;
-    // We treat trial as a 'monthly' trigger but with ₹1 special handling in the backend API
-    await pay('trial', {
+    // We treat trial as a 'free' trigger but with ₹1 special handling in the backend API
+    await pay('free', {
       companyId: company.id,
       companyName: company.name,
       email: company.email,

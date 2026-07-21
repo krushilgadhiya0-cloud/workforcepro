@@ -141,7 +141,7 @@ export function Settings() {
           <h3 className="text-lg font-semibold text-[var(--text)] mb-1">Manage Subscription</h3>
           <p className="text-xs text-[var(--text-muted)] mb-3">Platform plan for active business.</p>
           <p className="text-sm text-[var(--text-muted)]">
-            Current plan: <strong className="text-[var(--text)]">{company?.subscription ? `${company.subscription} (₹${company.subscription === 'monthly' ? '799/mo' : '4,999/yr'})` : 'None'}</strong>
+            Current plan: <strong className="text-[var(--text)] capitalize">{company?.subscription ? `${company.subscription} Plan` : 'None'}</strong>
           </p>
           {company?.subscriptionDate && (
             <p className="text-xs text-[var(--text-muted)] mt-1">Subscribed: {new Date(company.subscriptionDate).toLocaleDateString()}</p>

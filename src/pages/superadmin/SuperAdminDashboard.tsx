@@ -16,9 +16,9 @@ export function SuperAdminDashboard() {
     if (!c.subscription) return sum;
     let price = c.subscriptionPrice;
     if (price === undefined || price === null) {
-      if (c.subscription === 'trial') price = 1;
-      else if (c.subscription === 'monthly') price = 799;
-      else if (c.subscription === 'yearly') price = 4999;
+      if (c.subscription === 'pro') price = 1599;
+      else if (c.subscription === 'starter') price = 599;
+      else if (c.subscription === 'enterprise') price = 10000;
       else price = 0;
     }
     return sum + price;

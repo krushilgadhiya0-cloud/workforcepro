@@ -428,8 +428,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (company) {
       company.subscription = plan;
       company.subscriptionDate = new Date().toISOString();
-      company.subscriptionPrice = plan === 'trial' ? 1 : plan === 'monthly' ? 799 : 4999;
-      if (plan === 'trial') company.hasUsedTrial = true;
+      company.subscriptionPrice = plan === 'enterprise' ? 10000 : plan === 'pro' ? 1599 : plan === 'starter' ? 599 : 0;
+      if (plan === 'free') company.hasUsedTrial = true;
       
       const owner = d.users.find((u) => u.id === company.ownerId);
       appendActivity(d, {
@@ -1122,7 +1122,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       trialEndDate.setMonth(trialEndDate.getMonth() + 1);
       d.companies[idx] = {
         ...d.companies[idx],
-        subscription: 'trial',
+        subscription: 'free',
         subscriptionDate: new Date().toISOString(),
         trialEndDate: trialEndDate.toISOString(),
         subscriptionPrice: 1, // Trial price is ₹1
@@ -1148,7 +1148,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       company.subscription = plan;
       company.subscriptionDate = plan ? new Date().toISOString() : null;
       
-      if (plan === 'trial') {
+      if (plan === 'free') {
         const trialEndDate = new Date();
         trialEndDate.setDate(trialEndDate.getDate() + (days || 30));
         company.trialEndDate = trialEndDate.toISOString();

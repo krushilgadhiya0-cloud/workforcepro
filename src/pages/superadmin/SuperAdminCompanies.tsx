@@ -12,8 +12,7 @@ export function SuperAdminCompanies() {
   const [search, setSearch] = useState('');
   const [viewId, setViewId] = useState<string | null>(null);
   const [subId, setSubId] = useState<string | null>(null);
-  const [newPlan, setNewPlan] = useState<'trial' | 'monthly' | 'yearly' | 'none'>('none');
-  const [trialDays, setTrialDays] = useState(30);
+  const [newPlan, setNewPlan] = useState<'free' | 'starter' | 'pro' | 'enterprise' | 'none'>('none');
 
   const filtered = companies.filter((c) => 
     c.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -31,13 +30,7 @@ export function SuperAdminCompanies() {
     due: payments.filter((p) => p.companyId === companyId && p.status === 'due').length,
   });
 
-  const getTrialDaysLeft = (trialEndDate?: string) => {
-    if (!trialEndDate) return 0;
-    const end = new Date(trialEndDate).getTime();
-    const now = new Date().getTime();
-    const dif = Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)));
-    return dif;
-  };
+
 
   return (
     <div>
@@ -68,8 +61,8 @@ export function SuperAdminCompanies() {
                     <p className="text-sm text-[var(--text-muted)]">{c.industry}</p>
                   </div>
                 </div>
-                {c.subscription === 'trial' ? (
-                  <Badge status="pending" label={`${getTrialDaysLeft(c.trialEndDate)} Days Trial Left`} />
+                {c.subscription === 'free' ? (
+                  <Badge status="pending" label="Free Trial" />
                 ) : (
                   c.subscription ? <Badge status="paid" label={`${c.subscription} plan`} /> : <Badge status="due" label="No subscription" />
                 )}
@@ -129,9 +122,6 @@ export function SuperAdminCompanies() {
               <div><span className="text-[var(--text-muted)]">Phone:</span> <strong>{company.phone}</strong></div>
               <div className="sm:col-span-2"><span className="text-[var(--text-muted)]">Address:</span> <strong>{company.address || '—'}</strong></div>
               <div><span className="text-[var(--text-muted)]">Subscription:</span> <strong>{company.subscription || 'None'}</strong></div>
-              {company.subscription === 'trial' && (
-                <div><span className="text-[var(--text-muted)]">Trial Ends:</span> <strong>{company.trialEndDate ? new Date(company.trialEndDate).toLocaleDateString() : '—'}</strong></div>
-              )}
               <div><span className="text-[var(--text-muted)]">Joined:</span> <strong>{new Date(company.createdAt).toLocaleDateString()}</strong></div>
             </div>
             <div className="p-4 rounded-xl bg-[var(--border)]/20">
@@ -156,29 +146,18 @@ export function SuperAdminCompanies() {
               className="w-full bg-[var(--card)] border border-[var(--border)] rounded-xl px-4 py-2 text-sm outline-none focus:border-[var(--primary)]"
             >
               <option value="none">No Subscription</option>
-              <option value="trial">Trial Access</option>
-              <option value="monthly">Monthly Plan (₹799)</option>
-              <option value="yearly">Yearly Plan (₹4999)</option>
+              <option value="free">Free Plan</option>
+              <option value="starter">Starter Plan (₹599)</option>
+              <option value="pro">Pro Plan (₹1599)</option>
+              <option value="enterprise">Enterprise Plan (₹10000)</option>
             </select>
           </div>
-
-          {newPlan === 'trial' && (
-            <div className="animate-fade-in">
-              <label className="block text-sm font-medium text-[var(--text-muted)] mb-1">Trial Duration (Days)</label>
-              <input 
-                type="number"
-                value={trialDays}
-                onChange={(e) => setTrialDays(parseInt(e.target.value) || 1)}
-                className="w-full bg-[var(--card)] border border-[var(--border)] rounded-xl px-4 py-2 text-sm outline-none focus:border-[var(--primary)]"
-              />
-            </div>
-          )}
 
           <div className="flex gap-3 pt-2">
             <Button variant="outline" className="flex-1" onClick={() => setSubId(null)}>Cancel</Button>
             <Button className="flex-1" onClick={() => {
               if (subId) {
-                updateCompanySubscription(subId, newPlan === 'none' ? null : newPlan as any, newPlan === 'trial' ? trialDays : undefined);
+                updateCompanySubscription(subId, newPlan === 'none' ? null : newPlan as any);
                 setSubId(null);
               }
             }}>Update Plan</Button>
