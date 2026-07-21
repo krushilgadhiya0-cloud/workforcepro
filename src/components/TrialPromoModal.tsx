@@ -25,7 +25,7 @@ export function TrialPromoModal() {
 
   useEffect(() => {
     // Show trial promo if user is owner and company has no subscription
-    if (user?.role === 'owner' && company && !company.subscription) {
+    if (user?.role === 'owner' && company && (!company.subscription || company.subscription === 'free')) {
       const shown = localStorage.getItem(`trial_promo_shown_${company.id}`);
       if (!shown) {
         const timer = setTimeout(() => setIsOpen(true), 1500);
@@ -33,6 +33,12 @@ export function TrialPromoModal() {
       }
     }
   }, [user, company]);
+
+  useEffect(() => {
+    const openPromo = () => setIsOpen(true);
+    window.addEventListener('show-trial-promo', openPromo);
+    return () => window.removeEventListener('show-trial-promo', openPromo);
+  }, []);
 
   const handleClose = () => {
     if (company) localStorage.setItem(`trial_promo_shown_${company.id}`, 'true');
@@ -74,7 +80,7 @@ export function TrialPromoModal() {
 
           <div className="grid grid-cols-2 gap-3 text-left my-8">
             {[
-              'Unlimited Workers',
+              'Up to 30 Workers',
               'Advanced Reports',
               'Business Communication',
               'Priority Support',

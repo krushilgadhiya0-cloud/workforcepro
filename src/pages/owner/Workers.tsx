@@ -170,11 +170,25 @@ export function Workers() {
               {revealed ? <EyeOff size={18} /> : <Eye size={18} />}
               {revealed ? 'Hide Passwords' : 'Reveal Passwords'}
             </Button>
-            <div className="relative group/limit cursor-not-allowed inline-block">
-              <Button onClick={openAdd} disabled={isAtLimit} className="w-full">
+            <div className={`relative ${isAtLimit ? 'group/limit' : ''} inline-block`}>
+              <Button 
+                onClick={(e) => {
+                  if (isAtLimit) {
+                    if (!company?.hasUsedTrial) {
+                      window.dispatchEvent(new Event('show-trial-promo'));
+                    } else {
+                      // Already used trial, standard rejection
+                      e.preventDefault();
+                    }
+                  } else {
+                    openAdd();
+                  }
+                }} 
+                className={`w-full ${isAtLimit && company?.hasUsedTrial ? 'cursor-not-allowed opacity-50 bg-[var(--border)] text-[var(--text-muted)]' : ''}`}
+              >
                 <Plus size={18} /> Add {getLabel(true)}
               </Button>
-              {isAtLimit && (
+              {isAtLimit && company?.hasUsedTrial && (
                 <div className="absolute top-full right-0 mt-2 w-48 p-2 text-xs font-medium bg-red-500 text-white rounded-lg shadow-xl opacity-0 invisible group-hover/limit:opacity-100 group-hover/limit:visible transition-all z-50 pointer-events-none">
                   Worker limit ({workerLimit}) reached for your current plan. Upgrade to proceed.
                 </div>
