@@ -37,6 +37,7 @@ export function Workers() {
       case 'enterprise': return 1000;
       case 'pro': return 100;
       case 'starter': return 20;
+      case 'trial': return 30;
       case 'free':
       default: return 5;
     }

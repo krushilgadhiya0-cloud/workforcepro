@@ -42,7 +42,7 @@ export function WorkerPayments() {
     <div>
       <PageHeader title="My Payments" subtitle="Salary history and receipts" showBack={false} />
 
-      <div className="glass-card rounded-2xl p-6 mb-6 flex flex-col md:flex-row items-end md:items-center gap-4">
+      <div className="glass-card rounded-2xl p-6 mb-6 flex flex-col md:flex-row items-end md:items-center gap-6">
         <div className="flex-1 w-full">
           <Input 
             label="My Payment UPI ID" 
@@ -50,10 +50,22 @@ export function WorkerPayments() {
             onChange={(e) => setUpiId(e.target.value)} 
             placeholder="e.g. 9876543210@ybl"
           />
+          <div className="mt-3">
+            <Button onClick={handleSaveContact} className="shrink-0">
+              <Save size={18} /> Save Details
+            </Button>
+          </div>
         </div>
-        <Button onClick={handleSaveContact} className="shrink-0 mb-1">
-          <Save size={18} /> Save Details
-        </Button>
+        {upiId.trim() && (
+          <div className="shrink-0 bg-white p-3 rounded-xl shadow-sm border border-slate-200">
+            <p className="text-xs font-bold text-slate-500 mb-2 text-center uppercase tracking-wider">Scan to Pay</p>
+            <img 
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(user?.name || 'Worker')}&cu=INR`} 
+              alt="UPI QR Code" 
+              className="w-[120px] h-[120px]"
+            />
+          </div>
+        )}
       </div>
 
       <div className="glass-card rounded-2xl overflow-hidden">

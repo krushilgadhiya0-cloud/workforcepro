@@ -35,6 +35,7 @@ export function OwnerPayments() {
     starter: { name: 'Starter', price: 599, workers: '5 - 20', features: ['Up to 20 workers', 'Advanced Analytics', 'Priority Support'] },
     pro: { name: 'Pro', price: 1599, workers: '20 - 100', features: ['Up to 100 workers', 'Communication Hub', 'AI Integrations'] },
     enterprise: { name: 'Enterprise', price: 10000, workers: '100 - 1,000', features: ['Up to 1,000 workers', 'Dedicated Manager', 'Custom Solutions'] },
+    trial: { name: 'Free Trial', price: 1, workers: 'Up to 30', features: ['Up to 30 workers', 'Full Access', '30 Days'] },
   };
 
   const currentPlan = company?.subscription ? plans[company.subscription] : null;
@@ -115,7 +116,7 @@ export function OwnerPayments() {
 
       <Modal isOpen={showUpgrade} onClose={() => !paying && setShowUpgrade(false)} title="Choose Your Plan" size="lg">
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {(Object.entries(plans) as [SubscriptionPlan, typeof plans.free][]).map(([key, plan]) => (
+          {(Object.entries(plans) as [SubscriptionPlan, typeof plans.free][]).filter(([k]) => k !== 'trial').map(([key, plan]) => (
             <button
               key={key}
               type="button"

@@ -12,7 +12,7 @@ export function SuperAdminCompanies() {
   const [search, setSearch] = useState('');
   const [viewId, setViewId] = useState<string | null>(null);
   const [subId, setSubId] = useState<string | null>(null);
-  const [newPlan, setNewPlan] = useState<'free' | 'starter' | 'pro' | 'enterprise' | 'none'>('none');
+  const [newPlan, setNewPlan] = useState<'free' | 'starter' | 'pro' | 'enterprise' | 'trial' | 'none'>('none');
 
   const filtered = companies.filter((c) => 
     c.name.toLowerCase().includes(search.toLowerCase()) || 

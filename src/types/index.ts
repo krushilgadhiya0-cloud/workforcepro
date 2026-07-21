@@ -3,7 +3,7 @@ export type TaskStatus = 'pending' | 'in_progress' | 'completed';
 export type TaskPriority = 'low' | 'medium' | 'high';
 export type LeaveStatus = 'pending' | 'approved' | 'rejected';
 export type PaymentStatus = 'paid' | 'due' | 'pending';
-export type SubscriptionPlan = 'free' | 'starter' | 'pro' | 'enterprise';
+export type SubscriptionPlan = 'free' | 'starter' | 'pro' | 'enterprise' | 'trial';
 export type AdminRole = 'manager' | 'hr' | 'supervisor' | 'finance' | 'custom';
 
 export interface User {
