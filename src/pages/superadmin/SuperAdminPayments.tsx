@@ -14,9 +14,11 @@ export function SuperAdminPayments() {
     .map((c) => {
       let amount = c.subscriptionPrice;
       if (amount === undefined || amount === null) {
-        if (c.subscription === 'pro') amount = 1599;
+        if (c.subscription === 'enterprise') amount = 10000;
+        else if (c.subscription === 'pro') amount = 1599;
         else if (c.subscription === 'starter') amount = 599;
-        else if (c.subscription === 'enterprise') amount = 10000;
+        else if (c.subscription === 'free') amount = 299;
+        else if (c.subscription === 'trial') amount = 1;
         else amount = 0;
       }
       return {

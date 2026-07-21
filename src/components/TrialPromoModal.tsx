@@ -80,7 +80,7 @@ export function TrialPromoModal() {
 
           <div className="grid grid-cols-2 gap-3 text-left my-8">
             {[
-              'Up to 30 Workers',
+              'Up to 10 Workers',
               'Advanced Reports',
               'Business Communication',
               'Priority Support',

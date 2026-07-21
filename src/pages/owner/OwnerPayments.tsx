@@ -31,11 +31,11 @@ export function OwnerPayments() {
   });
 
   const plans = {
-    free: { name: 'Free Plan', price: 0, workers: 'Up to 5', features: ['Up to 5 workers', 'Basic Task Management', 'Standard Support'] },
+    free: { name: 'Basic', price: 299, workers: 'Up to 5', features: ['Up to 5 workers', 'Basic Task Management', 'Standard Support'] },
     starter: { name: 'Starter', price: 599, workers: '5 - 20', features: ['Up to 20 workers', 'Advanced Analytics', 'Priority Support'] },
     pro: { name: 'Pro', price: 1599, workers: '20 - 100', features: ['Up to 100 workers', 'Communication Hub', 'AI Integrations'] },
     enterprise: { name: 'Enterprise', price: 10000, workers: '100 - 1,000', features: ['Up to 1,000 workers', 'Dedicated Manager', 'Custom Solutions'] },
-    trial: { name: 'Free Trial', price: 1, workers: 'Up to 30', features: ['Up to 30 workers', 'Full Access', '30 Days'] },
+    trial: { name: 'Free Trial', price: 1, workers: 'Up to 10', features: ['Up to 10 workers', 'Full Access', '30 Days'] },
   };
 
   const currentPlan = company?.subscription ? plans[company.subscription] : null;
@@ -79,8 +79,8 @@ export function OwnerPayments() {
       />
 
       <div className="grid sm:grid-cols-4 gap-4 mb-8">
-        <StatCard title="Current Plan" value={currentPlan?.name || 'Free'} icon={<Wallet size={22} className="text-[var(--primary)]" />} />
-        <StatCard title="Plan Cost" value={company?.subscriptionPrice ? `₹${company.subscriptionPrice}` : (currentPlan?.price ? `₹${currentPlan.price}` : 'Free')} icon={<CreditCard size={22} className="text-[var(--accent)]" />} />
+        <StatCard title="Current Plan" value={currentPlan?.name || 'None'} icon={<Wallet size={22} className="text-[var(--primary)]" />} />
+        <StatCard title="Plan Cost" value={company?.subscriptionPrice ? `₹${company.subscriptionPrice}` : (currentPlan?.price ? `₹${currentPlan.price}` : '—')} icon={<CreditCard size={22} className="text-[var(--accent)]" />} />
         <StatCard title="Remaining Days" value={remainingDays !== null ? `${remainingDays} Days` : '—'} icon={<CheckCircle size={22} className="text-blue-500" />} color="bg-blue-500/10" />
         <StatCard title="Status" value={company?.subscription ? 'Active' : 'Inactive'} icon={<CheckCircle size={22} className="text-green-500" />} color="bg-green-500/10" />
       </div>
@@ -108,8 +108,8 @@ export function OwnerPayments() {
           </div>
         ) : (
           <div className="space-y-4">
-            <p className="text-[var(--text-muted)]">You are currently on the Free plan. Upgrade to unlock more workers and features.</p>
-            <Button onClick={() => setShowUpgrade(true)}>Upgrade Plan</Button>
+            <p className="text-[var(--text-muted)]">You currently do not have an active plan. Subscribe to add workers and unlock features.</p>
+            <Button onClick={() => setShowUpgrade(true)}>Subscribe Now</Button>
           </div>
         )}
       </Card>

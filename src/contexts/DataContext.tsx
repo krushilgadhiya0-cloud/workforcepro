@@ -428,7 +428,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (company) {
       company.subscription = plan;
       company.subscriptionDate = new Date().toISOString();
-      company.subscriptionPrice = plan === 'enterprise' ? 10000 : plan === 'pro' ? 1599 : plan === 'starter' ? 599 : 0;
+      company.subscriptionPrice = plan === 'enterprise' ? 10000 : plan === 'pro' ? 1599 : plan === 'starter' ? 599 : plan === 'free' ? 299 : 0;
       if (plan === 'free') company.hasUsedTrial = true;
       
       const owner = d.users.find((u) => u.id === company.ownerId);

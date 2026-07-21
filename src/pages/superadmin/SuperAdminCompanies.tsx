@@ -146,7 +146,7 @@ export function SuperAdminCompanies() {
               className="w-full bg-[var(--card)] border border-[var(--border)] rounded-xl px-4 py-2 text-sm outline-none focus:border-[var(--primary)]"
             >
               <option value="none">No Subscription</option>
-              <option value="free">Free Plan</option>
+              <option value="free">Basic Plan (₹299)</option>
               <option value="starter">Starter Plan (₹599)</option>
               <option value="pro">Pro Plan (₹1599)</option>
               <option value="enterprise">Enterprise Plan (₹10000)</option>

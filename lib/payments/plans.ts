@@ -1,7 +1,7 @@
 export type SubscriptionPlan = 'trial' | 'free' | 'starter' | 'pro' | 'enterprise';
 
 export const PLAN_AMOUNTS_PAISE: Record<SubscriptionPlan, number> = {
-  free: 0,
+  free: 29900,
   trial: 100,
   starter: 59900,
   pro: 159900,
@@ -9,7 +9,7 @@ export const PLAN_AMOUNTS_PAISE: Record<SubscriptionPlan, number> = {
 };
 
 export const PLAN_LABELS: Record<SubscriptionPlan, string> = {
-  free: 'Free Plan',
+  free: 'Basic Plan (₹299)',
   trial: '1 Month Free Trial (₹1)',
   starter: 'Starter Plan (₹599)',
   pro: 'Pro Plan (₹1,599)',

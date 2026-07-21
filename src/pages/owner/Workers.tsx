@@ -37,9 +37,9 @@ export function Workers() {
       case 'enterprise': return 1000;
       case 'pro': return 100;
       case 'starter': return 20;
-      case 'trial': return 30;
-      case 'free':
-      default: return 5;
+      case 'trial': return 10;
+      case 'free': return 5;
+      default: return 0;
     }
   };
   const workerLimit = getWorkerLimit(company?.subscription);
