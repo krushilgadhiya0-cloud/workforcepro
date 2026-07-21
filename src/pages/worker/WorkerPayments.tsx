@@ -4,6 +4,8 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { useData, useCurrentUser, useCurrentCompany } from '../../contexts/DataContext';
 import { downloadReceipt } from '../../utils/pdf';
+import { Input } from '../../components/ui/Input';
+import { QrCode, Save } from 'lucide-react';
 
 export function WorkerPayments() {
   const { payments, workers } = useData();
@@ -12,6 +14,16 @@ export function WorkerPayments() {
 
   const worker = workers.find((w) => w.userId === user?.id);
   const myPayments = payments.filter((p) => p.workerId === worker?.id).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const [upiId, setUpiId] = useState(worker?.paymentUpiId || '');
+  const { updateWorker } = useData();
+
+  const handleSaveContact = () => {
+    if (worker) {
+      updateWorker(worker.id, { paymentUpiId: upiId });
+      alert('Payment details updated successfully.');
+    }
+  };
 
   const handleDownload = (paymentId: string) => {
     const payment = myPayments.find((p) => p.id === paymentId);
@@ -28,6 +40,21 @@ export function WorkerPayments() {
   return (
     <div>
       <PageHeader title="My Payments" subtitle="Salary history and receipts" showBack={false} />
+
+      <div className="glass-card rounded-2xl p-6 mb-6 flex flex-col md:flex-row items-end md:items-center gap-4">
+        <div className="flex-1 w-full">
+          <Input 
+            label="My Payment UPI ID" 
+            value={upiId} 
+            onChange={(e) => setUpiId(e.target.value)} 
+            placeholder="e.g. 9876543210@ybl" 
+            icon={<QrCode size={18} />}
+          />
+        </div>
+        <Button onClick={handleSaveContact} className="shrink-0 mb-1">
+          <Save size={18} /> Save Details
+        </Button>
+      </div>
 
       <div className="glass-card rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">

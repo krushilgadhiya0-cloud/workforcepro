@@ -32,6 +32,18 @@ export function Workers() {
 
   const companyWorkers = workers.filter((w) => w.companyId === company?.id);
 
+  const getWorkerLimit = (plan?: string | null) => {
+    switch(plan) {
+      case 'enterprise': return 1000;
+      case 'pro': return 100;
+      case 'starter': return 20;
+      case 'free':
+      default: return 5;
+    }
+  };
+  const workerLimit = getWorkerLimit(company?.subscription);
+  const isAtLimit = companyWorkers.length >= workerLimit;
+
   const filtered = companyWorkers.filter((w) =>
     w.name.toLowerCase().includes(search.toLowerCase()) || w.email.toLowerCase().includes(search.toLowerCase()),
   );
@@ -157,7 +169,16 @@ export function Workers() {
               {revealed ? <EyeOff size={18} /> : <Eye size={18} />}
               {revealed ? 'Hide Passwords' : 'Reveal Passwords'}
             </Button>
-            <Button onClick={openAdd}><Plus size={18} /> Add {getLabel(true)}</Button>
+            <div className="relative group/limit cursor-not-allowed inline-block">
+              <Button onClick={openAdd} disabled={isAtLimit} className="w-full">
+                <Plus size={18} /> Add {getLabel(true)}
+              </Button>
+              {isAtLimit && (
+                <div className="absolute top-full right-0 mt-2 w-48 p-2 text-xs font-medium bg-red-500 text-white rounded-lg shadow-xl opacity-0 invisible group-hover/limit:opacity-100 group-hover/limit:visible transition-all z-50 pointer-events-none">
+                  Worker limit ({workerLimit}) reached for your current plan. Upgrade to proceed.
+                </div>
+              )}
+            </div>
           </div>
         }
         showBack={false}

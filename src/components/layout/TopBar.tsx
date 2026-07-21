@@ -1,12 +1,13 @@
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Menu } from 'lucide-react';
 import { NotificationBell } from '../notifications/NotificationBell';
 import { useCurrentUser, useCurrentCompany, useData } from '../../contexts/DataContext';
 
 interface TopBarProps {
   onToggleChat?: () => void;
+  onMenuClick?: () => void;
 }
 
-export function TopBar({ onToggleChat }: TopBarProps) {
+export function TopBar({ onToggleChat, onMenuClick }: TopBarProps) {
   const user = useCurrentUser();
   const company = useCurrentCompany();
   const { getUnreadCommunicationCount } = useData();
@@ -15,8 +16,15 @@ export function TopBar({ onToggleChat }: TopBarProps) {
 
   return (
     <div className="flex items-center justify-between mb-6 pb-4 border-b border-[var(--border)]">
-      <div>
-        <p className="text-xs text-[var(--text-muted)] capitalize">{user?.role} account</p>
+      <div className="flex items-center gap-3">
+        <button 
+          onClick={onMenuClick} 
+          className="lg:hidden p-2 -ml-2 rounded-lg hover:bg-[var(--border)]/50 text-[var(--text)] transition-colors"
+        >
+          <Menu size={24} />
+        </button>
+        <div>
+          <p className="text-xs text-[var(--text-muted)] capitalize">{user?.role} account</p>
         <p className="text-sm font-medium text-[var(--text)]">
           {company?.name || user?.name || 'WorkForce Pro'}
         </p>

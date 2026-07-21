@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, CreditCard, Wallet, CalendarOff, BarChart3,
-  Settings, LogOut, Building2, ChevronLeft, ChevronRight, Bell, Shield,
+  Settings, LogOut, Building2, ChevronLeft, ChevronRight, Bell, Shield, X,
   ListTodo, Crown, UserCog, Activity, MessageSquare, BookOpen, DollarSign, Sparkles
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -11,6 +11,10 @@ import { useTheme } from '../../contexts/ThemeContext';
 
 interface SidebarProps {
   role: 'owner' | 'admin' | 'worker' | 'superadmin';
+  mobileOpen: boolean;
+  setMobileOpen: (v: boolean) => void;
+  collapsed: boolean;
+  setCollapsed: (v: boolean) => void;
 }
 
 interface NavItem {
@@ -62,8 +66,9 @@ const workerLinks: NavItem[] = [
   { to: '/worker/settings', icon: Settings, label: 'Settings' },
 ];
 
-export function Sidebar({ role }: SidebarProps) {
-  const [collapsed, setCollapsed] = useState(false);
+export function Sidebar({ role, mobileOpen, setMobileOpen, collapsed, setCollapsed }: SidebarProps) {
+  const [isHovered, setIsHovered] = useState(false);
+  const activeCollapsed = collapsed && !isHovered;
   const { 
     logout, 
     getUserNotifications, 
@@ -107,18 +112,29 @@ export function Sidebar({ role }: SidebarProps) {
   };
 
   return (
-    <aside className={`fixed left-0 top-0 h-full z-40 glass-card border-r border-[var(--border)] transition-all duration-300 flex flex-col ${collapsed ? 'w-[72px]' : 'w-64'}`}>
-      <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
-        {!collapsed && (
+    <aside 
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className={`fixed left-0 top-0 h-full z-40 glass-card border-r border-[var(--border)] transition-all duration-300 flex flex-col group ${
+        mobileOpen ? 'translate-x-0 w-64' : 'max-lg:-translate-x-full'
+      } lg:translate-x-0 ${
+        activeCollapsed ? 'lg:w-[72px]' : 'lg:w-64'
+      }`}
+    >
+      <div className="flex items-center justify-between p-4 border-b border-[var(--border)] h-[72px]">
+        {!activeCollapsed && (
           <div className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center ${role === 'superadmin' ? 'bg-amber-500' : 'bg-white shadow-sm'}`}>
+            <div className={`w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shrink-0 ${role === 'superadmin' ? 'bg-amber-500' : 'bg-white shadow-sm'}`}>
               {role === 'superadmin' ? <Crown size={16} className="text-white" /> : <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />}
             </div>
-            <span className="font-bold text-sm gradient-text">{role === 'superadmin' ? 'Super Admin' : 'WorkForce Pro'}</span>
+            <span className="font-bold text-sm gradient-text whitespace-nowrap overflow-hidden">{role === 'superadmin' ? 'Super Admin' : 'WorkForce Pro'}</span>
           </div>
         )}
-        <button onClick={() => setCollapsed(!collapsed)} className="p-1.5 rounded-lg hover:bg-[var(--border)]/50 transition-colors cursor-pointer">
+        <button onClick={() => { setCollapsed(!collapsed); setIsHovered(false); }} className="p-1.5 rounded-lg hover:bg-[var(--border)]/50 transition-colors cursor-pointer shrink-0 hidden lg:block">
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+        </button>
+        <button onClick={() => setMobileOpen(false)} className="p-1.5 rounded-lg hover:bg-[var(--border)]/50 transition-colors cursor-pointer shrink-0 lg:hidden text-[var(--text-muted)]">
+          <X size={18} />
         </button>
       </div>
 
@@ -139,9 +155,9 @@ export function Sidebar({ role }: SidebarProps) {
               }
             >
               <link.icon size={20} />
-              {!collapsed && <span>{getLabel(link.label)}</span>}
+              {!activeCollapsed && <span>{getLabel(link.label)}</span>}
               {badge > 0 && (
-                <span className={`${collapsed ? 'absolute top-1 right-1' : 'ml-auto'} min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center`}>
+                <span className={`${activeCollapsed ? 'absolute top-1 right-1' : 'ml-auto'} min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center`}>
                   {badge > 9 ? '9+' : badge}
                 </span>
               )}
@@ -153,11 +169,11 @@ export function Sidebar({ role }: SidebarProps) {
       <div className="p-3 border-t border-[var(--border)] space-y-1">
         <button onClick={toggleTheme} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[var(--text-muted)] hover:bg-[var(--border)]/30 transition-colors cursor-pointer">
           <span className="text-lg">{theme === 'light' ? '🌙' : '☀️'}</span>
-          {!collapsed && <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>}
+          {!activeCollapsed && <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>}
         </button>
         <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer">
           <LogOut size={20} />
-          {!collapsed && <span>Logout</span>}
+          {!activeCollapsed && <span>Logout</span>}
         </button>
       </div>
     </aside>

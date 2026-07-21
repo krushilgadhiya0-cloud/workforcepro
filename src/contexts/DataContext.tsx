@@ -37,7 +37,7 @@ interface DataContextType extends AppData {
   applyLeave: (data: Omit<LeaveRequest, 'id' | 'createdAt' | 'status'>) => LeaveRequest;
   updateLeave: (id: string, status: LeaveStatus) => void;
   addPayment: (data: Omit<Payment, 'id' | 'createdAt' | 'status'>) => Payment;
-  markPaymentPaid: (id: string) => void;
+  markPaymentPaid: (id: string, method?: 'online' | 'cash') => void;
   addNotification: (data: Omit<Notification, 'id' | 'createdAt' | 'read'>) => void;
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: (userId: string) => void;
@@ -178,12 +178,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
         notifiedIdsRef.current.add(n.id);
         
         if (typeof window !== 'undefined' && 'Notification' in window) {
+          const spawnNotification = () => {
+            const osNotification = new window.Notification(n.title, { body: n.message, icon: '/logo.png' });
+            osNotification.onclick = () => {
+              window.focus();
+              osNotification.close();
+            };
+          };
+
           if (Notification.permission === 'granted') {
-            new window.Notification(n.title, { body: n.message, icon: '/logo.png' });
+            spawnNotification();
           } else if (Notification.permission !== 'denied') {
             Notification.requestPermission().then(permission => {
               if (permission === 'granted') {
-                new window.Notification(n.title, { body: n.message, icon: '/logo.png' });
+                spawnNotification();
               }
             });
           }
@@ -191,6 +199,36 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
     });
   }, [data.notifications, data.currentUserId, data.users]);
+
+  // Subscription Reminder Loop
+  const checkedCompanyIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!data.currentUserId || !isLoadedRef.current) return;
+    
+    const myCompanies = data.companies.filter(c => c.ownerId === data.currentUserId && c.subscription);
+    
+    myCompanies.forEach(company => {
+      if (!company.subscriptionDate || checkedCompanyIdsRef.current.has(company.id)) return;
+      
+      const start = new Date(company.subscriptionDate);
+      // As defined in owner payments, typical periodic renewal cycle
+      const end = new Date(start);
+      end.setDate(start.getDate() + 30);
+      
+      const now = new Date();
+      const diffTime = end.getTime() - now.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 7 || diffDays === 5 || diffDays === 1) {
+        checkedCompanyIdsRef.current.add(company.id);
+        fetch('http://localhost:3001/api/send-subscription-reminder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: company.email, daysLeft: diffDays, companyName: company.name })
+        }).catch(err => console.warn('Subscription reminder dispatch failed:', err));
+      }
+    });
+  }, [data.companies, data.currentUserId]);
 
   const appendNotification = (d: AppData, notif: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
     d.notifications.push({ ...notif, id: generateId(), read: false, createdAt: new Date().toISOString() });
@@ -743,11 +781,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return payment;
   }, [data, persist]);
 
-  const markPaymentPaid = useCallback((id: string) => {
+  const markPaymentPaid = useCallback((id: string, method?: 'online' | 'cash') => {
     const d = { ...data };
     const idx = d.payments.findIndex((p) => p.id === id);
     if (idx >= 0) {
       d.payments[idx].status = 'paid';
+      d.payments[idx].paymentMethod = method;
       d.payments[idx].paidDate = new Date().toISOString().split('T')[0];
       d.payments[idx].transactionId = generateTransactionId();
       const payment = d.payments[idx];
@@ -1056,9 +1095,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const markAllCommunicationRead = useCallback((userId: string) => {
     const d = { ...data };
+    const user = d.users.find(u => u.id === userId);
     const idx = d.users.findIndex(u => u.id === userId);
-    if (idx >= 0) {
+    
+    if (idx >= 0 && user) {
       d.users[idx] = { ...d.users[idx], lastCommunicationReadAt: new Date().toISOString() };
+      
+      const companyId = user.companyId || (user.role === 'owner' ? d.companies.find(c => c.ownerId === userId)?.id : null);
+      if (companyId) {
+        d.messages.forEach(m => {
+          if (m.companyId === companyId && m.senderId !== userId) {
+            if (!m.readBy) m.readBy = [];
+            if (!m.readBy.includes(userId)) m.readBy.push(userId);
+          }
+        });
+      }
       persist(d);
     }
   }, [data, persist]);

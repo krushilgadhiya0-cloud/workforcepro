@@ -51,6 +51,12 @@ export function BusinessProfile() {
   const [companyStrength, setCompanyStrength] = useState<PasswordStrength>(validatePasswordStrength(''));
   const { emailError, checking, validateEmail, clearEmailError } = useEmailValidation();
 
+  // Mobile Verification State
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpValue, setOtpValue] = useState('');
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [otpError, setOtpError] = useState('');
+
   useEffect(() => {
     if (company) {
       setProfile({
@@ -63,6 +69,10 @@ export function BusinessProfile() {
         workerLabel: company.workerLabel || '',
         adminLabel: company.adminLabel || '',
       });
+      // Mock true if they already had a phone number
+      if (company.phone) {
+        setPhoneVerified(true);
+      }
     }
   }, [company?.id, company?.name, company?.ownerName, company?.email, company?.phone, company?.address, company?.industry, company?.workerLabel, company?.adminLabel]);
 
@@ -341,7 +351,65 @@ export function BusinessProfile() {
                 error={emailError}
                 disabled={!isOwner}
               />
-              <Input label="Phone Number" value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} disabled={!isOwner} />
+              
+              <div className="space-y-2">
+                <div className="flex gap-2 items-end">
+                  <div className="flex-1">
+                    <Input 
+                      label="Phone Number" 
+                      value={profile.phone} 
+                      onChange={(e) => { 
+                        setProfile({ ...profile, phone: e.target.value }); 
+                        setPhoneVerified(false); 
+                        setOtpSent(false); 
+                      }} 
+                      disabled={!isOwner || phoneVerified} 
+                    />
+                  </div>
+                  {isOwner && profile.phone && !phoneVerified && (
+                    <Button onClick={() => setOtpSent(true)} size="lg" className="mb-1">Verify</Button>
+                  )}
+                  {phoneVerified && (
+                    <div className="mb-1 p-2 rounded-xl bg-green-500/10 text-green-600 flex items-center gap-1 text-sm font-bold shadow-sm border border-green-500/20">
+                      <CheckCircle size={16} /> Verified
+                    </div>
+                  )}
+                </div>
+                
+                {otpSent && !phoneVerified && (
+                  <div className="p-4 rounded-xl border border-[var(--primary)]/30 bg-[var(--primary)]/5 animate-fade-in flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1">
+                        <Input 
+                          label="Enter the 4-digit OTP" 
+                          placeholder="Try 1234" 
+                          value={otpValue} 
+                          onChange={(e) => { setOtpValue(e.target.value); setOtpError(''); }} 
+                        />
+                        {otpError && <p className="text-xs text-red-500 mt-1">{otpError}</p>}
+                      </div>
+                      <Button 
+                        onClick={() => { 
+                          if (otpValue === '1234') { 
+                            setPhoneVerified(true); 
+                            setOtpSent(false); 
+                            setOtpError('');
+                          } else {
+                            setOtpError('Invalid OTP (hint: 1234)');
+                          }
+                        }} 
+                        className="mt-6 glow-primary"
+                      >
+                        Confirm
+                      </Button>
+                    </div>
+                    <p className="text-[10px] text-[var(--text-muted)] italic">
+                      This is a simulator UI. Entering "1234" will verify the mobile number. Later this will be hooked up to an SMS API like Twilio.
+                    </p>
+                  </div>
+                )}
+              </div>
+
               <Input label="Business Address" value={profile.address} onChange={(e) => setProfile({ ...profile, address: e.target.value })} disabled={!isOwner} />
               <Input label="Industry Type" value={profile.industry} onChange={(e) => setProfile({ ...profile, industry: e.target.value })} disabled={!isOwner} />
               <div className="grid grid-cols-2 gap-4">

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, User as UserIcon, Shield, Briefcase, MessageSquare, Pencil, Trash2, Sparkles, Video, Check } from 'lucide-react';
+import { Send, User as UserIcon, Shield, Briefcase, MessageSquare, Pencil, Trash2, Sparkles, Video, Check, CheckCircle2 } from 'lucide-react';
 import { PageHeader } from '../components/layout/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -27,6 +27,14 @@ export function Communication({ companyId, isSuperAdmin = false }: Communication
   const [selectedInvitees, setSelectedInvitees] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
+  const [contextMenu, setContextMenu] = useState<{ x: number, y: number, readBy: string[] } | null>(null);
+
+  // Close context menu on outside click
+  useEffect(() => {
+    const closeContext = () => setContextMenu(null);
+    window.addEventListener('click', closeContext);
+    return () => window.removeEventListener('click', closeContext);
+  }, []);
 
   // If companyId is provided (Super Admin view), use it. Otherwise use current user's company.
   const targetCompanyId = companyId || user?.companyId || (user?.role === 'owner' ? companies.find(c => c.ownerId === user.id)?.id : null);
@@ -93,6 +101,12 @@ export function Communication({ companyId, isSuperAdmin = false }: Communication
     setSelectedInvitees(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
+  };
+
+  const handleContextMenu = (e: React.MouseEvent, readBy?: string[]) => {
+    e.preventDefault();
+    if (!readBy || readBy.length === 0) return;
+    setContextMenu({ x: e.clientX, y: e.clientY, readBy });
   };
 
   const handleEdit = (id: string, content: string) => {
@@ -176,11 +190,14 @@ export function Communication({ companyId, isSuperAdmin = false }: Communication
                       </form>
                     ) : (
                       <div className="group relative">
-                        <div className={`p-3 rounded-2xl text-sm ${
-                          m.isDeleted ? 'bg-slate-500/5 text-slate-400 italic border border-slate-200/50' :
-                          m.senderId === 'ai-assistant' ? 'bg-gradient-to-br from-indigo-600 to-violet-700 text-white rounded-tl-none shadow-indigo-200 shadow-lg border border-indigo-400/30' :
-                          isMe ? 'bg-[var(--primary)] text-white rounded-tr-none shadow-sm' : 'bg-[var(--border)]/30 text-[var(--text)] rounded-tl-none'
-                        }`}>
+                        <div 
+                          className={`p-3 rounded-2xl text-sm cursor-context-menu ${
+                            m.isDeleted ? 'bg-slate-500/5 text-slate-400 italic border border-slate-200/50' :
+                            m.senderId === 'ai-assistant' ? 'bg-gradient-to-br from-indigo-600 to-violet-700 text-white rounded-tl-none shadow-indigo-200 shadow-lg border border-indigo-400/30' :
+                            isMe ? 'bg-[var(--primary)] text-white rounded-tr-none shadow-sm' : 'bg-[var(--border)]/30 text-[var(--text)] rounded-tl-none'
+                          }`}
+                          onContextMenu={(e) => handleContextMenu(e, m.readBy)}
+                        >
                           {renderTextWithLinks(m.content)}
                         </div>
                         
@@ -203,6 +220,7 @@ export function Communication({ companyId, isSuperAdmin = false }: Communication
                       <span className="text-[10px] text-[var(--text-muted)] opacity-60">
                         {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
+                      {isMe && m.readBy && m.readBy.length > 0 && <CheckCircle2 size={12} className="text-blue-500" />}
                     </div>
                   </div>
                 </div>
@@ -288,6 +306,23 @@ export function Communication({ companyId, isSuperAdmin = false }: Communication
           </div>
         </div>
       </Modal>
+
+      {contextMenu && (
+        <div 
+          className="fixed z-[100] bg-[var(--card)] border border-[var(--border)] shadow-xl rounded-lg p-2 min-w-[150px] animate-fade-in"
+          style={{ top: Math.min(contextMenu.y, window.innerHeight - 100), left: Math.min(contextMenu.x, window.innerWidth - 180) }}
+        >
+          <div className="text-xs font-bold text-[var(--text)] mb-2 px-1 border-b border-[var(--border)] pb-1">Read by:</div>
+          {contextMenu.readBy.map((userId) => {
+            const u = useData().users.find(x => x.id === userId) || useData().workers.find(x => x.userId === userId);
+            return u ? (
+              <div key={userId} className="text-sm px-2 py-1 flex items-center gap-2">
+                <CheckCircle2 size={12} className="text-blue-500" /> {u.name}
+              </div>
+            ) : null;
+          })}
+        </div>
+      )}
 
     </div>
   );

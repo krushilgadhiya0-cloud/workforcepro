@@ -108,6 +108,15 @@ app.post('/api/verify-otp', async (req, res) => {
   }
 });
 
+app.post('/api/send-subscription-reminder', async (req, res) => {
+  const { email, daysLeft, companyName } = req.body;
+  if (!email || typeof daysLeft !== 'number') {
+    return res.status(400).json({ error: 'Email and daysLeft are required' });
+  }
+  console.log(`[DEV-API] Subscription reminder email sent to ${email} for ${companyName || 'Business'} (${daysLeft} days left)`);
+  res.json({ ok: true, message: 'Reminder email logged to console' });
+});
+
 const DATA_FILE = join(process.cwd(), 'data', 'app-data.json');
 
 app.get('/api/data', async (_req, res) => {

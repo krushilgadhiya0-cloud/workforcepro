@@ -38,7 +38,7 @@ export function Landing() {
 
   const [showBusiness, setShowBusiness] = useState(false);
   const [showSubscription, setShowSubscription] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<'trial' | 'monthly' | 'yearly'>('trial');
+  const [selectedPlan, setSelectedPlan] = useState<'free' | 'starter' | 'pro' | 'enterprise'>('starter');
   const [createdCompany, setCreatedCompany] = useState<{ id: string; name: string; email: string; ownerName: string; phone: string } | null>(null);
   const [businessForm, setBusinessForm] = useState({
     name: '', ownerName: '', email: '', phone: '', address: '', industry: 'Technology', ownerPassword: '',
@@ -247,26 +247,30 @@ export function Landing() {
       </Modal>
 
       <Modal isOpen={showSubscription} onClose={() => setShowSubscription(false)} title="Choose Your Plan" size="lg">
-        <div className="grid md:grid-cols-3 gap-4 mb-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {[
-            { plan: 'trial' as const, price: '₹1', period: '/first mo', features: ['Full Access', 'OTP Verification', '30 Day Trial'], trial: true },
-            { plan: 'monthly' as const, price: '₹799', period: '/month', features: ['Unlimited Tasks', 'Worker Management', 'Payment Tracking'] },
-            { plan: 'yearly' as const, price: '₹4,999', period: '/year', features: ['Save More', 'Priority Support', 'Premium Features'], popular: true },
+            { plan: 'free' as const, name: 'Free', price: 'Free', period: '', workers: 'Up to 5', features: ['Up to 5 workers', 'Basic Task Management', 'Standard Support'] },
+            { plan: 'starter' as const, name: 'Starter', price: '₹599', period: '/mo', workers: '5 - 20', features: ['Up to 20 workers', 'Advanced Analytics', 'Priority Support'], popular: true },
+            { plan: 'pro' as const, name: 'Pro', price: '₹1,599', period: '/mo', workers: '20 - 100', features: ['Up to 100 workers', 'Communication Hub', 'AI Integrations'] },
+            { plan: 'enterprise' as const, name: 'Enterprise', price: '₹10,000', period: '/mo', workers: '100 - 1,000', features: ['Up to 1,000 workers', 'Dedicated Manager', 'Custom Solutions'] },
           ].map((p) => (
             <button
               key={p.plan}
               onClick={() => setSelectedPlan(p.plan)}
-              className={`relative p-5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+              className={`relative p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col ${
                 selectedPlan === p.plan ? 'border-[var(--primary)] bg-[var(--primary)]/5' : 'border-[var(--border)] hover:border-[var(--primary)]/50'
               }`}
             >
-              {p.popular && <span className="absolute -top-2.5 right-4 px-3 py-0.5 rounded-full gradient-bg text-white text-xs font-medium">Best Value</span>}
-              <p className="text-sm text-[var(--text-muted)] capitalize">{p.plan} Plan</p>
-              <p className="text-3xl font-bold text-[var(--text)] mt-1">{p.price}<span className="text-sm font-normal text-[var(--text-muted)]">{p.period}</span></p>
-              <ul className="mt-4 space-y-2">
+              {p.popular && <span className="absolute -top-2.5 right-2 px-2 py-0.5 rounded-full gradient-bg text-white text-[10px] font-bold uppercase">Popular</span>}
+              <p className="text-sm text-[var(--text-muted)] capitalize mb-1">{p.name}</p>
+              <p className="text-xl font-bold text-[var(--text)] mb-2">{p.price}<span className="text-xs font-normal text-[var(--text-muted)]">{p.period}</span></p>
+              <div className="mb-3 text-[10px] font-semibold px-2 py-1 bg-[var(--border)]/30 rounded-lg text-center w-full">
+                {p.workers} Workers
+              </div>
+              <ul className="mt-auto space-y-2">
                 {p.features.map((f) => (
-                  <li key={f} className="text-sm text-[var(--text-muted)] flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)]" /> {f}
+                  <li key={f} className="text-[10px] text-[var(--text-muted)] flex items-start gap-1.5 leading-tight">
+                    <span className="w-1 h-1 mt-1 rounded-full bg-[var(--primary)] shrink-0" /> {f}
                   </li>
                 ))}
               </ul>
@@ -280,9 +284,9 @@ export function Landing() {
         <p className="text-xs text-[var(--text-muted)] text-center mb-4">
           Secure payment via Razorpay (UPI, cards, netbanking)
         </p>
-        <div className="flex gap-3">
+        <div className="flex gap-3 mt-4">
           <Button className="flex-1" onClick={handleSubscribe} disabled={paying || !createdCompany}>
-            {paying ? 'Processing…' : 'Pay & Subscribe'}
+            {selectedPlan === 'free' ? 'Start for Free' : paying ? 'Processing…' : 'Pay & Subscribe'}
           </Button>
           <Button variant="outline" className="flex-1" onClick={() => setShowSubscription(false)} disabled={paying}>Cancel</Button>
         </div>

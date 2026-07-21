@@ -19,6 +19,7 @@ const roleOptions = [
   { value: 'hr', label: 'HR' },
   { value: 'supervisor', label: 'Supervisor' },
   { value: 'finance', label: 'Finance' },
+  { value: 'custom', label: 'Custom Role' },
 ];
 
 export function Admins() {
@@ -27,7 +28,7 @@ export function Admins() {
   const { checkSubscription } = useSubscriptionGuard();
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Admin | null>(null);
-  const [form, setForm] = useState({ name: '', email: '', phone: '', role: 'manager' as AdminRole, password: 'admin123' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', role: 'manager' as AdminRole, customRoleName: '', password: 'admin123' });
   const [credentials, setCredentials] = useState<{ email: string; password: string; name: string } | null>(null);
   const [formError, setFormError] = useState('');
   const { emailError, checking, validateEmail, clearEmailError } = useEmailValidation();
@@ -49,7 +50,7 @@ export function Admins() {
   const openAdd = () => {
     if (!checkSubscription()) return;
     setEditing(null);
-    setForm({ name: '', email: '', phone: '', role: 'manager', password: 'admin123' });
+    setForm({ name: '', email: '', phone: '', role: 'manager', customRoleName: '', password: 'admin123' });
     setPassStrength(validatePasswordStrength('admin123'));
     setFormError('');
     setShowModal(true);
@@ -57,7 +58,7 @@ export function Admins() {
 
   const openEdit = (admin: Admin) => {
     setEditing(admin);
-    setForm({ name: admin.name, email: admin.email, phone: admin.phone, role: admin.role, password: '' });
+    setForm({ name: admin.name, email: admin.email, phone: admin.phone, role: admin.role, customRoleName: admin.customRoleName || '', password: '' });
     setFormError('');
     setShowModal(true);
   };
@@ -75,7 +76,13 @@ export function Admins() {
     }
     try {
       if (editing) {
-        const ok = updateAdmin(editing.id, { name: form.name, email: form.email, phone: form.phone, role: form.role });
+        const ok = updateAdmin(editing.id, { 
+          name: form.name, 
+          email: form.email, 
+          phone: form.phone, 
+          role: form.role,
+          customRoleName: form.role === 'custom' ? form.customRoleName : undefined
+        });
         if (!ok) {
           setFormError('Email already in use by another account');
           return;
@@ -85,7 +92,15 @@ export function Admins() {
           setFormError('Password does not meet requirements');
           return;
         }
-        const admin = addAdmin({ ...form, companyId: company.id });
+        if (form.role === 'custom' && !form.customRoleName) {
+          setFormError('Custom role name is required');
+          return;
+        }
+        const admin = addAdmin({ 
+          ...form, 
+          companyId: company.id,
+          customRoleName: form.role === 'custom' ? form.customRoleName : undefined
+        });
         if (!admin) {
           setFormError('Email already registered. This admin may already have an account.');
           return;
@@ -171,7 +186,7 @@ export function Admins() {
                   </td>
                   <td className="p-4 text-[var(--text-muted)]">{admin.email}</td>
                   <td className="p-4 text-[var(--text-muted)]">{admin.phone}</td>
-                  <td className="p-4"><Badge status="in_progress" label={admin.role} /></td>
+                  <td className="p-4"><Badge status="in_progress" label={admin.role === 'custom' ? admin.customRoleName : admin.role} /></td>
                   <td className="p-4"><Badge status="completed" label="Registered" /></td>
                   <td className="p-4 text-right">
                     <div className="flex items-center justify-end gap-2">
@@ -208,6 +223,9 @@ export function Admins() {
           />
           <Input label="Phone Number" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
           <Select label="Role" options={roleOptions} value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as AdminRole })} />
+          {form.role === 'custom' && (
+            <Input label="Custom Role Name" value={form.customRoleName} onChange={(e) => setForm({ ...form, customRoleName: e.target.value })} placeholder="e.g. IT Administrator" />
+          )}
           {!editing && (
             <>
               <Input 

@@ -17,7 +17,7 @@ export function OwnerPayments() {
   const user = useCurrentUser();
   const { subscribe } = useData();
   const [showUpgrade, setShowUpgrade] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>('monthly');
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>('starter');
   const [isSuccess, setIsSuccess] = useState(false);
 
   const { pay, loading: paying, error: paymentError, clearError } = useSubscriptionPayment((plan, companyId) => {
@@ -31,9 +31,10 @@ export function OwnerPayments() {
   });
 
   const plans = {
-    trial: { name: 'Free Trial', price: 0, features: ['Limited Tasks', 'Basic Management'] },
-    monthly: { name: 'Monthly Plan', price: 799, features: ['Unlimited Tasks', 'Worker Management', 'Payment Tracking'] },
-    yearly: { name: 'Yearly Plan', price: 4999, features: ['Save More', 'Priority Support', 'Premium Features'] },
+    free: { name: 'Free Plan', price: 0, workers: 'Up to 5', features: ['Up to 5 workers', 'Basic Task Management', 'Standard Support'] },
+    starter: { name: 'Starter', price: 599, workers: '5 - 20', features: ['Up to 20 workers', 'Advanced Analytics', 'Priority Support'] },
+    pro: { name: 'Pro', price: 1599, workers: '20 - 100', features: ['Up to 100 workers', 'Communication Hub', 'AI Integrations'] },
+    enterprise: { name: 'Enterprise', price: 10000, workers: '100 - 1,000', features: ['Up to 1,000 workers', 'Dedicated Manager', 'Custom Solutions'] },
   };
 
   const currentPlan = company?.subscription ? plans[company.subscription] : null;
@@ -42,9 +43,9 @@ export function OwnerPayments() {
     if (!company?.subscriptionDate || !company?.subscription) return null;
     const start = new Date(company.subscriptionDate);
     const now = new Date();
-    const durationDays = company.subscription === 'yearly' ? 365 : 30; // 1 month for trial/monthly, 1 year for yearly
+    // Assuming monthly renewal cycles for paid plans
     const end = new Date(start);
-    end.setDate(start.getDate() + durationDays);
+    end.setDate(start.getDate() + 30);
     const diff = end.getTime() - now.getTime();
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
   };
@@ -77,8 +78,8 @@ export function OwnerPayments() {
       />
 
       <div className="grid sm:grid-cols-4 gap-4 mb-8">
-        <StatCard title="Current Plan" value={currentPlan?.name || 'None'} icon={<Wallet size={22} className="text-[var(--primary)]" />} />
-        <StatCard title="Plan Cost" value={company?.subscriptionPrice ? `₹${company.subscriptionPrice}` : (currentPlan ? `₹${currentPlan.price}` : '—')} icon={<CreditCard size={22} className="text-[var(--accent)]" />} />
+        <StatCard title="Current Plan" value={currentPlan?.name || 'Free'} icon={<Wallet size={22} className="text-[var(--primary)]" />} />
+        <StatCard title="Plan Cost" value={company?.subscriptionPrice ? `₹${company.subscriptionPrice}` : (currentPlan?.price ? `₹${currentPlan.price}` : 'Free')} icon={<CreditCard size={22} className="text-[var(--accent)]" />} />
         <StatCard title="Remaining Days" value={remainingDays !== null ? `${remainingDays} Days` : '—'} icon={<CheckCircle size={22} className="text-blue-500" />} color="bg-blue-500/10" />
         <StatCard title="Status" value={company?.subscription ? 'Active' : 'Inactive'} icon={<CheckCircle size={22} className="text-green-500" />} color="bg-green-500/10" />
       </div>
@@ -96,7 +97,7 @@ export function OwnerPayments() {
               <Badge status="paid" label="Active" />
             </div>
             <ul className="space-y-2">
-              {currentPlan?.features.map((f: string) => (
+              {currentPlan?.features?.map((f: string) => (
                 <li key={f} className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
                   <CheckCircle size={14} className="text-green-500" /> {f}
                 </li>
@@ -106,71 +107,47 @@ export function OwnerPayments() {
           </div>
         ) : (
           <div className="space-y-4">
-            <p className="text-[var(--text-muted)]">No active subscription. Subscribe to unlock full platform access.</p>
-            <Button onClick={() => setShowUpgrade(true)}>Choose a Plan</Button>
+            <p className="text-[var(--text-muted)]">You are currently on the Free plan. Upgrade to unlock more workers and features.</p>
+            <Button onClick={() => setShowUpgrade(true)}>Upgrade Plan</Button>
           </div>
         )}
       </Card>
 
       <Modal isOpen={showUpgrade} onClose={() => !paying && setShowUpgrade(false)} title="Choose Your Plan" size="lg">
-        <div className="grid md:grid-cols-3 gap-4 mb-6">
-          {!company?.hasUsedTrial && (
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {(Object.entries(plans) as [SubscriptionPlan, typeof plans.free][]).map(([key, plan]) => (
             <button
+              key={key}
               type="button"
-              onClick={() => setSelectedPlan('trial')}
-              className={`relative p-5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-                selectedPlan === 'trial' ? 'border-green-500 bg-green-500/5' : 'border-[var(--border)] hover:border-green-500/50'
+              onClick={() => setSelectedPlan(key)}
+              className={`relative p-5 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col ${
+                selectedPlan === key ? 'border-[var(--primary)] bg-[var(--primary)]/5' : 'border-[var(--border)] hover:border-[var(--primary)]/50'
               }`}
             >
-              <span className="absolute -top-2.5 right-4 px-3 py-0.5 rounded-full bg-green-500 text-white text-xs font-medium">New User</span>
-              <p className="text-sm text-[var(--text-muted)] capitalize">Trial Plan</p>
-              <p className="text-3xl font-bold text-[var(--text)] mt-1">₹1<span className="text-sm font-normal text-[var(--text-muted)]">/month</span></p>
-              <ul className="mt-4 space-y-2">
-                {plans.trial.features.map((f) => (
-                  <li key={f} className="text-sm text-[var(--text-muted)] flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-500" /> {f}
+              {key === 'free' && <span className="absolute -top-2.5 right-4 px-3 py-0.5 rounded-full bg-slate-500 text-white text-[10px] font-bold uppercase">Basic</span>}
+              {key === 'starter' && <span className="absolute -top-2.5 right-4 px-3 py-0.5 rounded-full bg-blue-500 text-white text-[10px] font-bold uppercase">Popular</span>}
+              {key === 'pro' && <span className="absolute -top-2.5 right-4 px-3 py-0.5 rounded-full gradient-bg text-white text-[10px] font-bold uppercase">Best Value</span>}
+              <p className="text-sm text-[var(--text-muted)] capitalize mb-1">{plan.name}</p>
+              <p className="text-2xl font-bold text-[var(--text)] mb-3">
+                {plan.price === 0 ? 'Free' : `₹${plan.price.toLocaleString()}`}
+                {plan.price > 0 && <span className="text-[10px] font-normal text-[var(--text-muted)]">/mo</span>}
+              </p>
+              <div className="mb-4 text-xs font-semibold px-2 py-1 bg-[var(--border)]/30 rounded-lg text-center">
+                {plan.workers} 
+              </div>
+              <ul className="mt-auto space-y-2">
+                {plan.features.map((f) => (
+                  <li key={f} className="text-[11px] text-[var(--text-muted)] flex items-start gap-1.5 leading-tight">
+                    <span className="w-1 h-1 mt-1 rounded-full bg-[var(--primary)] shrink-0" /> {f}
                   </li>
                 ))}
               </ul>
             </button>
-          )}
-          
-          <button
-            type="button"
-            onClick={() => setSelectedPlan('monthly')}
-            className={`relative p-5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-              selectedPlan === 'monthly' ? 'border-[var(--primary)] bg-[var(--primary)]/5' : 'border-[var(--border)] hover:border-[var(--primary)]/50'
-            }`}
-          >
-            <p className="text-sm text-[var(--text-muted)] capitalize">Monthly Plan</p>
-            <p className="text-3xl font-bold text-[var(--text)] mt-1">₹799<span className="text-sm font-normal text-[var(--text-muted)]">/month</span></p>
-            <ul className="mt-4 space-y-2">
-              {plans.monthly.features.map((f) => (
-                <li key={f} className="text-sm text-[var(--text-muted)] flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)]" /> {f}
-                </li>
-              ))}
-            </ul>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setSelectedPlan('yearly')}
-            className={`relative p-5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-              selectedPlan === 'yearly' ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--border)] hover:border-[var(--accent)]/50'
-            }`}
-          >
-            <span className="absolute -top-2.5 right-4 px-3 py-0.5 rounded-full gradient-bg text-white text-xs font-medium">Best Value</span>
-            <p className="text-sm text-[var(--text-muted)] capitalize">Yearly Plan</p>
-            <p className="text-3xl font-bold text-[var(--text)] mt-1">₹4,999<span className="text-sm font-normal text-[var(--text-muted)]">/year</span></p>
-            <ul className="mt-4 space-y-2">
-              {plans.yearly.features.map((f) => (
-                <li key={f} className="text-sm text-[var(--text-muted)] flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" /> {f}
-                </li>
-              ))}
-            </ul>
-          </button>
+          ))}
+        </div>
+        
+        <div className="text-center mb-6">
+          <p className="text-xs text-[var(--text-muted)]">Need more than 1,000 workers? <a href="mailto:contact@workforcepro.com" className="text-[var(--primary)] hover:underline font-bold">Contact Owner</a></p>
         </div>
         <RazorpayStatus />
         {paymentError && <p className="text-sm text-red-500 text-center mb-4">{paymentError}</p>}

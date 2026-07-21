@@ -3,8 +3,8 @@ export type TaskStatus = 'pending' | 'in_progress' | 'completed';
 export type TaskPriority = 'low' | 'medium' | 'high';
 export type LeaveStatus = 'pending' | 'approved' | 'rejected';
 export type PaymentStatus = 'paid' | 'due' | 'pending';
-export type SubscriptionPlan = 'trial' | 'monthly' | 'yearly';
-export type AdminRole = 'manager' | 'hr' | 'supervisor' | 'finance';
+export type SubscriptionPlan = 'free' | 'starter' | 'pro' | 'enterprise';
+export type AdminRole = 'manager' | 'hr' | 'supervisor' | 'finance' | 'custom';
 
 export interface User {
   id: string;
@@ -51,6 +51,7 @@ export interface CommunicationMessage {
   createdAt: string;
   updatedAt?: string;
   isDeleted?: boolean;
+  readBy?: string[];
 }
 
 export interface Admin {
@@ -60,6 +61,7 @@ export interface Admin {
   email: string;
   phone: string;
   role: AdminRole;
+  customRoleName?: string;
   userId: string;
   createdAt: string;
 }
@@ -75,6 +77,8 @@ export interface Worker {
   joiningDate: string;
   userId: string;
   attendanceStatus: 'present' | 'absent' | 'on_leave';
+  paymentUpiId?: string;
+  paymentQrUrl?: string;
   createdAt: string;
 }
 
@@ -108,6 +112,7 @@ export interface Payment {
   amount: number;
   dueDate: string;
   status: PaymentStatus;
+  paymentMethod?: 'online' | 'cash';
   paidDate?: string;
   transactionId?: string;
   createdAt: string;
@@ -159,6 +164,7 @@ export interface PrivateMessage {
   createdAt: string;
   updatedAt?: string;
   read: boolean;
+  readBy?: string[];
   isDeleted?: boolean;
 }
 

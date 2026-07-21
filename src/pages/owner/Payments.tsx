@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, FileText } from 'lucide-react';
+import { Plus, FileText, QrCode, Banknote } from 'lucide-react';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
@@ -16,6 +16,7 @@ export function Payments() {
   const { checkSubscription } = useSubscriptionGuard();
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ workerId: '', amount: '', dueDate: '' });
+  const [viewUpi, setViewUpi] = useState<string | null>(null);
 
   const openAdd = () => {
     if (!checkSubscription()) return;
@@ -96,10 +97,17 @@ export function Payments() {
                     <div className="flex items-center justify-end gap-2">
                       {payment.status !== 'paid' && (
                         <div className="flex gap-2">
-                          <Button size="sm" onClick={() => markPaymentPaid(payment.id)}>Mark as Paid</Button>
-                          <Button size="sm" variant="outline" className="text-blue-500 border-blue-500/30 hover:bg-blue-50" onClick={() => alert("Online bank transfer feature is being activated for your account. Please use 'Mark as Paid' for now.")}>
-                            Pay Online
+                          <Button size="sm" onClick={() => markPaymentPaid(payment.id, 'online')}>
+                            Mark as Paid
                           </Button>
+                          <Button size="sm" variant="outline" className="text-green-500 border-green-500/30 hover:bg-green-50" onClick={() => markPaymentPaid(payment.id, 'cash')}>
+                            <Banknote size={14} /> Pay via Cash
+                          </Button>
+                          {companyWorkers.find(w => w.id === payment.workerId)?.paymentUpiId && (
+                            <Button size="sm" variant="outline" className="text-blue-500 border-blue-500/30 hover:bg-blue-50" onClick={() => setViewUpi(payment.workerId)}>
+                              <QrCode size={14} /> View UPI Info
+                            </Button>
+                          )}
                         </div>
                       )}
 
@@ -126,6 +134,22 @@ export function Payments() {
             <Button className="flex-1" onClick={handleAdd}>Add Payment</Button>
             <Button variant="outline" className="flex-1" onClick={() => setShowModal(false)}>Cancel</Button>
           </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={!!viewUpi} onClose={() => setViewUpi(null)} title="Worker UPI Info">
+        <div className="text-center p-6 space-y-4">
+          <div className="w-20 h-20 bg-[var(--primary)]/10 text-[var(--primary)] rounded-full flex items-center justify-center mx-auto mb-2">
+            <QrCode size={40} />
+          </div>
+          <h3 className="text-lg font-bold text-[var(--text)]">{getWorkerName(viewUpi || '')}</h3>
+          <p className="text-[var(--text-muted)] text-sm">Please use the UPI ID below in any payment app (PhonePe, GPay, Paytm) to transfer the salary.</p>
+          
+          <div className="p-4 bg-[var(--bg)] border border-[var(--border)] rounded-xl font-mono text-lg font-bold tracking-wider mt-4 text-[var(--text)] select-all break-all">
+            {companyWorkers.find(w => w.id === viewUpi)?.paymentUpiId || 'Not set'}
+          </div>
+
+          <Button className="w-full mt-4" onClick={() => setViewUpi(null)}>Done</Button>
         </div>
       </Modal>
     </div>
