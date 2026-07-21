@@ -10,7 +10,7 @@ export function SuperAdminPayments() {
   const [search, setSearch] = useState('');
 
   const subscriptionPayments = companies
-    .filter((c) => c.subscription && c.name.toLowerCase().includes(search.toLowerCase()))
+    .filter((c) => c.subscription && (c.name || '').toLowerCase().includes(search.toLowerCase()))
     .map((c) => {
       let amount = c.subscriptionPrice;
       if (amount === undefined || amount === null) {

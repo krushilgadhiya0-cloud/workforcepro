@@ -15,9 +15,9 @@ export function SuperAdminCompanies() {
   const [newPlan, setNewPlan] = useState<'free' | 'starter' | 'pro' | 'enterprise' | 'trial' | 'none'>('none');
 
   const filtered = companies.filter((c) => 
-    c.name.toLowerCase().includes(search.toLowerCase()) || 
-    c.industry.toLowerCase().includes(search.toLowerCase()) ||
-    c.ownerName.toLowerCase().includes(search.toLowerCase())
+    (c.name || '').toLowerCase().includes(search.toLowerCase()) || 
+    (c.industry || '').toLowerCase().includes(search.toLowerCase()) ||
+    (c.ownerName || '').toLowerCase().includes(search.toLowerCase())
   );
 
   const company = companies.find((c) => c.id === viewId);
@@ -31,6 +31,17 @@ export function SuperAdminCompanies() {
   });
 
 
+
+  const calculateRemainingDays = (c: any) => {
+    if (!c.subscriptionDate || !c.subscription) return null;
+    const start = new Date(c.subscriptionDate);
+    const now = new Date();
+    const end = new Date(start);
+    end.setDate(start.getDate() + 30);
+    const diff = end.getTime() - now.getTime();
+    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+    return Math.max(0, days);
+  };
 
   return (
     <div>
@@ -75,7 +86,11 @@ export function SuperAdminCompanies() {
                 <div className="flex items-center gap-2"><MapPin size={14} /> {c.address || 'No address'}</div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 mb-4">
+              <div className="grid grid-cols-4 gap-2 mb-4">
+                <div className="p-2 rounded-lg bg-[var(--border)]/20 text-center">
+                  <p className="text-xs text-[var(--text-muted)]">Days Left</p>
+                  <p className="font-semibold text-sm text-[var(--primary)]">{calculateRemainingDays(c) !== null ? calculateRemainingDays(c) : '—'}</p>
+                </div>
                 <div className="p-2 rounded-lg bg-[var(--border)]/20 text-center">
                   <Users size={14} className="mx-auto mb-1 text-[var(--primary)]" />
                   <p className="text-xs text-[var(--text-muted)]">Workers</p>
