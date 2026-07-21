@@ -70,6 +70,10 @@ export function Payments() {
     });
   };
 
+  const upiId = companyWorkers.find(w => w.id === viewUpi)?.paymentUpiId || '';
+  const workerName = getWorkerName(viewUpi || '');
+  const upiLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(workerName)}&cu=INR`;
+
   return (
     <div>
       <PageHeader title="Worker Payments" subtitle="Manage salary payments" action={<Button onClick={openAdd}><Plus size={18} /> Add Payment</Button>} showBack={false} />
@@ -139,14 +143,29 @@ export function Payments() {
 
       <Modal isOpen={!!viewUpi} onClose={() => setViewUpi(null)} title="Worker UPI Info">
         <div className="text-center p-6 space-y-4">
-          <div className="w-20 h-20 bg-[var(--primary)]/10 text-[var(--primary)] rounded-full flex items-center justify-center mx-auto mb-2">
-            <QrCode size={40} />
+          <div className="hidden md:flex flex-col items-center justify-center">
+            <img 
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiLink)}`} 
+              alt="UPI QR Code" 
+              className="w-[200px] h-[200px] rounded-xl shadow-sm border border-slate-200 mb-4 bg-white p-2"
+            />
+            <h3 className="text-lg font-bold text-[var(--text)]">{workerName}</h3>
+            <p className="text-[var(--text-muted)] text-sm">Scan this QR code from any UPI app to transfer the salary.</p>
           </div>
-          <h3 className="text-lg font-bold text-[var(--text)]">{getWorkerName(viewUpi || '')}</h3>
-          <p className="text-[var(--text-muted)] text-sm">Please use the UPI ID below in any payment app (PhonePe, GPay, Paytm) to transfer the salary.</p>
+
+          <div className="md:hidden space-y-4">
+            <div className="w-20 h-20 bg-[var(--primary)]/10 text-[var(--primary)] rounded-full flex items-center justify-center mx-auto mb-2">
+              <QrCode size={40} />
+            </div>
+            <h3 className="text-lg font-bold text-[var(--text)]">{workerName}</h3>
+            <p className="text-[var(--text-muted)] text-sm">Tap the button below to directly open a UPI app on your device.</p>
+            <a href={upiLink} target="_blank" rel="noopener noreferrer" className="mt-4 flex w-full items-center justify-center gap-2 bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white px-4 py-3 rounded-xl font-bold transition-all shadow-lg active:scale-95">
+              <QrCode size={18} /> Pay Directly via UPI App
+            </a>
+          </div>
           
-          <div className="p-4 bg-[var(--bg)] border border-[var(--border)] rounded-xl font-mono text-lg font-bold tracking-wider mt-4 text-[var(--text)] select-all break-all">
-            {companyWorkers.find(w => w.id === viewUpi)?.paymentUpiId || 'Not set'}
+          <div className="p-4 bg-[var(--bg)] border border-[var(--border)] rounded-xl font-mono text-lg font-bold tracking-wider mt-4 text-[var(--text)] select-all break-all text-center">
+            {upiId || 'Not set'}
           </div>
 
           <Button className="w-full mt-4" onClick={() => setViewUpi(null)}>Done</Button>
