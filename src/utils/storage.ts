@@ -20,7 +20,8 @@ export function matchesSuperAdminLogin(email: string, password: string): boolean
 }
 
 export const defaultData: AppData = defaultAppData;
-export const API_URL = import.meta.env.VITE_API_URL || '/api/data';
+import { getApiBase } from './apiConfig';
+export const API_URL = import.meta.env.VITE_API_URL || `${getApiBase()}/api/data`;
 
 export type SyncState = 'idle' | 'syncing' | 'synced' | 'offline';
 

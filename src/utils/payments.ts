@@ -1,4 +1,5 @@
 import type { SubscriptionPlan } from '../types';
+import { getApiBase } from './apiConfig';
 
 export interface CheckoutDetails {
   companyId: string;
@@ -57,7 +58,7 @@ async function parseJsonResponse<T>(res: Response): Promise<T> {
 
 export async function fetchPaymentStatus(): Promise<PaymentStatus> {
   try {
-    const res = await fetch('/api/payment-status');
+    const res = await fetch(getApiBase() + '/api/payment-status');
     return parseJsonResponse<PaymentStatus>(res);
   } catch {
     return {
@@ -95,7 +96,7 @@ export async function startSubscriptionCheckout(
     throw new Error(status.message || 'Razorpay is not connected yet.');
   }
 
-  const orderRes = await fetch('/api/create-order', {
+  const orderRes = await fetch(getApiBase() + '/api/create-order', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -141,7 +142,7 @@ export async function startSubscriptionCheckout(
       theme: { color: '#2563eb' },
       handler: async (response) => {
         try {
-          const verifyRes = await fetch('/api/verify-payment', {
+          const verifyRes = await fetch(getApiBase() + '/api/verify-payment', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(response),

@@ -38,12 +38,14 @@ import { Communication } from './pages/Communication';
 import { PrivateMessages } from './pages/PrivateMessages';
 import { SuperAdminCommunicationList } from './pages/superadmin/SuperAdminCommunicationList';
 import { SuperAdminCommunicationDetail } from './pages/superadmin/SuperAdminCommunicationDetail';
+import { InstallPrompt } from './components/InstallPrompt';
 
 function App() {
   return (
     <ThemeProvider>
       <DataProvider>
         <BrowserRouter>
+          <InstallPrompt />
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/contact" element={<Contact />} />

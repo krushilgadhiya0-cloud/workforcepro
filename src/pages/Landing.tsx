@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ListTodo, Users, CreditCard, CalendarOff, BarChart3, Shield,
-  ArrowRight, Sparkles, Sun, Moon, Crown,
+  ArrowRight, Sparkles, Sun, Moon, Crown, Download
 } from 'lucide-react';
+import { useInstallPrompt } from '../components/InstallPrompt';
+import pkg from '../../package.json';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
@@ -30,6 +32,7 @@ const industries = [
 export function Landing() {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+  const { canInstall, install } = useInstallPrompt();
   const { register, createCompany, subscribe, currentUserId, users } = useData();
   const currentUser = users.find(u => u.id === currentUserId);
 
@@ -117,6 +120,11 @@ export function Landing() {
           </Link>
           <div className="hidden md:flex items-center gap-6">
             <Link to="/contact" className="text-sm font-medium text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors">Contact Us</Link>
+            {canInstall && (
+              <button onClick={() => void install()} className="flex items-center gap-1.5 text-sm font-bold text-[var(--primary)] hover:opacity-80 transition-opacity">
+                <Download size={16} /> Install App (v{pkg.version})
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-[var(--border)]/50 transition-colors cursor-pointer">

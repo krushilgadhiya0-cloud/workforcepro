@@ -10,6 +10,7 @@ import { useData } from '../contexts/DataContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useEmailValidation } from '../hooks/useEmailValidation';
 import { validatePasswordStrength, type PasswordStrength } from '../utils/password';
+import { getApiBase } from '../utils/apiConfig';
 
 import { fireCelebration } from '../utils/confetti';
 
@@ -136,7 +137,7 @@ export function Login() {
       }
 
       // Send Real OTP
-      const res = await fetch('/api/send-otp', {
+      const res = await fetch(getApiBase() + '/api/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: form.email }),
@@ -166,7 +167,7 @@ export function Login() {
     setError('');
     try {
       // Verify OTP and Send Welcome Email
-      const res = await fetch('/api/verify-otp', {
+      const res = await fetch(getApiBase() + '/api/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: form.email, otp, name: form.name }),
@@ -208,7 +209,7 @@ export function Login() {
         throw new Error('Account not found.');
       }
 
-      const res = await fetch('/api/send-otp', {
+      const res = await fetch(getApiBase() + '/api/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: forgotEmail.toLowerCase().trim() }),
@@ -234,7 +235,7 @@ export function Login() {
     setForgotLoading(true);
     setForgotError('');
     try {
-      const res = await fetch('/api/verify-otp', {
+      const res = await fetch(getApiBase() + '/api/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: forgotEmail.toLowerCase().trim(), otp: forgotOtp }),

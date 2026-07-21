@@ -80,6 +80,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [syncError, setSyncError] = useState('');
   const syncLockRef = useRef(false);
   const sessionRef = useRef({ currentUserId: null as string | null, currentCompanyId: null as string | null });
+  const notifiedIdsRef = useRef(new Set<string>());
+  const isLoadedRef = useRef(false);
 
   const updateSyncStatus = useCallback(() => {
     const { state, error } = getSyncState();
@@ -98,12 +100,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const fallbackTimer = setTimeout(() => setLoading(false), 8000);
     loadData()
       .then((loaded) => {
+        if (!isLoadedRef.current) {
+          loaded.notifications.forEach(n => notifiedIdsRef.current.add(n.id));
+          isLoadedRef.current = true;
+        }
         setData(loaded);
         updateSyncStatus();
       })
 
       .catch(() => {
         const local = ensureSuperAdminFromStorage(getLocalData());
+        if (!isLoadedRef.current) {
+          local.notifications.forEach(n => notifiedIdsRef.current.add(n.id));
+          isLoadedRef.current = true;
+        }
         setData(local);
         updateSyncStatus();
       })
@@ -154,6 +164,33 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval);
 
   }, [updateSyncStatus]);
+
+  // Native OS Push Notifications
+  useEffect(() => {
+    if (!data.currentUserId || !isLoadedRef.current) return;
+    
+    const currentUser = data.users.find(u => u.id === data.currentUserId);
+    
+    data.notifications.forEach(n => {
+      const isMine = n.userId === data.currentUserId || (currentUser?.role === 'superadmin' && n.userId === SUPER_ADMIN_ID);
+      
+      if (isMine && !n.read && !notifiedIdsRef.current.has(n.id)) {
+        notifiedIdsRef.current.add(n.id);
+        
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+          if (Notification.permission === 'granted') {
+            new window.Notification(n.title, { body: n.message, icon: '/logo.png' });
+          } else if (Notification.permission !== 'denied') {
+            Notification.requestPermission().then(permission => {
+              if (permission === 'granted') {
+                new window.Notification(n.title, { body: n.message, icon: '/logo.png' });
+              }
+            });
+          }
+        }
+      }
+    });
+  }, [data.notifications, data.currentUserId, data.users]);
 
   const appendNotification = (d: AppData, notif: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
     d.notifications.push({ ...notif, id: generateId(), read: false, createdAt: new Date().toISOString() });

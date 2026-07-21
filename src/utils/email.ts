@@ -4,6 +4,7 @@ export interface EmailValidationResult {
   message?: string;
   suggestion?: string;
 }
+import { getApiBase } from './apiConfig';
 
 const EMAIL_REGEX =
   /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
@@ -89,7 +90,7 @@ export async function verifyEmailDeliverability(email: string): Promise<EmailVal
   if (!format.valid) return format;
 
   try {
-    const res = await fetch('/api/verify-email', {
+    const res = await fetch(getApiBase() + '/api/verify-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: format.normalized }),
@@ -115,7 +116,7 @@ export async function verifyEmailDeliverability(email: string): Promise<EmailVal
 
 export async function sendWelcomeEmail(email: string, name: string, password?: string): Promise<boolean> {
   try {
-    const res = await fetch('/api/send-welcome', {
+    const res = await fetch(getApiBase() + '/api/send-welcome', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, name, password }),
