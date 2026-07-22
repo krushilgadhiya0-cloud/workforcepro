@@ -10,6 +10,12 @@ import {
 } from '../utils/storage';
 import { assertValidEmailFormat, sendWelcomeEmail } from '../utils/email';
 import { generateAIResponse } from '../utils/ai';
+import {
+  removeAdminFromData,
+  removeCompanyFromData,
+  removeUserFromData,
+  removeWorkerFromData,
+} from '../../lib/cascade-delete';
 interface DataContextType extends AppData {
   syncState: SyncState;
   syncError: string;
@@ -79,6 +85,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [syncState, setSyncState] = useState<SyncState>('idle');
   const [syncError, setSyncError] = useState('');
   const syncLockRef = useRef(false);
+  const dataRef = useRef(data);
   const sessionRef = useRef({ currentUserId: null as string | null, currentCompanyId: null as string | null });
   const notifiedIdsRef = useRef(new Set<string>());
   const isLoadedRef = useRef(false);
@@ -90,11 +97,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    dataRef.current = data;
     sessionRef.current = {
       currentUserId: data.currentUserId,
       currentCompanyId: data.currentCompanyId,
     };
-  }, [data.currentUserId, data.currentCompanyId]);
+  }, [data, data.currentUserId, data.currentCompanyId]);
 
   useEffect(() => {
     const fallbackTimer = setTimeout(() => setLoading(false), 8000);
@@ -125,48 +133,54 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const persist = useCallback(async (newData: AppData) => {
     const session = { currentUserId: newData.currentUserId, currentCompanyId: newData.currentCompanyId };
+    const previous = dataRef.current;
     syncLockRef.current = true;
+    setData({ ...newData, ...session });
     try {
       const saved = await saveData(newData);
       setData({ ...saved, ...session });
       updateSyncStatus();
     } catch (error) {
+      setData(previous);
       console.error('Persist failed:', error);
       updateSyncStatus();
       throw error;
     } finally {
-      setTimeout(() => { syncLockRef.current = false; }, 5000);
+      syncLockRef.current = false;
     }
   }, [updateSyncStatus]);
 
   const refresh = useCallback(async (): Promise<AppData> => {
+    if (syncLockRef.current) {
+      return { ...getLocalData(), ...sessionRef.current };
+    }
     const synced = await syncFromServer(sessionRef.current);
     updateSyncStatus();
-    setData(synced);
+    if (!syncLockRef.current) {
+      setData(synced);
+    }
     return synced;
   }, [updateSyncStatus]);
 
-  // Background Sync for real-time updates
   useEffect(() => {
     const interval = setInterval(async () => {
       if (syncLockRef.current) return;
-      
+
       try {
         const refreshed = await loadData();
         if (!refreshed || syncLockRef.current) return;
 
-        setData(current => ({
+        setData((current) => ({
           ...refreshed,
           currentUserId: current.currentUserId,
-          currentCompanyId: current.currentCompanyId
+          currentCompanyId: current.currentCompanyId,
         }));
         updateSyncStatus();
       } catch (e) {
         console.warn('Background sync failed', e);
       }
-    }, 1500);
+    }, 5000);
     return () => clearInterval(interval);
-
   }, [updateSyncStatus]);
 
   // Native OS Push Notifications
@@ -246,18 +260,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
     if (d.activities.length > 500) d.activities.length = 500;
   };
-
-  useEffect(() => {
-    const userId = data.currentUserId;
-    if (!userId) return;
-    const user = data.users.find((u) => u.id === userId);
-    if (user?.role !== 'superadmin') return;
-
-    const interval = setInterval(() => {
-      void refresh();
-    }, 8000);
-    return () => clearInterval(interval);
-  }, [data.currentUserId, data.users, refresh]);
 
   const addNotification = useCallback(async (notif: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
     setData(prev => {
@@ -452,75 +454,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const removeCompany = useCallback((companyId: string, password: string): boolean => {
     const company = data.companies.find((c) => c.id === companyId);
     if (!company || company.ownerPassword !== password) return false;
-    const d = { ...data };
-    d.companies = d.companies.filter((c) => c.id !== companyId);
-    d.admins = d.admins.filter((a) => a.companyId !== companyId);
-    d.workers = d.workers.filter((w) => w.companyId !== companyId);
-    d.tasks = d.tasks.filter((t) => t.companyId !== companyId);
-    d.leaves = d.leaves.filter((l) => l.companyId !== companyId);
-    d.payments = d.payments.filter((p) => p.companyId !== companyId);
-    if (d.currentCompanyId === companyId) d.currentCompanyId = d.companies[0]?.id || null;
-    persist(d);
+    const d = removeCompanyFromData(data, companyId);
+    if (data.currentCompanyId === companyId && data.currentUserId) {
+      const remaining = d.companies.find((c) => c.ownerId === data.currentUserId);
+      d.currentCompanyId = remaining?.id ?? null;
+    }
+    void persist(d);
     return true;
   }, [data, persist]);
 
   const removeCompanyAsSuperAdmin = useCallback((companyId: string) => {
-    const d = { ...data };
-    d.companies = d.companies.filter((c) => c.id !== companyId);
-    d.admins = d.admins.filter((a) => a.companyId !== companyId);
-    d.workers = d.workers.filter((w) => w.companyId !== companyId);
-    d.users = d.users.filter((u) => u.companyId !== companyId);
-    d.tasks = d.tasks.filter((t) => t.companyId !== companyId);
-    d.leaves = d.leaves.filter((l) => l.companyId !== companyId);
-    d.payments = d.payments.filter((p) => p.companyId !== companyId);
-    d.messages = d.messages.filter((m) => m.companyId !== companyId);
-    d.dailyRevenue = d.dailyRevenue.filter((r) => r.companyId !== companyId);
-    if (d.currentCompanyId === companyId) d.currentCompanyId = null;
-    setData(d); // Update UI immediately
-    persist(d);
+    void persist(removeCompanyFromData(data, companyId));
   }, [data, persist]);
 
   const removeUserAsSuperAdmin = useCallback((userId: string): boolean => {
-    const user = data.users.find((u) => u.id === userId);
-    if (!user || user.role === 'superadmin') return false;
-
-    const d = { ...data };
-
-    if (user.role === 'admin') {
-      d.admins = d.admins.filter((a) => a.userId !== userId);
-    } else if (user.role === 'worker') {
-      const worker = d.workers.find((w) => w.userId === userId);
-      if (worker) {
-        d.workers = d.workers.filter((w) => w.id !== worker.id);
-        d.tasks = d.tasks.filter((t) => t.workerId !== worker.id);
-        d.leaves = d.leaves.filter((l) => l.workerId !== worker.id);
-        d.payments = d.payments.filter((p) => p.workerId !== worker.id);
-      }
-    } else if (user.role === 'owner') {
-      const companyIds = d.companies.filter((c) => c.ownerId === userId).map((c) => c.id);
-      companyIds.forEach((companyId) => {
-        d.companies = d.companies.filter((c) => c.id !== companyId);
-        d.admins = d.admins.filter((a) => a.companyId !== companyId);
-        d.workers = d.workers.filter((w) => w.companyId !== companyId);
-        d.tasks = d.tasks.filter((t) => t.companyId !== companyId);
-        d.leaves = d.leaves.filter((l) => l.companyId !== companyId);
-        d.payments = d.payments.filter((p) => p.companyId !== companyId);
-        d.messages = d.messages.filter((m) => m.companyId !== companyId);
-        d.dailyRevenue = d.dailyRevenue.filter((r) => r.companyId !== companyId);
-        d.users = d.users.filter((u) => u.companyId !== companyId);
-        if (d.currentCompanyId === companyId) d.currentCompanyId = null;
-      });
-    }
-
-    d.users = d.users.filter((u) => u.id !== userId);
-    d.notifications = d.notifications.filter((n) => n.userId !== userId);
-    if (d.currentUserId === userId) {
-      d.currentUserId = null;
-      d.currentCompanyId = null;
-    }
-
-    setData(d); // Update UI immediately
-    persist(d);
+    const d = removeUserFromData(data, userId);
+    if (!d) return false;
+    void persist(d);
     return true;
   }, [data, persist]);
 
@@ -601,13 +551,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [data, persist]);
 
   const deleteAdmin = useCallback((id: string) => {
-    const admin = data.admins.find((a) => a.id === id);
-    if (admin) {
-      const d = { ...data };
-      d.users = d.users.filter((u) => u.id !== admin.userId);
-      d.admins = d.admins.filter((a) => a.id !== id);
-      persist(d);
-    }
+    const d = removeAdminFromData(data, id);
+    if (d) void persist(d);
   }, [data, persist]);
 
   const addWorker = useCallback((workerData: Omit<Worker, 'id' | 'createdAt' | 'userId' | 'attendanceStatus'> & { password: string }): Worker | null => {
@@ -690,17 +635,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [data, persist]);
 
   const deleteWorker = useCallback((id: string) => {
-    const worker = data.workers.find((w) => w.id === id);
-    if (worker) {
-      const d = { ...data };
-      d.users = d.users.filter((u) => u.id !== worker.userId);
-      d.workers = d.workers.filter((w) => w.id !== id);
-      d.tasks = d.tasks.filter((t) => t.workerId !== id);
-      d.leaves = d.leaves.filter((l) => l.workerId !== id);
-      d.payments = d.payments.filter((p) => p.workerId !== id);
-      setData(d);
-      persist(d);
-    }
+    void persist(removeWorkerFromData(data, id));
   }, [data, persist]);
 
   const addTask = useCallback((taskData: Omit<Task, 'id' | 'createdAt' | 'status'>) => {

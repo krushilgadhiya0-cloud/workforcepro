@@ -157,14 +157,8 @@ export async function syncFromServer(
 export async function saveData(data: AppData): Promise<AppData> {
   setSyncState('syncing');
   const persisted = stripSession(data);
-
-  // We ensure localData kept in localStorage HAS the session
   const session = { currentUserId: data.currentUserId, currentCompanyId: data.currentCompanyId };
-  const localDataWithSession = ensureSuperAdminFromStorage({ ...persisted, ...session });
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(localDataWithSession));
-
-  // The finalData sent to cloud is stripped
-  const finalData = stripSession(localDataWithSession);
+  const finalData = stripSession(ensureSuperAdminFromStorage({ ...persisted, ...session }));
 
   try {
     const res = await fetchWithTimeout(API_URL, {
@@ -183,18 +177,13 @@ export async function saveData(data: AppData): Promise<AppData> {
       throw new Error(message);
     }
 
-    if (result?.data) {
-      const serverData = normalizeAppData(result.data);
-      // We merge with local session before saving to localStorage
-      const session = { currentUserId: data.currentUserId, currentCompanyId: data.currentCompanyId };
-      const localWithSession = { ...serverData, ...session };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(localWithSession));
-      setSyncState('synced');
-      return localWithSession;
-    }
-
+    const serverData = result?.data
+      ? normalizeAppData(result.data)
+      : finalData;
+    const localWithSession = { ...serverData, ...session };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(localWithSession));
     setSyncState('synced');
-    return localDataWithSession;
+    return localWithSession;
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Cloud save failed';
     setSyncState('offline', message);
