@@ -124,31 +124,13 @@ export function Landing() {
       <nav className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-[var(--border)]">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
-            <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-white shadow-sm border border-[var(--border)]">
+            <div className="w-14 h-14 rounded-xl overflow-hidden flex items-center justify-center bg-white shadow-sm border border-[var(--border)]">
               <img src="/logo.png" alt="WorkForce Pro Logo" className="w-full h-full object-cover" />
             </div>
             <span className="text-xl font-bold gradient-text">WorkForce Pro</span>
           </Link>
           <div className="hidden md:flex items-center gap-6">
             <Link to="/contact" className="text-sm font-medium text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors">Contact Us</Link>
-            <a
-              href={LINKEDIN_URL}
-              target="_blank"
-              rel="noreferrer"
-              aria-label="Open LinkedIn profile"
-              className="text-[var(--text-muted)] hover:text-[#0A66C2] transition-colors"
-            >
-              <LinkedInIcon size={18} />
-            </a>
-            <a
-              href={WHATSAPP_URL}
-              target="_blank"
-              rel="noreferrer"
-              aria-label="Open WhatsApp chat"
-              className="text-[var(--text-muted)] hover:text-[#25D366] transition-colors"
-            >
-              <MessageCircle size={18} />
-            </a>
             {canInstall && (
               <button onClick={() => void install()} className="flex items-center gap-1.5 text-sm font-bold text-[var(--primary)] hover:opacity-80 transition-opacity">
                 <Download size={16} /> Install App (v{pkg.version})
@@ -180,6 +162,27 @@ export function Landing() {
         </div>
       </nav>
 
+      <div className="fixed right-6 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-3">
+        <a
+          href={LINKEDIN_URL}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Open LinkedIn profile"
+          className="p-3 rounded-full border border-[var(--border)] bg-[var(--card)]/70 backdrop-blur hover:border-[#0A66C2] hover:text-[#0A66C2] transition-colors shadow-sm"
+        >
+          <LinkedInIcon size={20} />
+        </a>
+        <a
+          href={WHATSAPP_URL}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Open WhatsApp chat"
+          className="p-3 rounded-full border border-[var(--border)] bg-[var(--card)]/70 backdrop-blur hover:border-[#25D366] hover:text-[#25D366] transition-colors shadow-sm"
+        >
+          <MessageCircle size={20} />
+        </a>
+      </div>
+
       <section className="relative pt-32 pb-20 px-6 overflow-hidden">
         <div className="absolute inset-0 animate-gradient opacity-10" style={{ background: 'linear-gradient(135deg, #2563eb, #06b6d4, #7c3aed, #a855f7)' }} />
         <div className="absolute top-20 right-10 w-72 h-72 rounded-full bg-[var(--primary)]/10 blur-3xl animate-float" />
@@ -204,26 +207,6 @@ export function Landing() {
               <Button variant="outline" size="lg" onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}>
                 Learn More
               </Button>
-            </div>
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
-              <a
-                href={LINKEDIN_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--card)]/70 px-4 py-2 text-sm text-[var(--text)] hover:border-[#0A66C2] hover:text-[#0A66C2] transition-colors"
-              >
-                <LinkedInIcon size={18} />
-                LinkedIn
-              </a>
-              <a
-                href={WHATSAPP_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--card)]/70 px-4 py-2 text-sm text-[var(--text)] hover:border-[#25D366] hover:text-[#25D366] transition-colors"
-              >
-                <MessageCircle size={18} />
-                WhatsApp
-              </a>
             </div>
           </div>
 
@@ -265,15 +248,7 @@ export function Landing() {
 
       <footer className="border-t border-[var(--border)] py-8 px-6 text-center text-sm text-[var(--text-muted)]">
         <p className="mb-2">© 2026 WorkForce Pro. All rights reserved.</p>
-        <div className="flex items-center justify-center gap-4">
-          <Link to="/contact" className="hover:text-[var(--primary)] transition-colors">Contact Support</Link>
-          <a href={LINKEDIN_URL} target="_blank" rel="noreferrer" aria-label="Open LinkedIn profile" className="hover:text-[#0A66C2] transition-colors">
-            <LinkedInIcon size={18} />
-          </a>
-          <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" aria-label="Open WhatsApp chat" className="hover:text-[#25D366] transition-colors">
-            <MessageCircle size={18} />
-          </a>
-        </div>
+        <Link to="/contact" className="hover:text-[var(--primary)] transition-colors">Contact Support</Link>
       </footer>
 
       <Modal isOpen={showBusiness} onClose={() => { setShowBusiness(false); setBusinessError(''); }} title="Create Business">

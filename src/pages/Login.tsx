@@ -353,33 +353,34 @@ export function Login() {
       </div>
 
       <div className="flex-1 flex flex-col relative">
+        <div className="fixed right-6 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-3">
+          <a
+            href={LINKEDIN_URL}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Open LinkedIn profile"
+            className="p-3 rounded-full border border-[var(--border)] bg-[var(--card)]/50 backdrop-blur hover:border-[#0A66C2] hover:text-[#0A66C2] transition-colors shadow-sm"
+          >
+            <LinkedInIcon size={20} />
+          </a>
+          <a
+            href={WHATSAPP_URL}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Open WhatsApp chat"
+            className="p-3 rounded-full border border-[var(--border)] bg-[var(--card)]/50 backdrop-blur hover:border-[#25D366] hover:text-[#25D366] transition-colors shadow-sm"
+          >
+            <MessageCircle size={20} />
+          </a>
+        </div>
         <div className="flex items-center justify-between p-6 z-10">
           <Link to="/" className="flex items-center gap-2 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--primary)] transition-all bg-[var(--card)]/50 backdrop-blur px-4 py-2 rounded-full border border-[var(--border)]">
+            <img src="/logo.png" alt="WorkForce Pro Logo" className="w-7 h-7 rounded-lg object-cover" />
             <ArrowLeft size={16} /> Back to Home
           </Link>
-          <div className="flex items-center gap-3">
-            <a
-              href={LINKEDIN_URL}
-              target="_blank"
-              rel="noreferrer"
-              aria-label="Open LinkedIn profile"
-              className="p-3 rounded-full bg-[var(--card)]/50 backdrop-blur border border-[var(--border)] hover:text-[#0A66C2] transition-all shadow-sm"
-            >
-              <LinkedInIcon size={20} />
-            </a>
-            <a
-              href={WHATSAPP_URL}
-              target="_blank"
-              rel="noreferrer"
-              aria-label="Open WhatsApp chat"
-              className="p-3 rounded-full bg-[var(--card)]/50 backdrop-blur border border-[var(--border)] hover:text-[#25D366] transition-all shadow-sm"
-            >
-              <MessageCircle size={20} />
-            </a>
-            <button onClick={toggleTheme} className="p-3 rounded-full bg-[var(--card)]/50 backdrop-blur border border-[var(--border)] hover:bg-[var(--primary)]/5 transition-all cursor-pointer shadow-sm">
-              {theme === 'light' ? <Moon size={20} className="text-slate-600" /> : <Sun size={20} className="text-amber-400" />}
-            </button>
-          </div>
+          <button onClick={toggleTheme} className="p-3 rounded-full bg-[var(--card)]/50 backdrop-blur border border-[var(--border)] hover:bg-[var(--primary)]/5 transition-all cursor-pointer shadow-sm">
+            {theme === 'light' ? <Moon size={20} className="text-slate-600" /> : <Sun size={20} className="text-amber-400" />}
+          </button>
         </div>
 
         <div className="flex-1 flex items-center justify-center p-8 overflow-y-auto">
@@ -527,26 +528,6 @@ export function Login() {
               )}
 
               <div className="mt-10 pt-8 border-t border-[var(--border)]">
-                <div className="mb-6 flex items-center justify-center gap-3">
-                  <a
-                    href={LINKEDIN_URL}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] px-4 py-3 text-sm font-semibold text-[var(--text)] hover:border-[#0A66C2] hover:text-[#0A66C2] transition-colors"
-                  >
-                    <LinkedInIcon size={18} />
-                    LinkedIn
-                  </a>
-                  <a
-                    href={WHATSAPP_URL}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] px-4 py-3 text-sm font-semibold text-[var(--text)] hover:border-[#25D366] hover:text-[#25D366] transition-colors"
-                  >
-                    <MessageCircle size={18} />
-                    WhatsApp
-                  </a>
-                </div>
                 <Link
                   to="/superadmin/login"
                   className="flex items-center justify-center gap-3 w-full py-4 rounded-2xl text-xs font-black tracking-[0.1em] uppercase text-amber-600 dark:text-amber-400 bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/10 transition-all hover:shadow-lg hover:shadow-amber-500/5"
