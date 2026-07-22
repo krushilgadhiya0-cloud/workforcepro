@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import type { FormEvent } from 'react';
-import { Sparkles, Mail, Lock, Building2, Sun, Moon, ArrowLeft, Shield } from 'lucide-react';
+import { Sparkles, Mail, Lock, Building2, Sun, Moon, ArrowLeft, Shield, MessageCircle } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
@@ -13,6 +13,17 @@ import { validatePasswordStrength, type PasswordStrength } from '../utils/passwo
 import { getApiBase } from '../utils/apiConfig';
 
 import { fireCelebration } from '../utils/confetti';
+
+const LINKEDIN_URL = 'https://www.linkedin.com/in/workforce-pro-aa6050424/';
+const WHATSAPP_URL = 'https://wa.me/919327397851';
+
+function LinkedInIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden="true">
+      <path d="M19 3A2 2 0 0 1 21 5V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H19ZM8.34 17.34V9.83H5.85V17.34H8.34ZM7.09 8.8A1.44 1.44 0 1 0 7.05 5.92A1.44 1.44 0 0 0 7.09 8.8ZM18.15 17.34V13.22C18.15 11 17.67 9.29 15.08 9.29C13.84 9.29 13.01 9.97 12.67 10.62H12.63V9.83H10.25V17.34H12.74V13.62C12.74 12.64 12.93 11.69 14.15 11.69C15.35 11.69 15.37 12.82 15.37 13.68V17.34H18.15Z" />
+    </svg>
+  );
+}
 
 export function Login() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -346,9 +357,29 @@ export function Login() {
           <Link to="/" className="flex items-center gap-2 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--primary)] transition-all bg-[var(--card)]/50 backdrop-blur px-4 py-2 rounded-full border border-[var(--border)]">
             <ArrowLeft size={16} /> Back to Home
           </Link>
-          <button onClick={toggleTheme} className="p-3 rounded-full bg-[var(--card)]/50 backdrop-blur border border-[var(--border)] hover:bg-[var(--primary)]/5 transition-all cursor-pointer shadow-sm">
-            {theme === 'light' ? <Moon size={20} className="text-slate-600" /> : <Sun size={20} className="text-amber-400" />}
-          </button>
+          <div className="flex items-center gap-3">
+            <a
+              href={LINKEDIN_URL}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Open LinkedIn profile"
+              className="p-3 rounded-full bg-[var(--card)]/50 backdrop-blur border border-[var(--border)] hover:text-[#0A66C2] transition-all shadow-sm"
+            >
+              <LinkedInIcon size={20} />
+            </a>
+            <a
+              href={WHATSAPP_URL}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Open WhatsApp chat"
+              className="p-3 rounded-full bg-[var(--card)]/50 backdrop-blur border border-[var(--border)] hover:text-[#25D366] transition-all shadow-sm"
+            >
+              <MessageCircle size={20} />
+            </a>
+            <button onClick={toggleTheme} className="p-3 rounded-full bg-[var(--card)]/50 backdrop-blur border border-[var(--border)] hover:bg-[var(--primary)]/5 transition-all cursor-pointer shadow-sm">
+              {theme === 'light' ? <Moon size={20} className="text-slate-600" /> : <Sun size={20} className="text-amber-400" />}
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 flex items-center justify-center p-8 overflow-y-auto">
@@ -496,6 +527,26 @@ export function Login() {
               )}
 
               <div className="mt-10 pt-8 border-t border-[var(--border)]">
+                <div className="mb-6 flex items-center justify-center gap-3">
+                  <a
+                    href={LINKEDIN_URL}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] px-4 py-3 text-sm font-semibold text-[var(--text)] hover:border-[#0A66C2] hover:text-[#0A66C2] transition-colors"
+                  >
+                    <LinkedInIcon size={18} />
+                    LinkedIn
+                  </a>
+                  <a
+                    href={WHATSAPP_URL}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] px-4 py-3 text-sm font-semibold text-[var(--text)] hover:border-[#25D366] hover:text-[#25D366] transition-colors"
+                  >
+                    <MessageCircle size={18} />
+                    WhatsApp
+                  </a>
+                </div>
                 <Link
                   to="/superadmin/login"
                   className="flex items-center justify-center gap-3 w-full py-4 rounded-2xl text-xs font-black tracking-[0.1em] uppercase text-amber-600 dark:text-amber-400 bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/10 transition-all hover:shadow-lg hover:shadow-amber-500/5"

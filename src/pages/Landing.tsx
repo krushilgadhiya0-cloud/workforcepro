@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ListTodo, Users, CreditCard, CalendarOff, BarChart3, Shield,
-  ArrowRight, Sparkles, Sun, Moon, Crown, Download
+  ArrowRight, Sparkles, Sun, Moon, Crown, Download, MessageCircle
 } from 'lucide-react';
 import { useInstallPrompt } from '../components/InstallPrompt';
 import pkg from '../../package.json';
@@ -28,6 +28,17 @@ const features = [
 const industries = [
   'Technology', 'Retail', 'Manufacturing', 'Healthcare', 'Education', 'Finance', 'Hospitality', 'Other',
 ].map((i) => ({ value: i, label: i }));
+
+const LINKEDIN_URL = 'https://www.linkedin.com/in/workforce-pro-aa6050424/';
+const WHATSAPP_URL = 'https://wa.me/919327397851';
+
+function LinkedInIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden="true">
+      <path d="M19 3A2 2 0 0 1 21 5V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H19ZM8.34 17.34V9.83H5.85V17.34H8.34ZM7.09 8.8A1.44 1.44 0 1 0 7.05 5.92A1.44 1.44 0 0 0 7.09 8.8ZM18.15 17.34V13.22C18.15 11 17.67 9.29 15.08 9.29C13.84 9.29 13.01 9.97 12.67 10.62H12.63V9.83H10.25V17.34H12.74V13.62C12.74 12.64 12.93 11.69 14.15 11.69C15.35 11.69 15.37 12.82 15.37 13.68V17.34H18.15Z" />
+    </svg>
+  );
+}
 
 export function Landing() {
   const navigate = useNavigate();
@@ -120,6 +131,24 @@ export function Landing() {
           </Link>
           <div className="hidden md:flex items-center gap-6">
             <Link to="/contact" className="text-sm font-medium text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors">Contact Us</Link>
+            <a
+              href={LINKEDIN_URL}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Open LinkedIn profile"
+              className="text-[var(--text-muted)] hover:text-[#0A66C2] transition-colors"
+            >
+              <LinkedInIcon size={18} />
+            </a>
+            <a
+              href={WHATSAPP_URL}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Open WhatsApp chat"
+              className="text-[var(--text-muted)] hover:text-[#25D366] transition-colors"
+            >
+              <MessageCircle size={18} />
+            </a>
             {canInstall && (
               <button onClick={() => void install()} className="flex items-center gap-1.5 text-sm font-bold text-[var(--primary)] hover:opacity-80 transition-opacity">
                 <Download size={16} /> Install App (v{pkg.version})
@@ -176,6 +205,26 @@ export function Landing() {
                 Learn More
               </Button>
             </div>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
+              <a
+                href={LINKEDIN_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--card)]/70 px-4 py-2 text-sm text-[var(--text)] hover:border-[#0A66C2] hover:text-[#0A66C2] transition-colors"
+              >
+                <LinkedInIcon size={18} />
+                LinkedIn
+              </a>
+              <a
+                href={WHATSAPP_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--card)]/70 px-4 py-2 text-sm text-[var(--text)] hover:border-[#25D366] hover:text-[#25D366] transition-colors"
+              >
+                <MessageCircle size={18} />
+                WhatsApp
+              </a>
+            </div>
           </div>
 
           <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
@@ -216,7 +265,15 @@ export function Landing() {
 
       <footer className="border-t border-[var(--border)] py-8 px-6 text-center text-sm text-[var(--text-muted)]">
         <p className="mb-2">© 2026 WorkForce Pro. All rights reserved.</p>
-        <Link to="/contact" className="hover:text-[var(--primary)] transition-colors">Contact Support</Link>
+        <div className="flex items-center justify-center gap-4">
+          <Link to="/contact" className="hover:text-[var(--primary)] transition-colors">Contact Support</Link>
+          <a href={LINKEDIN_URL} target="_blank" rel="noreferrer" aria-label="Open LinkedIn profile" className="hover:text-[#0A66C2] transition-colors">
+            <LinkedInIcon size={18} />
+          </a>
+          <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" aria-label="Open WhatsApp chat" className="hover:text-[#25D366] transition-colors">
+            <MessageCircle size={18} />
+          </a>
+        </div>
       </footer>
 
       <Modal isOpen={showBusiness} onClose={() => { setShowBusiness(false); setBusinessError(''); }} title="Create Business">
