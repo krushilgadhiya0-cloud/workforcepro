@@ -1,5 +1,5 @@
 import type { AppData } from '../src/types';
-import { mergeAppData, normalizeAppData } from './data-sync.js';
+import { normalizeAppData } from './data-sync.js';
 import { getKvStore, getRedisEnvStatus, isKvConfigured } from './kv-store.js';
 import { isTcpRedisConfigured } from './redis-tcp-env.js';
 import { isSupabaseConfigured, supabaseAdmin } from './supabase.js';
@@ -84,14 +84,13 @@ async function loadFromBlob(): Promise<AppData | null> {
 
 async function saveToBlob(data: AppData): Promise<AppData> {
   const { put } = await import('@vercel/blob');
-  const existing = await loadFromBlob();
-  const merged = mergeAppData(existing ?? {}, ensureSuperAdminInData(data));
-  await put(BLOB_PATH, JSON.stringify(merged), {
+  const finalData = ensureSuperAdminInData(data);
+  await put(BLOB_PATH, JSON.stringify(finalData), {
     access: 'public',
     addRandomSuffix: false,
     allowOverwrite: true,
   });
-  return merged;
+  return finalData;
 }
 
 async function loadFromSupabase(): Promise<AppData | null> {

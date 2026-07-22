@@ -1,5 +1,5 @@
 import type { AppData } from '../types';
-import { defaultAppData, mergeAppData, normalizeAppData, stripSession } from '../../lib/data-sync';
+import { defaultAppData, normalizeAppData, stripSession } from '../../lib/data-sync';
 
 const STORAGE_KEY = 'workforce_app_data';
 
@@ -130,11 +130,11 @@ export async function loadData(): Promise<AppData> {
 
   let data: AppData;
   if (remote.ok) {
-    // Preserve local session when loading from remote
+    // Remote is authoritative — union-merge resurrected deleted records on background sync
     const session = { currentUserId: local.currentUserId, currentCompanyId: local.currentCompanyId };
     data = remote.data
-      ? { ...mergeAppData(local, remote.data), ...session }
-      : { ...mergeAppData({}, local), ...session };
+      ? { ...normalizeAppData(remote.data), ...session }
+      : { ...local, ...session };
     setSyncState('synced');
   } else {
     data = local;
@@ -157,16 +157,10 @@ export async function syncFromServer(
 export async function saveData(data: AppData): Promise<AppData> {
   setSyncState('syncing');
   const persisted = stripSession(data);
-  const remote = await fetchRemoteData();
-
-  let merged = persisted;
-  if (remote.ok) {
-    merged = mergeAppData(remote.data ?? {}, persisted, 'overwrite');
-  }
 
   // We ensure localData kept in localStorage HAS the session
   const session = { currentUserId: data.currentUserId, currentCompanyId: data.currentCompanyId };
-  const localDataWithSession = ensureSuperAdminFromStorage({ ...merged, ...session });
+  const localDataWithSession = ensureSuperAdminFromStorage({ ...persisted, ...session });
   localStorage.setItem(STORAGE_KEY, JSON.stringify(localDataWithSession));
 
   // The finalData sent to cloud is stripped

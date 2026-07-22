@@ -8,7 +8,7 @@ loadEnv({ override: true });
 import { handleCreateOrder, handleVerifyPayment, handleWebhook } from '../lib/payments/handlers.js';
 import { getPaymentStatus } from '../lib/payments/razorpay.js';
 import { verifyEmailAddress } from '../lib/email/verify.js';
-import { mergeAppData, normalizeAppData } from '../lib/data-sync.js';
+import { normalizeAppData } from '../lib/data-sync.js';
 
 const app = express();
 const PORT = Number(process.env.API_PORT || 3001);
@@ -151,13 +151,9 @@ app.post('/api/data', async (req, res) => {
       return res.json({ ok: true, data: merged, backend });
     }
 
-    let existing = null;
-    if (existsSync(DATA_FILE)) {
-      existing = normalizeAppData(JSON.parse(readFileSync(DATA_FILE, 'utf-8')));
-    }
-    const merged = mergeAppData(existing ?? {}, normalizeAppData(req.body ?? {}));
-    writeFileSync(DATA_FILE, JSON.stringify(merged, null, 2), 'utf-8');
-    res.json({ ok: true, data: merged });
+    const finalData = normalizeAppData(req.body ?? {});
+    writeFileSync(DATA_FILE, JSON.stringify(finalData, null, 2), 'utf-8');
+    res.json({ ok: true, data: finalData });
   } catch (error) {
     console.error('Local API save failed:', error);
     res.status(500).json({ error: 'Failed to save data' });
