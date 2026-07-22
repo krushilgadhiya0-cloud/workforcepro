@@ -129,10 +129,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try {
       const saved = await saveData(newData);
       setData({ ...saved, ...session });
+      updateSyncStatus();
+    } catch (error) {
+      console.error('Persist failed:', error);
+      updateSyncStatus();
+      throw error;
     } finally {
-      setTimeout(() => { syncLockRef.current = false; }, 3000);
+      setTimeout(() => { syncLockRef.current = false; }, 5000);
     }
-    updateSyncStatus();
   }, [updateSyncStatus]);
 
   const refresh = useCallback(async (): Promise<AppData> => {
@@ -501,7 +505,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
         d.tasks = d.tasks.filter((t) => t.companyId !== companyId);
         d.leaves = d.leaves.filter((l) => l.companyId !== companyId);
         d.payments = d.payments.filter((p) => p.companyId !== companyId);
-        d.users = d.users.filter((u) => u.companyId !== companyId); // Remove all users of this company
+        d.messages = d.messages.filter((m) => m.companyId !== companyId);
+        d.dailyRevenue = d.dailyRevenue.filter((r) => r.companyId !== companyId);
+        d.users = d.users.filter((u) => u.companyId !== companyId);
         if (d.currentCompanyId === companyId) d.currentCompanyId = null;
       });
     }

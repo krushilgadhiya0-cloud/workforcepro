@@ -578,29 +578,38 @@ async function fetchAll<T>(table: string, map: (row: Row) => T): Promise<T[]> {
   return (data ?? []).map((row) => map(row as Row));
 }
 
-async function syncTable<T extends { id: string }>(
+async function upsertRows<T extends { id: string }>(
   table: string,
   items: T[],
   toRow: (item: T) => Row,
 ): Promise<void> {
   const rows = items.map(toRow);
-  if (rows.length > 0) {
-    const { error } = await supabaseAdmin.from(table).upsert(rows, { onConflict: 'id' });
-    if (error) throw new Error(`Failed to upsert ${table}: ${error.message}`);
-  }
+  if (rows.length === 0) return;
+  const { error } = await supabaseAdmin.from(table).upsert(rows, { onConflict: 'id' });
+  if (error) throw new Error(`Failed to upsert ${table}: ${error.message}`);
+}
 
+async function pruneRows(table: string, keepIds: Set<string>): Promise<void> {
   const { data: existing, error: selectError } = await supabaseAdmin.from(table).select('id');
   if (selectError) throw new Error(`Failed to read ${table} ids: ${selectError.message}`);
 
-  const keep = new Set(items.map((item) => item.id));
   const toDelete = (existing ?? [])
     .map((row) => String((row as Row).id))
-    .filter((id) => !keep.has(id));
+    .filter((id) => !keepIds.has(id));
 
-  if (toDelete.length > 0) {
-    const { error: deleteError } = await supabaseAdmin.from(table).delete().in('id', toDelete);
-    if (deleteError) throw new Error(`Failed to prune ${table}: ${deleteError.message}`);
-  }
+  if (toDelete.length === 0) return;
+
+  const { error: deleteError } = await supabaseAdmin.from(table).delete().in('id', toDelete);
+  if (deleteError) throw new Error(`Failed to prune ${table}: ${deleteError.message}`);
+}
+
+async function syncTable<T extends { id: string }>(
+  table: string,
+  items: T[],
+  toRow: (item: T) => Row,
+): Promise<void> {
+  await upsertRows(table, items, toRow);
+  await pruneRows(table, new Set(items.map((item) => item.id)));
 }
 
 export async function loadRelationalAppData(): Promise<AppData> {
@@ -675,11 +684,11 @@ export async function saveRelationalAppData(data: AppData): Promise<AppData> {
 
   const attendance = buildAttendanceFromWorkers(finalData.workers);
 
-  // users <-> companies circular FK: users first without company_id, then companies, then link users
+  // Upsert phase (parents before children)
   const usersWithoutCompany = finalData.users.map((u) => ({ ...u, companyId: undefined }));
-  await syncTable('users', usersWithoutCompany, (u) => userToRow({ ...u, companyId: undefined }));
+  await upsertRows('users', usersWithoutCompany, (u) => userToRow({ ...u, companyId: undefined }));
   await syncTable('companies', finalData.companies, companyToRow);
-  await syncTable('users', finalData.users, userToRow);
+  await upsertRows('users', finalData.users, userToRow);
   await syncTable('admins', finalData.admins, adminToRow);
   await syncTable('employees', finalData.workers, workerToRow);
   await syncTable('tasks', finalData.tasks, taskToRow);
@@ -691,6 +700,9 @@ export async function saveRelationalAppData(data: AppData): Promise<AppData> {
   await syncTable('communication_messages', finalData.messages, messageToRow);
   await syncTable('private_messages', finalData.privateMessages, privateMessageToRow);
   await syncTable('daily_revenue', finalData.dailyRevenue, dailyRevenueToRow);
+
+  // Prune users last — child tables must drop FK references first
+  await pruneRows('users', new Set(finalData.users.map((u) => u.id)));
 
   const { error: settingsError } = await supabaseAdmin
     .from('app_settings')
