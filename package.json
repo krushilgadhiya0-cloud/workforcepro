@@ -11,10 +11,14 @@
       "output": "release/"
     },
     "win": {
-      "target": ["nsis"]
+      "target": [
+        "nsis"
+      ]
     },
     "mac": {
-      "target": ["dmg"]
+      "target": [
+        "dmg"
+      ]
     }
   },
   "scripts": {
@@ -24,7 +28,11 @@
     "build": "tsc -b && vite build",
     "build:electron": "tsc -b && vite build && electron-builder",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "migrate:apply-schema": "tsx scripts/apply-schema.ts",
+    "migrate:json-to-tables": "tsx scripts/migrate-json-to-tables.ts",
+    "migrate:verify": "tsx scripts/verify-migration.ts",
+    "migrate:cleanup-json": "tsx scripts/cleanup-json-storage.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -65,6 +73,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "pg": "^8.22.0",
     "tailwindcss": "^4.3.0",
     "tsx": "^4.21.0",
     "typescript": "~6.0.2",

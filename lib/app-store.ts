@@ -4,6 +4,12 @@ import { getKvStore, getRedisEnvStatus, isKvConfigured } from './kv-store.js';
 import { isTcpRedisConfigured } from './redis-tcp-env.js';
 import { isSupabaseConfigured, supabaseAdmin } from './supabase.js';
 import { ensureSuperAdminInData } from './super-admin.js';
+import {
+  isRelationalSupabaseEnabled,
+  loadRelationalAppData,
+  resolveRelationalSupabaseMode,
+  saveRelationalAppData,
+} from './supabase-relational.js';
 
 const KV_KEY = 'workforce:app-data';
 const BLOB_PATH = 'workforce-app-data.json';
@@ -41,6 +47,7 @@ export function getStorageStatus() {
       process.env.SUPER_ADMIN_EMAIL
       || process.env.VITE_SUPER_ADMIN_EMAIL,
     ),
+    relational: isRelationalSupabaseEnabled(),
   };
 }
 
@@ -95,6 +102,10 @@ async function saveToBlob(data: AppData): Promise<AppData> {
 
 async function loadFromSupabase(): Promise<AppData | null> {
   try {
+    if (await resolveRelationalSupabaseMode()) {
+      return await loadRelationalAppData();
+    }
+
     const { data, error } = await supabaseAdmin
       .from(SUPABASE_TABLE)
       .select('data')
@@ -115,6 +126,10 @@ async function loadFromSupabase(): Promise<AppData | null> {
 }
 
 async function saveToSupabase(data: AppData): Promise<AppData> {
+  if (await resolveRelationalSupabaseMode()) {
+    return saveRelationalAppData(data);
+  }
+
   const finalData = ensureSuperAdminInData(data);
   const { error } = await supabaseAdmin
     .from(SUPABASE_TABLE)
